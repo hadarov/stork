@@ -129,16 +129,34 @@ function bornBody(baby: Baby, ctx: AppContext): HTMLElement {
 }
 
 function expectingBody(baby: Baby, ctx: AppContext): HTMLElement {
-  if (!baby.dueDate) {
+  const due = baby.dueDate ? dueCountdown(baby.dueDate, ctx.now) : null;
+
+  // The one button you want the moment the news arrives, so it sits directly
+  // under the countdown rather than behind the edit form.
+  const arrived = el(
+    "button",
+    {
+      class: "primary wide",
+      type: "button",
+      onclick: () => ctx.navigate(`#/born/${encodeURIComponent(baby.id)}`),
+    },
+    "\u{1F389} Just born!",
+  );
+
+  if (!due) {
     return el(
       "div",
-      { class: "hero-stat" },
-      el("span", { class: "hero-number" }, "On the way"),
-      el("span", { class: "hero-sub" }, "Add a due date to start the countdown."),
+      { class: "stack" },
+      el(
+        "div",
+        { class: "hero-stat" },
+        el("span", { class: "hero-number" }, "On the way"),
+        el("span", { class: "hero-sub" }, "Add a due date to start the countdown."),
+      ),
+      arrived,
     );
   }
 
-  const due = dueCountdown(baby.dueDate, ctx.now);
   const progress = Math.max(0, Math.min(1, due.week / 40));
 
   return el(
@@ -165,6 +183,7 @@ function expectingBody(baby: Baby, ctx: AppContext): HTMLElement {
         el("div", { class: "progress-fill", style: `width:${Math.round(progress * 100)}%` }),
       ),
     ),
+    arrived,
     signPanel(due.date, "If they arrive on time"),
     el(
       "p",
@@ -191,14 +210,6 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
     },
     baby.giftSent ? "\u2713 Gift sent" : "Mark gift as sent",
   );
-
-  const remove = async (): Promise<void> => {
-    if (!confirm(`Remove ${displayName(baby)} from your book?`)) return;
-    await ctx.repo.remove(baby.id);
-    await ctx.refresh();
-    ctx.toast("Removed");
-    ctx.navigate("#/");
-  };
 
   return popup({
     title: displayName(baby),
@@ -245,7 +256,15 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
       el(
         "div",
         { class: "danger-zone" },
-        el("button", { class: "quiet danger", type: "button", onclick: () => remove() }, "Remove"),
+        el(
+          "button",
+          {
+            class: "quiet danger",
+            type: "button",
+            onclick: () => ctx.navigate(`#/remove/${encodeURIComponent(baby.id)}`),
+          },
+          "Remove",
+        ),
       ),
     ],
   });

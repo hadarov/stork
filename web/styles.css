@@ -169,6 +169,14 @@ button {
   color: #c2536f;
 }
 
+.primary.danger-fill {
+  background: #c2536f;
+}
+
+.wide {
+  width: 100%;
+}
+
 .primary:active,
 .secondary:active {
   transform: scale(0.97);
@@ -261,7 +269,8 @@ button {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(6.4rem, 1fr));
+  /* Three across at every width, which is what a photo grid should look like. */
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.7rem;
 }
 
@@ -793,6 +802,21 @@ textarea.input {
   padding: 1.1rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* A stacked confirmation dims the page it was opened from. */
+.overlay + .overlay {
+  z-index: 31;
+}
+
+.prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prompt-actions .primary {
+  flex: 1;
 }
 
 @keyframes rise {

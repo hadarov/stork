@@ -305,7 +305,6 @@ export function installDom() {
   set("window", window);
   set("location", location);
   set("history", history);
-  set("confirm", () => true);
   set("alert", () => {});
   set("Blob", class Blob {});
   set("URL", Object.assign(globalThis.URL, {

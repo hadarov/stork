@@ -29,6 +29,11 @@ for: a bump has a due date, a baby has a birthday, and never both. Changing one
 to the other clears the date that no longer applies. Parents are two separate
 fields and only the first is expected.
 
+When the news lands, a bump's page has a **Just born!** button that turns them
+into a baby, offering today's date and letting you pick another. Removing a baby
+asks first, in a popup that stacks over their page so backing out of the
+question leaves you exactly where you were.
+
 ## What it works out for you
 
 Give it a name, whose baby it is, and a date. Everything else is derived:

@@ -18,6 +18,10 @@ export type Route =
   | { name: "add" }
   | { name: "baby"; id: string }
   | { name: "edit"; id: string }
+  /** Asks whether the baby has arrived. Stacks over their page. */
+  | { name: "born"; id: string }
+  /** Confirms a removal. Stacks over their page. */
+  | { name: "remove"; id: string }
   | { name: "settings" };
 
 export function parseRoute(hash: string): Route {
@@ -27,5 +31,7 @@ export function parseRoute(hash: string): Route {
   if (head === "settings") return { name: "settings" };
   if (head === "baby" && param) return { name: "baby", id: decodeURIComponent(param) };
   if (head === "edit" && param) return { name: "edit", id: decodeURIComponent(param) };
+  if (head === "born" && param) return { name: "born", id: decodeURIComponent(param) };
+  if (head === "remove" && param) return { name: "remove", id: decodeURIComponent(param) };
   return { name: "home" };
 }

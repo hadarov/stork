@@ -7,6 +7,7 @@ import { clear, el } from "./dom.ts";
 import { renderEdit } from "./edit.ts";
 import { renderHome } from "./home.ts";
 import { popup } from "./modal.ts";
+import { renderArrival, renderRemoveConfirm } from "./prompts.ts";
 import { renderSettings } from "./settings.ts";
 
 export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void> {
@@ -47,38 +48,47 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
     return { repo, babies, now: new Date(), navigate, back, refresh, toast };
   }
 
-  /** The popup, if any, that belongs over the book on this route. */
-  function overlayFor(route: Route, ctx: AppContext): HTMLElement | null {
-    if (route.name === "home") return null;
-    if (route.name === "add") return renderEdit(ctx, null);
-    if (route.name === "settings") return renderSettings(ctx);
+  /**
+   * The popups over the book on this route, outermost first. Confirmations
+   * return two, so backing out of the question leaves the baby's page open
+   * rather than dumping you back at the grid.
+   */
+  function overlaysFor(route: Route, ctx: AppContext): HTMLElement[] {
+    if (route.name === "home") return [];
+    if (route.name === "add") return [renderEdit(ctx, null)];
+    if (route.name === "settings") return [renderSettings(ctx)];
 
     const baby = babies.find((candidate) => candidate.id === route.id);
     if (!baby) {
       // Reachable from a stale bookmark or after a delete, so it must not throw.
-      return popup({
-        title: "Not here any more",
-        onClose: back,
-        body: [emptyState("Not here any more", "That baby is no longer in your book.")],
-      });
+      return [
+        popup({
+          title: "Not here any more",
+          onClose: back,
+          body: [emptyState("Not here any more", "That baby is no longer in your book.")],
+        }),
+      ];
     }
 
-    return route.name === "edit" ? renderEdit(ctx, baby) : renderDetail(ctx, baby);
+    if (route.name === "edit") return [renderEdit(ctx, baby)];
+    if (route.name === "born") return [renderDetail(ctx, baby), renderArrival(ctx, baby)];
+    if (route.name === "remove") {
+      return [renderDetail(ctx, baby), renderRemoveConfirm(ctx, baby)];
+    }
+    return [renderDetail(ctx, baby)];
   }
 
   function render(): void {
     const ctx = context();
     const route = parseRoute(location.hash);
-    const overlay = overlayFor(route, ctx);
+    const overlays = overlaysFor(route, ctx);
 
     // The book is always underneath, so closing a popup reveals it already
     // drawn rather than rebuilding a screen behind the animation.
     clear(root);
-    root.append(renderHome(ctx));
-    if (overlay) root.append(overlay);
-    root.append(toastNode);
+    root.append(renderHome(ctx), ...overlays, toastNode);
 
-    if (!overlay) window.scrollTo(0, 0);
+    if (overlays.length === 0) window.scrollTo(0, 0);
   }
 
   window.addEventListener("hashchange", render);

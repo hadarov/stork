@@ -12,6 +12,7 @@ import { after, beforeEach, describe, test } from "node:test";
 
 import { byClass, installDom, textOf } from "./dom-stub.mjs";
 
+import { toISODate } from "../src/domain/derive.ts";
 import type { Baby } from "../src/domain/types.ts";
 import type { BabyRepo, MergeResult } from "../src/storage/repo.ts";
 import type { AppContext } from "../src/ui/context.ts";
@@ -25,6 +26,7 @@ const { renderHome } = await import("../src/ui/home.ts");
 const { renderDetail } = await import("../src/ui/detail.ts");
 const { renderEdit } = await import("../src/ui/edit.ts");
 const { renderSettings } = await import("../src/ui/settings.ts");
+const { renderArrival, renderRemoveConfirm } = await import("../src/ui/prompts.ts");
 const { startApp } = await import("../src/ui/app.ts");
 
 /* ------------------------------------------------------------- test rig */
@@ -264,14 +266,96 @@ describe("detail screen", () => {
     assert.match(textOf(renderDetail(local.ctx, baby({ giftSent: true }))), /Gift sent/);
   });
 
-  test("removing a baby confirms, soft deletes and goes home", async () => {
+  test("removing asks first rather than deleting on the spot", async () => {
     const local = makeRig([baby()]);
     const screen = renderDetail(local.ctx, baby());
 
     await byClass(screen, "danger")[0]!.click();
+    assert.equal((await local.repo.list()).length, 1, "nothing should be gone yet");
+    assert.deepEqual(local.routes, ["#/remove/mila"]);
+  });
+
+  test("a bump gets a just-born button, and a baby who is here does not", () => {
+    const bump = baby({ status: "expecting", birthDate: undefined, dueDate: "2026-10-01" });
+    assert.match(textOf(renderDetail(rig.ctx, bump)), /Just born/);
+    assert.doesNotMatch(textOf(renderDetail(rig.ctx, baby())), /Just born/);
+  });
+
+  test("even a bump with no due date can be marked as arrived", () => {
+    const bump = baby({ status: "expecting", birthDate: undefined, dueDate: undefined });
+    assert.match(textOf(renderDetail(rig.ctx, bump)), /Just born/);
+  });
+});
+
+/* ------------------------------------------------------- confirmations */
+
+describe("confirmations", () => {
+  const bump = (): Baby =>
+    baby({ id: "bump", name: "Poppy", status: "expecting", birthDate: undefined, dueDate: "2026-10-01" });
+
+  test("removing names the baby and warns there is no undo", () => {
+    const text = textOf(renderRemoveConfirm(rig.ctx, baby()));
+    assert.match(text, /Mila will be taken out of your book/);
+    assert.match(text, /no undo/);
+  });
+
+  test("confirming soft deletes and returns to the book", async () => {
+    const local = makeRig([baby()]);
+    const screen = renderRemoveConfirm(local.ctx, baby());
+
+    await byClass(screen, "danger-fill")[0]!.click();
     assert.equal((await local.repo.list()).length, 0);
-    assert.equal((await local.repo.listAll())[0]?.deletedAt !== undefined, true);
+    assert.ok((await local.repo.listAll())[0]?.deletedAt, "should be a tombstone, not a hole");
     assert.deepEqual(local.routes, ["#/"]);
+    assert.deepEqual(local.toasts, ["Mila removed"]);
+  });
+
+  test("keeping backs out and changes nothing", async () => {
+    const local = makeRig([baby()]);
+    const screen = renderRemoveConfirm(local.ctx, baby());
+
+    await byClass(screen, "quiet")[0]!.click();
+    assert.equal((await local.repo.list()).length, 1);
+    assert.deepEqual(local.routes, ["back"]);
+  });
+
+  test("the arrival popup offers today, and says so in words", () => {
+    const screen = renderArrival(rig.ctx, bump());
+    assert.equal(findField(screen, "Birthday").value, "2026-09-01");
+    assert.match(textOf(screen), /Born 1 September 2026/);
+  });
+
+  test("confirming turns the bump into a baby and drops the due date", async () => {
+    const local = makeRig([bump()]);
+    const screen = renderArrival(local.ctx, bump());
+
+    await byClass(screen, "primary")[0]!.click();
+
+    const saved = (await local.repo.list())[0]!;
+    assert.equal(saved.status, "born");
+    assert.equal(saved.birthDate, "2026-09-01");
+    assert.equal(saved.dueDate, undefined);
+    assert.deepEqual(local.toasts, ["\u{1F389} Welcome, Poppy!"]);
+    assert.deepEqual(local.routes, ["#/baby/bump"]);
+  });
+
+  test("an earlier arrival date can be picked instead", async () => {
+    const local = makeRig([bump()]);
+    const screen = renderArrival(local.ctx, bump());
+
+    fill(screen, "Birthday", "2026-08-27");
+    await byClass(screen, "primary")[0]!.click();
+
+    assert.equal((await local.repo.list())[0]?.birthDate, "2026-08-27");
+  });
+
+  test("not yet backs out without touching the record", async () => {
+    const local = makeRig([bump()]);
+    const screen = renderArrival(local.ctx, bump());
+
+    await byClass(screen, "quiet")[0]!.click();
+    assert.equal((await local.repo.list())[0]?.status, "expecting");
+    assert.deepEqual(local.routes, ["back"]);
   });
 });
 
@@ -567,13 +651,62 @@ describe("the app shell", () => {
     });
   });
 
-  test("a baby deleted from its own page leaves a book that still renders", async () => {
-    await withApp([baby()], async (root, repo) => {
+  test("a confirmation stacks over the baby's page instead of replacing it", async () => {
+    await withApp([baby()], async (root) => {
       location.hash = "#/baby/mila";
       await byClass(root, "danger")[0]!.click();
 
+      assert.equal(byClass(root, "overlay").length, 2, "the question sits over the page");
+      // The page underneath is still the one you were reading.
+      assert.match(textOf(root), /Written in the stars/);
+      assert.match(textOf(root), /taken out of your book/);
+
+      history.back();
+      assert.equal(byClass(root, "overlay").length, 1);
+      assert.match(textOf(root), /Written in the stars/);
+    });
+  });
+
+  test("seeing it through removes the baby and leaves a book that still renders", async () => {
+    await withApp([baby()], async (root, repo) => {
+      location.hash = "#/baby/mila";
+      await byClass(root, "danger")[0]!.click();
+      await byClass(root, "danger-fill")[0]!.click();
+
       assert.equal((await repo.list()).length, 0);
+      assert.equal(byClass(root, "overlay").length, 0);
       assert.match(textOf(root), /No babies yet/);
+    });
+  });
+
+  test("a bump can be marked as born without leaving its page", async () => {
+    const bump = baby({
+      id: "bump",
+      name: "Poppy",
+      status: "expecting",
+      birthDate: undefined,
+      dueDate: "2026-10-01",
+    });
+
+    await withApp([bump], async (root, repo) => {
+      location.hash = "#/baby/bump";
+      const justBorn = byClass(root, "primary").find((node: any) =>
+        textOf(node).includes("Just born"),
+      );
+      assert.ok(justBorn, "a bump should offer a just-born button");
+      await justBorn.click();
+
+      assert.equal(byClass(root, "overlay").length, 2);
+      const yes = byClass(root, "primary").find((node: any) => textOf(node).includes("Yes"));
+      assert.ok(yes, "the arrival popup should offer a confirmation");
+      await yes.click();
+
+      const saved = (await repo.list())[0]!;
+      assert.equal(saved.status, "born");
+      assert.equal(saved.dueDate, undefined);
+      // Defaulted to today, whenever the test happens to run.
+      assert.equal(saved.birthDate, toISODate(new Date()));
+      assert.equal(byClass(root, "overlay").length, 1, "back on the baby's own page");
     });
   });
 });
