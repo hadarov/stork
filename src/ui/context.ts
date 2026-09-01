@@ -9,7 +9,13 @@ export type AppContext = {
   now: Date;
   navigate: (path: string) => void;
   back: () => void;
+  /** Reloads the book from storage. Does not touch the screen. */
   refresh: () => Promise<void>;
+  /**
+   * Draws the current route again. Needed by the handful of controls that
+   * change a baby without leaving the page they are on, like the gift tick.
+   */
+  redraw: () => void;
   toast: (message: string) => void;
 };
 
@@ -22,10 +28,12 @@ export type Route =
   | { name: "born"; id: string }
   /** Confirms a removal. Stacks over their page. */
   | { name: "remove"; id: string }
+  /** One picture from the album, full size. Stacks over their page. */
+  | { name: "photo"; id: string; photoId: string }
   | { name: "settings" };
 
 export function parseRoute(hash: string): Route {
-  const [head, param] = hash.replace(/^#\/?/, "").split("/");
+  const [head, param, extra] = hash.replace(/^#\/?/, "").split("/");
 
   if (head === "add") return { name: "add" };
   if (head === "settings") return { name: "settings" };
@@ -33,5 +41,8 @@ export function parseRoute(hash: string): Route {
   if (head === "edit" && param) return { name: "edit", id: decodeURIComponent(param) };
   if (head === "born" && param) return { name: "born", id: decodeURIComponent(param) };
   if (head === "remove" && param) return { name: "remove", id: decodeURIComponent(param) };
+  if (head === "photo" && param && extra) {
+    return { name: "photo", id: decodeURIComponent(param), photoId: decodeURIComponent(extra) };
+  }
   return { name: "home" };
 }

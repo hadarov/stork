@@ -18,6 +18,7 @@ import {
 } from "../domain/derive.ts";
 import { toICalendar } from "../domain/ics.ts";
 import type { Baby } from "../domain/types.ts";
+import { albumSection } from "./album.ts";
 import { avatar, chip, factCard, iconButton } from "./components.ts";
 import type { AppContext } from "./context.ts";
 import { downloadFile, el } from "./dom.ts";
@@ -212,6 +213,8 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
         await ctx.repo.save({ ...baby, giftSent: !baby.giftSent });
         await ctx.refresh();
         ctx.toast(baby.giftSent ? "Marked as not sent" : "Gift marked as sent");
+        // Nothing navigates, so the tick has to be redrawn where it stands.
+        ctx.redraw();
       },
     },
     baby.giftSent ? "\u2713 Gift sent" : "Mark gift as sent",
@@ -238,6 +241,7 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
       baby.status === "born" && baby.birthDate
         ? bornBody(baby, ctx)
         : expectingBody(baby, ctx),
+      albumSection(baby, ctx),
       baby.notes ? section("Notes", el("p", { class: "notes" }, baby.notes)) : null,
       section(
         "Keeping up",

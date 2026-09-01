@@ -1,5 +1,5 @@
-import type { Baby, BabySex, BabyStatus } from "../domain/types.ts";
-import { SCHEMA_VERSION, newId, type StoreFile } from "./repo.ts";
+import type { Baby, BabySex, BabyStatus, Photo } from "../domain/types.ts";
+import { MAX_PHOTOS, SCHEMA_VERSION, newId, type StoreFile } from "./repo.ts";
 
 const STATUSES: BabyStatus[] = ["expecting", "born"];
 const SEXES: BabySex[] = ["girl", "boy", "surprise"];
@@ -31,6 +31,37 @@ function timestamp(value: unknown): string | undefined {
   return new Date(text).toISOString();
 }
 
+function dataUrl(value: unknown): string | undefined {
+  return typeof value === "string" && value.startsWith("data:image/") ? value : undefined;
+}
+
+/** The album, dropping anything without a picture and a plausible date. */
+function album(value: unknown, fallbackDate: string | undefined): Photo[] {
+  if (!Array.isArray(value)) return [];
+
+  const photos: Photo[] = [];
+  const seen = new Set<string>();
+  for (const candidate of value) {
+    if (typeof candidate !== "object" || candidate === null) continue;
+    const raw = candidate as Record<string, unknown>;
+    const data = dataUrl(raw.data);
+    // A photo with no date still belongs in the album; it is only the ordering
+    // that suffers, so it falls back to the birthday rather than being dropped.
+    const date = isoDate(raw.date) ?? fallbackDate;
+    if (!data || !date) continue;
+
+    const id = str(raw.id) ?? newId();
+    if (seen.has(id)) continue;
+    seen.add(id);
+
+    const photo: Photo = { id, data, date };
+    if (str(raw.caption)) photo.caption = str(raw.caption);
+    photos.push(photo);
+    if (photos.length >= MAX_PHOTOS) break;
+  }
+  return photos;
+}
+
 /**
  * Turns one untrusted object into a Baby, or null if there is nothing usable in
  * it. Import reads files a person may have hand-edited, so nothing is assumed.
@@ -59,9 +90,7 @@ export function coerceBaby(value: unknown): Baby | null {
     : [];
 
   const sexValue = str(raw.sex);
-  const photo = typeof raw.photo === "string" && raw.photo.startsWith("data:image/")
-    ? raw.photo
-    : undefined;
+  const photo = dataUrl(raw.photo);
 
   const baby: Baby = {
     id: str(raw.id) ?? newId(),
@@ -87,6 +116,8 @@ export function coerceBaby(value: unknown): Baby | null {
   if (CLOCK_TIME.test(str(raw.birthTime) ?? "")) baby.birthTime = str(raw.birthTime);
   if (sexValue && (SEXES as string[]).includes(sexValue)) baby.sex = sexValue as BabySex;
   if (photo) baby.photo = photo;
+  const photos = album(raw.photos, birthDate ?? dueDate);
+  if (photos.length > 0) baby.photos = photos;
   if (str(raw.notes)) baby.notes = str(raw.notes);
   if (raw.giftSent === true) baby.giftSent = true;
   if (timestamp(raw.deletedAt)) baby.deletedAt = timestamp(raw.deletedAt);

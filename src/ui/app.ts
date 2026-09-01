@@ -1,5 +1,6 @@
 import type { Baby } from "../domain/types.ts";
 import type { BabyRepo } from "../storage/repo.ts";
+import { renderPhotoViewer } from "./album.ts";
 import { emptyState } from "./components.ts";
 import { parseRoute, type AppContext, type Route } from "./context.ts";
 import { renderDetail } from "./detail.ts";
@@ -45,7 +46,7 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
   };
 
   function context(): AppContext {
-    return { repo, babies, now: new Date(), navigate, back, refresh, toast };
+    return { repo, babies, now: new Date(), navigate, back, refresh, redraw: render, toast };
   }
 
   /**
@@ -74,6 +75,11 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
     if (route.name === "born") return [renderDetail(ctx, baby), renderArrival(ctx, baby)];
     if (route.name === "remove") {
       return [renderDetail(ctx, baby), renderRemoveConfirm(ctx, baby)];
+    }
+    if (route.name === "photo") {
+      const photo = (baby.photos ?? []).find((candidate) => candidate.id === route.photoId);
+      // A deleted photo leaves the page behind rather than an error.
+      if (photo) return [renderDetail(ctx, baby), renderPhotoViewer(ctx, baby, photo)];
     }
     return [renderDetail(ctx, baby)];
   }

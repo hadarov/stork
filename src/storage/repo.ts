@@ -21,6 +21,13 @@ export type MergeResult = { added: number; updated: number; skipped: number };
 
 export const SCHEMA_VERSION = 1;
 
+/**
+ * Photos per baby. The whole book lives in a few megabytes of localStorage and
+ * every picture in it is a data URL, so this cap is the only thing between an
+ * enthusiastic afternoon and a book that will not save.
+ */
+export const MAX_PHOTOS = 12;
+
 export type StoreFile = {
   schemaVersion: number;
   babies: Baby[];

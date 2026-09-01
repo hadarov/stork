@@ -26,6 +26,7 @@ const { renderHome } = await import("../src/ui/home.ts");
 const { renderDetail } = await import("../src/ui/detail.ts");
 const { renderEdit } = await import("../src/ui/edit.ts");
 const { renderSettings } = await import("../src/ui/settings.ts");
+const { albumOf, renderPhotoViewer } = await import("../src/ui/album.ts");
 const { renderArrival, renderRemoveConfirm } = await import("../src/ui/prompts.ts");
 const { startApp } = await import("../src/ui/app.ts");
 
@@ -66,6 +67,8 @@ type Rig = {
   repo: MemoryRepo;
   toasts: string[];
   routes: string[];
+  /** Counted rather than acted on: a rig has no screen to draw again. */
+  redraws: number;
 };
 
 let rig: Rig;
@@ -76,6 +79,14 @@ function makeRig(babies: Baby[] = []): Rig {
   const toasts: string[] = [];
   const routes: string[] = [];
 
+  const rig: Rig = {
+    ctx: null as unknown as AppContext,
+    repo,
+    toasts,
+    routes,
+    redraws: 0,
+  };
+
   const ctx: AppContext = {
     repo,
     babies: babies.filter((baby) => baby.deletedAt == null),
@@ -85,10 +96,14 @@ function makeRig(babies: Baby[] = []): Rig {
     refresh: async () => {
       ctx.babies = await repo.list();
     },
+    redraw: () => {
+      rig.redraws += 1;
+    },
     toast: (message) => toasts.push(message),
   };
 
-  return { ctx, repo, toasts, routes };
+  rig.ctx = ctx;
+  return rig;
 }
 
 const baby = (over: Partial<Baby> = {}): Baby => ({
@@ -294,6 +309,104 @@ describe("detail screen", () => {
   test("even a bump with no due date can be marked as arrived", () => {
     const bump = baby({ status: "expecting", birthDate: undefined, dueDate: undefined });
     assert.match(textOf(renderDetail(rig.ctx, bump)), /Just born/);
+  });
+});
+
+/* --------------------------------------------------------------- album */
+
+describe("the album", () => {
+  const shot = (id: string, date: string, caption?: string) => ({
+    id,
+    data: `data:image/jpeg;base64,${id}`,
+    date,
+    ...(caption ? { caption } : {}),
+  });
+
+  const withPhotos = () =>
+    baby({ photos: [shot("later", "2025-01-08"), shot("first", "2024-06-16", "Day one")] });
+
+  test("photos read oldest first, whatever order they were added in", () => {
+    assert.deepEqual(
+      albumOf(withPhotos()).map((photo) => photo.id),
+      ["first", "later"],
+    );
+  });
+
+  test("an empty album invites a first photo rather than showing nothing", () => {
+    const screen = renderDetail(rig.ctx, baby());
+    assert.match(textOf(screen), /Add a photo/);
+    assert.equal(byClass(screen, "album-item").length, 0);
+  });
+
+  test("each photo is a button through to its own page", async () => {
+    const local = makeRig([withPhotos()]);
+    const screen = renderDetail(local.ctx, withPhotos());
+
+    const items = byClass(screen, "album-item");
+    assert.equal(items.length, 2);
+    await items[0]!.click();
+    assert.deepEqual(local.routes, ["#/photo/mila/first"]);
+  });
+
+  test("the viewer shows the caption and the day it was taken", () => {
+    const screen = renderPhotoViewer(rig.ctx, withPhotos(), shot("first", "2024-06-16", "Day one"));
+    assert.match(textOf(screen), /16 June 2024/);
+    assert.equal(findField(screen, "Caption").value, "Day one");
+  });
+
+  test("a new caption is saved without leaving the picture", async () => {
+    const local = makeRig([withPhotos()]);
+    const screen = renderPhotoViewer(local.ctx, withPhotos(), shot("first", "2024-06-16"));
+
+    const caption = findField(screen, "Caption");
+    caption.value = "First bath";
+    await caption.dispatch("change");
+
+    const saved = local.repo.babies[0]!.photos!.find((photo: any) => photo.id === "first");
+    assert.equal(saved?.caption, "First bath");
+    assert.equal(local.redraws, 1, "the strip behind is in date order and must be redrawn");
+    assert.deepEqual(local.routes, [], "and you stay on the picture");
+  });
+
+  test("changing the date reorders the album", async () => {
+    const local = makeRig([withPhotos()]);
+    const screen = renderPhotoViewer(local.ctx, withPhotos(), shot("first", "2024-06-16"));
+
+    const taken = findField(screen, "Taken");
+    taken.value = "2026-01-01";
+    await taken.dispatch("change");
+
+    assert.deepEqual(
+      albumOf(local.repo.babies[0]!).map((photo) => photo.id),
+      ["later", "first"],
+    );
+  });
+
+  test("deleting takes only that photo, and lands back on the baby", async () => {
+    const local = makeRig([withPhotos()]);
+    const screen = renderPhotoViewer(local.ctx, withPhotos(), shot("first", "2024-06-16"));
+
+    await byClass(screen, "danger")[0]!.click();
+
+    assert.deepEqual(
+      local.repo.babies[0]!.photos!.map((photo: any) => photo.id),
+      ["later"],
+    );
+    assert.deepEqual(local.toasts, ["Photo removed"]);
+    assert.deepEqual(local.routes, ["back"]);
+  });
+
+  test("a photo can be promoted to the picture on their tile", async () => {
+    const local = makeRig([withPhotos()]);
+    const photo = shot("first", "2024-06-16");
+    const screen = renderPhotoViewer(local.ctx, withPhotos(), photo);
+
+    await byClass(screen, "secondary")[0]!.click();
+
+    assert.equal(local.repo.babies[0]!.photo, photo.data);
+    // Promoting copies it across; the album is left exactly as it was.
+    assert.equal(local.repo.babies[0]!.photos!.length, 2);
+    assert.deepEqual(local.routes, ["back"]);
   });
 });
 
@@ -726,6 +839,28 @@ describe("the app shell", () => {
       assert.equal((await repo.list()).length, 0);
       assert.equal(byClass(root, "overlay").length, 0);
       assert.match(textOf(root), /No babies yet/);
+    });
+  });
+
+  test("a photo opens over the baby, and a stale link just shows the baby", async () => {
+    const shot = { id: "p1", data: "data:image/jpeg;base64,aaa", date: "2024-06-16" };
+    await withApp([baby({ photos: [shot] })], async (root) => {
+      location.hash = "#/photo/mila/p1";
+      assert.equal(byClass(root, "overlay").length, 2);
+
+      location.hash = "#/photo/mila/deleted-yesterday";
+      assert.equal(byClass(root, "overlay").length, 1);
+      assert.match(textOf(root), /Written in the stars/);
+    });
+  });
+
+  test("ticking the gift redraws it, rather than leaving a stale label", async () => {
+    await withApp([baby()], async (root, repo) => {
+      location.hash = "#/baby/mila";
+      await byClass(root, "gift-toggle")[0]!.click();
+
+      assert.equal((await repo.list())[0]?.giftSent, true);
+      assert.match(textOf(byClass(root, "gift-toggle")[0]), /Gift sent/);
     });
   });
 

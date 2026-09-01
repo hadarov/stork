@@ -583,6 +583,65 @@ button {
   overflow-wrap: anywhere;
 }
 
+/* ----------------------------------------------------------------- album */
+
+.album {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  /* Bleeds to the panel's edges, so the strip reads as scrollable. */
+  margin: 0 -1.1rem 0.8rem;
+  padding: 0.2rem 1.1rem 0.5rem;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.album::-webkit-scrollbar {
+  display: none;
+}
+
+.album-item {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 6.2rem;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: center;
+}
+
+.album-item img {
+  width: 6.2rem;
+  height: 6.2rem;
+  border: 2px solid var(--edge);
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: var(--pop);
+  transition: translate 0.08s ease, box-shadow 0.08s ease;
+}
+
+.album-item:active img {
+  translate: 0 3px;
+  box-shadow: 0 0 0 var(--edge);
+}
+
+.album-when {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.photo-full {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 3px solid var(--edge);
+  border-radius: 20px;
+  object-fit: cover;
+}
+
 /* -------------------------------------------------------------- timeline */
 
 .timeline {

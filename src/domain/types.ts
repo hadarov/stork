@@ -3,6 +3,16 @@ export type BabyStatus = "expecting" | "born";
 
 export type BabySex = "girl" | "boy" | "surprise";
 
+/** One picture in a baby's album, dated so the album reads as a timeline. */
+export type Photo = {
+  id: string;
+  /** Data URL, squared and shrunk before it ever reaches storage. */
+  data: string;
+  /** ISO yyyy-mm-dd: when it was taken, not when it was added. */
+  date: string;
+  caption?: string;
+};
+
 export type Baby = {
   id: string;
   /** Often unknown while expecting, so the app never insists on it. */
@@ -21,8 +31,10 @@ export type Baby = {
   birthWeightGrams?: number;
   /** Centimetres at birth, to one decimal place. */
   birthLengthCm?: number;
-  /** Data URL, downscaled before it is stored. */
+  /** Their picture: the one on the tile. Data URL, downscaled before storing. */
   photo?: string;
+  /** The album, which is a different thing from their picture. Oldest first. */
+  photos?: Photo[];
   notes?: string;
   giftSent?: boolean;
   /** ISO timestamp, bumped on every write so a future server can merge. */

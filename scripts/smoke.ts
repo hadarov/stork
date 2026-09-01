@@ -309,6 +309,40 @@ describe("stored data", () => {
     assert.equal(store.babies[1]?.birthLengthCm, undefined);
   });
 
+  test("album entries without a picture are dropped and the rest survive", () => {
+    const store = migrate([
+      {
+        name: "Mila",
+        status: "born",
+        birthDate: "2024-06-15",
+        photos: [
+          { id: "a", data: "data:image/jpeg;base64,aaa", date: "2024-06-16", caption: "Day one" },
+          { id: "b", data: "not-an-image", date: "2024-07-01" },
+          { id: "c", data: "data:image/png;base64,ccc" },
+        ],
+      },
+    ]);
+
+    const photos = store.babies[0]?.photos ?? [];
+    assert.deepEqual(
+      photos.map((photo) => photo.id),
+      ["a", "c"],
+    );
+    assert.equal(photos[0]?.caption, "Day one");
+    // Undated, so it falls back to the birthday rather than being thrown away.
+    assert.equal(photos[1]?.date, "2024-06-15");
+  });
+
+  test("an import cannot smuggle in more photos than the app allows", () => {
+    const photos = Array.from({ length: 40 }, (_unused, index) => ({
+      id: `p${index}`,
+      data: "data:image/jpeg;base64,aaa",
+      date: "2024-06-16",
+    }));
+    const store = migrate([{ name: "Mila", status: "born", birthDate: "2024-06-15", photos }]);
+    assert.equal(store.babies[0]?.photos?.length, 12);
+  });
+
   test("a baby who has not arrived cannot have been weighed", () => {
     const store = migrate([
       { name: "Poppy", status: "expecting", dueDate: "2026-10-01", birthWeightGrams: 3400 },
