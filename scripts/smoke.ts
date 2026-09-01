@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import { chineseSign, starSign } from "../src/domain/almanac.ts";
+import { cardContent } from "../src/domain/card.ts";
 import {
   addMonths,
   daysBetween,
@@ -247,6 +248,53 @@ describe("what happens next", () => {
   test("an unnamed baby is described by its parents", () => {
     assert.equal(displayName(baby({ name: undefined })), "Sarah's baby");
     assert.equal(displayName(baby({ name: "Mila" })), "Mila");
+  });
+});
+
+describe("a card to send", () => {
+  const NOW = new Date(2026, 8, 1);
+  const mila = (over: Partial<Baby> = {}): Baby => ({
+    id: "mila",
+    name: "Mila",
+    parents: ["Sarah", "Tom"],
+    status: "born",
+    birthDate: "2024-06-15",
+    updatedAt: "2024-06-15T00:00:00.000Z",
+    ...over,
+  });
+
+  test("a baby who is here leads with their age, under both their signs", () => {
+    const card = cardContent(mila(), NOW);
+    assert.equal(card.name, "Mila");
+    assert.equal(card.parents, "Sarah and Tom");
+    assert.equal(card.headline, "2 years, 2 months old");
+    assert.deepEqual(card.chips, ["\u264A Gemini", "\u{1F409} Dragon"]);
+    assert.equal(card.footer, "Born 15 June 2024");
+  });
+
+  test("a known birth weight earns a third badge", () => {
+    const card = cardContent(mila({ birthWeightGrams: 3400 }), NOW);
+    assert.equal(card.chips.length, 3);
+    assert.match(card.chips[2] ?? "", /3\.4 kg/);
+  });
+
+  test("a bump counts down, and its star sign is only a guess", () => {
+    const card = cardContent(
+      mila({ status: "expecting", birthDate: undefined, dueDate: "2026-11-01" }),
+      NOW,
+    );
+    assert.equal(card.headline, "due in 9 weeks");
+    assert.match(card.chips[0] ?? "", /Scorpio\?$/);
+    assert.equal(card.footer, "Due 1 November 2026");
+  });
+
+  test("a bump with no due date still makes a card rather than throwing", () => {
+    const card = cardContent(
+      mila({ status: "expecting", birthDate: undefined, dueDate: undefined }),
+      NOW,
+    );
+    assert.equal(card.headline, "On the way");
+    assert.deepEqual(card.chips, []);
   });
 });
 

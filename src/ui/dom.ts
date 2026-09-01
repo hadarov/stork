@@ -60,7 +60,11 @@ export function replace(node: Node, ...children: Child[]): void {
 
 /** Downloads a generated file without needing a server round trip. */
 export function downloadFile(filename: string, mimeType: string, contents: string): void {
-  const url = URL.createObjectURL(new Blob([contents], { type: `${mimeType};charset=utf-8` }));
+  downloadBlob(filename, new Blob([contents], { type: `${mimeType};charset=utf-8` }));
+}
+
+export function downloadBlob(filename: string, blob: Blob): void {
+  const url = URL.createObjectURL(blob);
   const link = el("a", { href: url, download: filename });
   document.body.appendChild(link);
   link.click();

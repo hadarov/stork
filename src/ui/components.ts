@@ -5,13 +5,17 @@ import { el } from "./dom.ts";
 /** Six pastels, picked from the id so a baby keeps the same colour forever. */
 const TINTS = 6;
 
-export function tintFor(id: string): string {
+export function tintIndex(id: string): number {
   let hash = 0;
   for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  return `tint-${hash % TINTS}`;
+  return hash % TINTS;
 }
 
-function glyphFor(baby: Baby): string {
+export function tintFor(id: string): string {
+  return `tint-${tintIndex(id)}`;
+}
+
+export function glyphFor(baby: Baby): string {
   return baby.status === "expecting" ? "\u{1F423}" : "\u{1F476}";
 }
 

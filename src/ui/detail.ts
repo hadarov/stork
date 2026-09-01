@@ -20,6 +20,7 @@ import { relation, siblingsOf } from "../domain/family.ts";
 import { toICalendar } from "../domain/ics.ts";
 import type { Baby } from "../domain/types.ts";
 import { albumSection } from "./album.ts";
+import { shareCard } from "./card.ts";
 import { avatar, chip, factCard, iconButton } from "./components.ts";
 import type { AppContext } from "./context.ts";
 import { downloadFile, el } from "./dom.ts";
@@ -292,6 +293,22 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
       section(
         "Keeping up",
         giftToggle,
+        el(
+          "button",
+          {
+            class: "primary block",
+            type: "button",
+            onclick: async () => {
+              try {
+                const said = await shareCard(baby, ctx.now);
+                if (said) ctx.toast(said);
+              } catch (error) {
+                ctx.toast(error instanceof Error ? error.message : "Could not make a card.");
+              }
+            },
+          },
+          "\u{1F48C} Share a card",
+        ),
         el(
           "button",
           {
