@@ -16,6 +16,15 @@ function isoDate(value: unknown): string | undefined {
   return Number.isNaN(Date.parse(`${text}T00:00:00`)) ? undefined : text;
 }
 
+/** A measurement, rejected rather than clamped when it is not plausible. */
+function measure(value: unknown, min: number, max: number, places: number): number | undefined {
+  const number = typeof value === "number" ? value : Number(str(value));
+  if (!Number.isFinite(number)) return undefined;
+  const step = 10 ** places;
+  const rounded = Math.round(number * step) / step;
+  return rounded >= min && rounded <= max ? rounded : undefined;
+}
+
 function timestamp(value: unknown): string | undefined {
   const text = str(value);
   if (!text || Number.isNaN(Date.parse(text))) return undefined;
@@ -67,6 +76,11 @@ export function coerceBaby(value: unknown): Baby | null {
   // carrying both is normalised rather than left to contradict itself.
   if (baby.status === "born") {
     if (birthDate) baby.birthDate = birthDate;
+    // Only a baby who has arrived can have been weighed.
+    const weight = measure(raw.birthWeightGrams, 200, 8000, 0);
+    const length = measure(raw.birthLengthCm, 20, 70, 1);
+    if (weight !== undefined) baby.birthWeightGrams = weight;
+    if (length !== undefined) baby.birthLengthCm = length;
   } else if (dueDate) {
     baby.dueDate = dueDate;
   }

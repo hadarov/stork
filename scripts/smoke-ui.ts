@@ -275,6 +275,16 @@ describe("detail screen", () => {
     assert.deepEqual(local.routes, ["#/remove/mila"]);
   });
 
+  test("a weight and a length are shown both ways, and skipped when unknown", () => {
+    const weighed = baby({ birthWeightGrams: 3400, birthLengthCm: 51 });
+    const text = textOf(renderDetail(rig.ctx, weighed));
+    assert.match(text, /3\.4 kg/);
+    assert.match(text, /7 lb 8 oz/);
+    assert.match(text, /51 cm/);
+
+    assert.doesNotMatch(textOf(renderDetail(rig.ctx, baby())), /kg/);
+  });
+
   test("a bump gets a just-born button, and a baby who is here does not", () => {
     const bump = baby({ status: "expecting", birthDate: undefined, dueDate: "2026-10-01" });
     assert.match(textOf(renderDetail(rig.ctx, bump)), /Just born/);
@@ -443,6 +453,46 @@ describe("add and edit", () => {
     assert.equal(saved.status, "born");
     assert.equal(saved.birthDate, "2026-08-28");
     assert.equal(saved.dueDate, undefined);
+  });
+
+  test("a weight in kilograms is stored as grams", async () => {
+    const screen = renderEdit(rig.ctx, null);
+    byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!.click();
+    fill(screen, "Name", "Poppy");
+    fill(screen, "Birthday", "2026-08-28");
+    fill(screen, "Weight", "3.42");
+    fill(screen, "Length", "51.5");
+    await screen.querySelector(".form")!.dispatch("submit");
+
+    assert.equal(rig.repo.babies[0]?.birthWeightGrams, 3420);
+    assert.equal(rig.repo.babies[0]?.birthLengthCm, 51.5);
+  });
+
+  test("an implausible weight is refused rather than quietly dropped", async () => {
+    const screen = renderEdit(rig.ctx, null);
+    byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!.click();
+    fill(screen, "Name", "Poppy");
+    fill(screen, "Birthday", "2026-08-28");
+    fill(screen, "Weight", "34");
+    await screen.querySelector(".form")!.dispatch("submit");
+
+    assert.equal(rig.repo.babies.length, 0);
+    assert.match(textOf(screen.querySelector(".form-error")), /between 0\.2 and 8 kg/);
+  });
+
+  test("leaving the measurements blank is fine", async () => {
+    const screen = renderEdit(rig.ctx, null);
+    byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!.click();
+    fill(screen, "Name", "Poppy");
+    fill(screen, "Birthday", "2026-08-28");
+    await screen.querySelector(".form")!.dispatch("submit");
+
+    assert.equal(rig.repo.babies[0]?.birthWeightGrams, undefined);
+  });
+
+  test("an existing weight comes back into the form in kilograms", () => {
+    const screen = renderEdit(rig.ctx, baby({ birthWeightGrams: 3400 }));
+    assert.equal(findField(screen, "Weight").value, "3.4");
   });
 
   test("editing keeps the same record rather than making a second one", async () => {

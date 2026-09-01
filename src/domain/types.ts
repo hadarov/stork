@@ -17,6 +17,10 @@ export type Baby = {
   /** HH:mm. Optional, but sharpens the star sign on a cusp day. */
   birthTime?: string;
   sex?: BabySex;
+  /** Grams at birth. Metric on disk, shown both ways, since people say both. */
+  birthWeightGrams?: number;
+  /** Centimetres at birth, to one decimal place. */
+  birthLengthCm?: number;
   /** Data URL, downscaled before it is stored. */
   photo?: string;
   notes?: string;

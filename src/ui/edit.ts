@@ -15,10 +15,21 @@ type Draft = {
   dueDate: string;
   birthDate: string;
   birthTime: string;
+  /** Kept as typed, in kilograms and centimetres, and parsed on save. */
+  birthWeight: string;
+  birthLength: string;
   sex: BabySex | "";
   photo: string;
   notes: string;
 };
+
+/** Blank means "not recorded"; null means "recorded, but not believable". */
+function measure(text: string, min: number, max: number): number | null | undefined {
+  const trimmed = text.trim();
+  if (!trimmed) return undefined;
+  const value = Number(trimmed);
+  return Number.isFinite(value) && value >= min && value <= max ? value : null;
+}
 
 function toDraft(baby: Baby | null): Draft {
   return {
@@ -29,6 +40,8 @@ function toDraft(baby: Baby | null): Draft {
     dueDate: baby?.dueDate ?? "",
     birthDate: baby?.birthDate ?? "",
     birthTime: baby?.birthTime ?? "",
+    birthWeight: baby?.birthWeightGrams ? String(baby.birthWeightGrams / 1000) : "",
+    birthLength: baby?.birthLengthCm ? String(baby.birthLengthCm) : "",
     sex: baby?.sex ?? "",
     photo: baby?.photo ?? "",
     notes: baby?.notes ?? "",
@@ -60,6 +73,19 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
         draft[key] = (event.target as HTMLInputElement).value;
       },
       ...props,
+    });
+
+  const numberInput = (key: "birthWeight" | "birthLength", props: Record<string, unknown> = {}) =>
+    el("input", {
+      class: "input",
+      type: "number",
+      inputmode: "decimal",
+      min: "0",
+      value: draft[key],
+      ...props,
+      oninput: (event: Event) => {
+        draft[key] = (event.target as HTMLInputElement).value;
+      },
     });
 
   const dateInput = (key: "dueDate" | "birthDate", props: Record<string, unknown> = {}) =>
@@ -152,6 +178,12 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
       }),
       "Optional, but it settles a star sign born on a cusp.",
     ),
+    el(
+      "div",
+      { class: "field-pair" },
+      field("Weight", numberInput("birthWeight", { step: "0.01", placeholder: "3.4" }), "kg"),
+      field("Length", numberInput("birthLength", { step: "0.5", placeholder: "51" }), "cm"),
+    ),
   );
 
   const setStatus = (status: BabyStatus): void => {
@@ -209,9 +241,14 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
       .map((part) => part.trim())
       .filter(Boolean);
 
+    const weight = measure(draft.birthWeight, 0.2, 8);
+    const length = measure(draft.birthLength, 20, 70);
+
     if (draft.status === "born" && !draft.birthDate) {
       return fail("A birthday is needed once the baby is here.");
     }
+    if (weight === null) return fail("A birth weight between 0.2 and 8 kg, please.");
+    if (length === null) return fail("A birth length between 20 and 70 cm, please.");
     if (draft.status === "expecting" && !draft.dueDate && !draft.name) {
       return fail("Add a due date, or at least a name to remember them by.");
     }
@@ -231,6 +268,8 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
     if (draft.status === "born") {
       baby.birthDate = draft.birthDate;
       if (draft.birthTime) baby.birthTime = draft.birthTime;
+      if (weight !== undefined) baby.birthWeightGrams = Math.round(weight * 1000);
+      if (length !== undefined) baby.birthLengthCm = Math.round(length * 10) / 10;
     } else if (draft.dueDate) {
       baby.dueDate = draft.dueDate;
     }

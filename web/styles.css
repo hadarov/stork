@@ -647,6 +647,13 @@ button {
   gap: 1rem;
 }
 
+/* Two short answers that belong together, like a weight and a length. */
+.field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
 .field-label {
   font-size: 0.8rem;
   font-weight: 800;

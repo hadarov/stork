@@ -4,7 +4,9 @@ import {
   chineseSign,
   dayOfWeekRhyme,
   describeAge,
+  describeLength,
   describeParents,
+  describeWeight,
   displayName,
   dueCountdown,
   formatDate,
@@ -72,6 +74,8 @@ function bornBody(baby: Baby, ctx: AppContext): HTMLElement {
   const age = describeAge(birthDate, ctx.now);
   const birthday = nextBirthday(birthDate, ctx.now);
   const rhyme = dayOfWeekRhyme(birth);
+  const weight = baby.birthWeightGrams ? describeWeight(baby.birthWeightGrams) : null;
+  const length = baby.birthLengthCm ? describeLength(baby.birthLengthCm) : null;
 
   const points = milestones(birthDate, ctx.now);
 
@@ -97,6 +101,8 @@ function bornBody(baby: Baby, ctx: AppContext): HTMLElement {
         "div",
         { class: "facts" },
         factCard("Day", formatDate(birth), baby.birthTime ? `at ${baby.birthTime}` : undefined),
+        weight ? factCard("Weight", weight.metric, weight.imperial) : null,
+        length ? factCard("Length", length.metric, length.imperial) : null,
         factCard("Birthstone", birthstone(birth)),
         factCard("Flower", birthFlower(birth)),
         factCard("Weekday", rhyme.day),

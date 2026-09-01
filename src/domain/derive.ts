@@ -81,6 +81,35 @@ export function ordinal(n: number): string {
   return `${n}${["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
 }
 
+/* ------------------------------------------------------------ how big */
+
+/** "3.40" reads as a measurement; "3.4" reads as a number people say. */
+function trim(value: string): string {
+  return value.includes(".") ? value.replace(/\.?0+$/, "") : value;
+}
+
+const GRAMS_PER_OUNCE = 28.349523125;
+
+/**
+ * Birth weight both ways round. Whoever announced it said one of the two, and
+ * whoever reads this page is probably thinking in the other.
+ */
+export function describeWeight(grams: number): { metric: string; imperial: string } {
+  const ounces = Math.round(grams / GRAMS_PER_OUNCE);
+  const pounds = Math.floor(ounces / 16);
+  return {
+    metric: `${trim((grams / 1000).toFixed(2))} kg`,
+    imperial: `${pounds} lb ${ounces % 16} oz`,
+  };
+}
+
+export function describeLength(cm: number): { metric: string; imperial: string } {
+  return {
+    metric: `${trim(cm.toFixed(1))} cm`,
+    imperial: `${trim((cm / 2.54).toFixed(1))} in`,
+  };
+}
+
 /* -------------------------------------------------------------------- age */
 
 export type Age = {

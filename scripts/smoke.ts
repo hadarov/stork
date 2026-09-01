@@ -14,6 +14,8 @@ import {
   addMonths,
   daysBetween,
   describeAge,
+  describeLength,
+  describeWeight,
   displayName,
   dueCountdown,
   milestones,
@@ -247,6 +249,24 @@ describe("what happens next", () => {
   });
 });
 
+describe("how big", () => {
+  test("a birth weight reads in kilograms and in pounds and ounces", () => {
+    assert.deepEqual(describeWeight(3400), { metric: "3.4 kg", imperial: "7 lb 8 oz" });
+  });
+
+  test("a round weight drops its decimals rather than showing 3.00 kg", () => {
+    assert.equal(describeWeight(3000).metric, "3 kg");
+  });
+
+  test("sixteen ounces carry into a pound instead of reading 9 lb 16 oz", () => {
+    assert.equal(describeWeight(4536).imperial, "10 lb 0 oz");
+  });
+
+  test("a length reads in centimetres and in inches", () => {
+    assert.deepEqual(describeLength(51), { metric: "51 cm", imperial: "20.1 in" });
+  });
+});
+
 describe("stored data", () => {
   test("unreadable storage yields an empty book rather than a crash", () => {
     assert.deepEqual(migrate("not json at all").babies, []);
@@ -264,6 +284,36 @@ describe("stored data", () => {
     const store = migrate([{ name: "Mila", status: "born", dueDate: "2026-10-01" }]);
     assert.equal(store.babies[0]?.status, "expecting");
     assert.equal(store.babies[0]?.dueDate, "2026-10-01");
+  });
+
+  test("plausible birth measurements are kept and silly ones are dropped", () => {
+    const store = migrate([
+      {
+        name: "Mila",
+        status: "born",
+        birthDate: "2024-06-15",
+        birthWeightGrams: 3400,
+        birthLengthCm: 51,
+      },
+      {
+        name: "Titan",
+        status: "born",
+        birthDate: "2024-06-15",
+        birthWeightGrams: 90000,
+        birthLengthCm: 4,
+      },
+    ]);
+    assert.equal(store.babies[0]?.birthWeightGrams, 3400);
+    assert.equal(store.babies[0]?.birthLengthCm, 51);
+    assert.equal(store.babies[1]?.birthWeightGrams, undefined);
+    assert.equal(store.babies[1]?.birthLengthCm, undefined);
+  });
+
+  test("a baby who has not arrived cannot have been weighed", () => {
+    const store = migrate([
+      { name: "Poppy", status: "expecting", dueDate: "2026-10-01", birthWeightGrams: 3400 },
+    ]);
+    assert.equal(store.babies[0]?.birthWeightGrams, undefined);
   });
 
   test("a baby who is here keeps a birthday and loses any due date", () => {
