@@ -10,14 +10,22 @@ import { deflateSync } from "node:zlib";
 
 /* ------------------------------------------------------------- the chick */
 
-const BG_TOP = [253, 227, 234];
-const BG_BOTTOM = [244, 190, 205];
+const BG_TOP = [255, 219, 233];
+const BG_BOTTOM = [255, 170, 200];
 const CREAM = [255, 250, 246];
-const INK = [74, 59, 66];
-const BEAK = [242, 166, 90];
-const CHEEK = [247, 179, 196];
+const EDGE = [109, 74, 90];
+const INK = [75, 51, 64];
+const BEAK = [255, 168, 61];
+const CHEEK = [255, 143, 178];
+const SHINE = [255, 255, 255];
+
+/** Half the outline width, in unit-square terms. */
+const STROKE = 0.011;
 
 const circle = (x, y, cx, cy, r) => (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
+
+/** Signed distance to a circle: negative inside, positive out. */
+const ring = (x, y, cx, cy, r) => Math.hypot(x - cx, y - cy) - r;
 
 /** Diamond beak: an L1 ball, squashed to be taller than it is wide. */
 const diamond = (x, y, cx, cy, rx, ry) =>
@@ -59,13 +67,23 @@ function sample(x, y, { maskable }) {
   const cx = 0.5 + (x - 0.5) / scale;
   const cy = 0.5 + (y - 0.5) / scale;
 
-  if (circle(cx, cy, 0.5, 0.245, 0.042)) colour = blend(colour, CREAM);
-  if (circle(cx, cy, 0.5, 0.57, 0.295)) colour = blend(colour, CREAM);
-  if (circle(cx, cy, 0.335, 0.635, 0.048)) colour = blend(colour, CHEEK, 0.75);
-  if (circle(cx, cy, 0.665, 0.635, 0.048)) colour = blend(colour, CHEEK, 0.75);
-  if (circle(cx, cy, 0.412, 0.515, 0.037)) colour = blend(colour, INK);
-  if (circle(cx, cy, 0.588, 0.515, 0.037)) colour = blend(colour, INK);
-  if (diamond(cx, cy, 0.5, 0.617, 0.055, 0.078)) colour = blend(colour, BEAK);
+  // Head and the curl on top are outlined as one shape, so the seam where they
+  // meet has no line across it. Nearest edge wins, which is what min gives.
+  const body = Math.min(
+    ring(cx, cy, 0.5, 0.575, 0.3),
+    ring(cx, cy, 0.5, 0.255, 0.05),
+    ring(cx, cy, 0.56, 0.215, 0.034),
+  );
+  if (body <= STROKE) colour = blend(colour, body <= -STROKE ? CREAM : EDGE);
+
+  if (circle(cx, cy, 0.29, 0.645, 0.058)) colour = blend(colour, CHEEK, 0.8);
+  if (circle(cx, cy, 0.71, 0.645, 0.058)) colour = blend(colour, CHEEK, 0.8);
+  // Big eyes with a highlight in each, which is most of what makes it cute.
+  if (circle(cx, cy, 0.395, 0.495, 0.062)) colour = blend(colour, INK);
+  if (circle(cx, cy, 0.605, 0.495, 0.062)) colour = blend(colour, INK);
+  if (circle(cx, cy, 0.374, 0.472, 0.024)) colour = blend(colour, SHINE);
+  if (circle(cx, cy, 0.584, 0.472, 0.024)) colour = blend(colour, SHINE);
+  if (diamond(cx, cy, 0.5, 0.63, 0.046, 0.056)) colour = blend(colour, BEAK);
 
   return colour;
 }

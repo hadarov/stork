@@ -64,7 +64,7 @@ export function tile(
 
 export function screenHeader(
   title: string,
-  options: { onBack?: () => void; actions?: HTMLElement[] } = {},
+  options: { onBack?: () => void; mark?: boolean; actions?: HTMLElement[] } = {},
 ): HTMLElement {
   return el(
     "header",
@@ -76,6 +76,8 @@ export function screenHeader(
           "\u2190",
         )
       : null,
+    // Decorative: the word beside it already says Stork.
+    options.mark ? el("img", { class: "logo", src: "./favicon.svg", alt: "" }) : null,
     el("h1", { class: "topbar-title" }, title),
     el("div", { class: "topbar-actions" }, ...(options.actions ?? [])),
   );

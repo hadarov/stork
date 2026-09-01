@@ -136,7 +136,7 @@ function expectingBody(baby: Baby, ctx: AppContext): HTMLElement {
   const arrived = el(
     "button",
     {
-      class: "primary wide",
+      class: "primary block",
       type: "button",
       onclick: () => ctx.navigate(`#/born/${encodeURIComponent(baby.id)}`),
     },

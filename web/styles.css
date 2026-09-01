@@ -1,27 +1,38 @@
-/* Stork - a soft, pastel keepsake book. Light only, on purpose. */
+/*
+ * Stork - a sticker book, not a stationery set. Everything you can touch is
+ * drawn with a soft outline and a solid edge underneath, and presses down onto
+ * it when tapped. Light only, on purpose.
+ */
 
 :root {
-  --cream: #fffaf6;
+  --cream: #fff6f0;
   --paper: #ffffff;
-  --ink: #4a3b42;
-  --muted: #9c8892;
-  --line: #f0e4e8;
+  --ink: #4b3340;
+  --muted: #9d8290;
+  --line: #ffe0e9;
+  /* The outline and the solid edge under everything tappable. */
+  --edge: #6d4a5a;
 
-  --pink: #f7cfd8;
-  --pink-deep: #e0779a;
-  --mint: #cfe8dc;
-  --lavender: #ded0f0;
-  --butter: #fbeec2;
-  --peach: #fbd9c3;
-  --sky: #cfe3f2;
+  --pink: #ffd3e0;
+  --pink-deep: #cf3c72;
+  --mint: #b9f0d5;
+  --lavender: #dcd0ff;
+  --butter: #ffeeb0;
+  --peach: #ffd5b8;
+  --sky: #c6e6ff;
+  --berry: #bc3f63;
 
-  --radius: 22px;
-  --shadow: 0 6px 20px rgba(140, 100, 115, 0.09);
-  --shadow-lift: 0 10px 28px rgba(140, 100, 115, 0.16);
+  --radius: 24px;
+  /* Soft, for things you only read. */
+  --shadow: 0 6px 18px rgba(150, 100, 120, 0.13);
+  /* Chunky, for things you can press. */
+  --pop: 0 3px 0 var(--edge);
+  --pop-deep: 0 5px 0 var(--edge);
 
   --font: ui-rounded, "SF Pro Rounded", "Segoe UI Variable Display", "Segoe UI",
-    system-ui, -apple-system, sans-serif;
-  --font-display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    Nunito, Quicksand, system-ui, -apple-system, sans-serif;
+  /* Headings are the same round face, just fatter. Nothing here is a serif. */
+  --font-display: var(--font);
 }
 
 * {
@@ -48,7 +59,8 @@ h1,
 h2,
 h3 {
   margin: 0;
-  font-weight: 650;
+  font-weight: 800;
+  letter-spacing: -0.015em;
 }
 
 p {
@@ -83,19 +95,26 @@ button {
   z-index: 5;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   max-width: 640px;
   margin: 0 auto;
   padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem;
-  background: linear-gradient(var(--cream) 72%, rgba(255, 250, 246, 0));
+  background: linear-gradient(var(--cream) 72%, rgba(255, 246, 240, 0));
+}
+
+.logo {
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 30%;
+  flex: 0 0 auto;
 }
 
 .topbar-title {
   flex: 1;
   min-width: 0;
   font-family: var(--font-display);
-  font-size: 1.65rem;
-  letter-spacing: 0.01em;
+  font-size: 1.8rem;
+  font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -117,9 +136,9 @@ button {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.6rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.09em;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -127,9 +146,10 @@ button {
 .section-count {
   display: inline-grid;
   place-items: center;
-  min-width: 1.35rem;
-  height: 1.35rem;
+  min-width: 1.4rem;
+  height: 1.4rem;
   padding: 0 0.35rem;
+  border: 2px solid var(--edge);
   border-radius: 999px;
   background: var(--pink);
   color: var(--ink);
@@ -143,21 +163,24 @@ button {
 .secondary,
 .quiet {
   border-radius: 999px;
-  border: none;
+  border: 2px solid transparent;
   padding: 0.7rem 1.25rem;
-  font-weight: 650;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  font-weight: 800;
+  transition: translate 0.08s ease, box-shadow 0.08s ease;
 }
 
 .primary {
+  border-color: var(--edge);
   background: var(--pink-deep);
   color: #fff;
-  box-shadow: var(--shadow);
+  box-shadow: var(--pop);
 }
 
 .secondary {
+  border-color: var(--edge);
   background: var(--pink);
   color: var(--ink);
+  box-shadow: var(--pop);
 }
 
 .quiet {
@@ -166,20 +189,25 @@ button {
 }
 
 .quiet.danger {
-  color: #c2536f;
+  color: var(--berry);
 }
 
 .primary.danger-fill {
-  background: #c2536f;
+  background: var(--berry);
 }
 
-.wide {
+.block {
   width: 100%;
 }
 
+/* The press: everything tappable sinks onto its own edge. */
 .primary:active,
-.secondary:active {
-  transform: scale(0.97);
+.secondary:active,
+.icon-button:active,
+.week-item:active,
+.gift-toggle:active {
+  translate: 0 3px;
+  box-shadow: 0 0 0 var(--edge);
 }
 
 .icon-button {
@@ -187,16 +215,13 @@ button {
   place-items: center;
   width: 2.5rem;
   height: 2.5rem;
-  border: none;
+  border: 2px solid var(--edge);
   border-radius: 50%;
   background: var(--paper);
-  box-shadow: var(--shadow);
-  font-size: 1.15rem;
+  box-shadow: var(--pop);
+  font-size: 1.1rem;
   line-height: 1;
-}
-
-.icon-button:active {
-  transform: scale(0.94);
+  transition: translate 0.08s ease, box-shadow 0.08s ease;
 }
 
 /* ---------------------------------------------------------------- search */
@@ -204,16 +229,17 @@ button {
 .search {
   width: 100%;
   padding: 0.75rem 1.1rem;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--paper);
   font: inherit;
+  font-weight: 600;
   color: inherit;
 }
 
 .search:focus-visible,
 .input:focus-visible {
-  outline: 2px solid var(--pink-deep);
+  outline: 3px solid var(--pink-deep);
   outline-offset: 1px;
 }
 
@@ -221,9 +247,9 @@ button {
 
 .week-strip {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.7rem;
   overflow-x: auto;
-  padding-bottom: 0.35rem;
+  padding-bottom: 0.6rem;
   margin: 0 -1rem;
   padding-inline: 1rem;
   scroll-snap-type: x mandatory;
@@ -242,19 +268,20 @@ button {
   gap: 0.15rem;
   width: 9.5rem;
   padding: 0.85rem;
-  border: none;
-  border-radius: var(--radius);
+  border: 2px solid var(--edge);
+  border-radius: 20px;
   background: linear-gradient(150deg, var(--butter), var(--peach));
   text-align: left;
-  box-shadow: var(--shadow);
+  box-shadow: var(--pop);
+  transition: translate 0.08s ease, box-shadow 0.08s ease;
 }
 
 .week-emoji {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
 }
 
 .week-name {
-  font-weight: 700;
+  font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -262,6 +289,7 @@ button {
 
 .week-when {
   font-size: 0.82rem;
+  font-weight: 600;
   color: #7d6570;
 }
 
@@ -271,33 +299,44 @@ button {
   display: grid;
   /* Three across at every width, which is what a photo grid should look like. */
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.7rem;
+  gap: 0.8rem;
 }
 
 .tile {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 0.5rem 0.5rem 0.6rem;
-  border: none;
+  padding: 0.45rem 0.45rem 0.6rem;
+  border: 2px solid var(--edge);
   border-radius: 20px;
   text-align: center;
-  box-shadow: var(--shadow);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: var(--pop);
+  transition: translate 0.08s ease, box-shadow 0.08s ease;
+}
+
+/* Stuck in slightly crooked, the way stickers go into a real book. */
+.tile:nth-child(odd) {
+  rotate: -1.2deg;
+}
+
+.tile:nth-child(even) {
+  rotate: 1.2deg;
 }
 
 .tile:active {
-  transform: scale(0.96);
-  box-shadow: var(--shadow-lift);
+  rotate: 0deg;
+  translate: 0 3px;
+  box-shadow: 0 0 0 var(--edge);
 }
 
 .tile-art {
   display: grid;
   place-items: center;
   aspect-ratio: 1;
-  border-radius: 15px;
+  border: 2px solid var(--edge);
+  border-radius: 14px;
   /* Lets the tile's own colour show through behind a glyph. */
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.62);
   overflow: hidden;
 }
 
@@ -315,7 +354,7 @@ button {
 
 .tile-name {
   margin-top: 0.4rem;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.85rem;
   line-height: 1.2;
   overflow: hidden;
@@ -325,20 +364,21 @@ button {
 
 .tile-sub {
   font-size: 0.75rem;
+  font-weight: 700;
   color: #7d6570;
 }
 
 .tile-badge {
   position: absolute;
-  top: -0.3rem;
-  right: -0.3rem;
+  top: -0.45rem;
+  right: -0.45rem;
   display: grid;
   place-items: center;
-  width: 1.7rem;
-  height: 1.7rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 2px solid var(--edge);
   border-radius: 50%;
   background: var(--paper);
-  box-shadow: var(--shadow);
   font-size: 0.9rem;
 }
 
@@ -355,14 +395,16 @@ button {
 .avatar-sm {
   width: 3.1rem;
   height: 3.1rem;
+  border: 2px solid var(--edge);
   font-size: 1.5rem;
 }
 
 .avatar-lg {
-  width: 6.5rem;
-  height: 6.5rem;
+  width: 6.8rem;
+  height: 6.8rem;
+  border: 3px solid var(--edge);
+  box-shadow: var(--pop-deep);
   font-size: 3rem;
-  box-shadow: var(--shadow);
 }
 
 .tint-0 { background: var(--pink); }
@@ -385,10 +427,13 @@ button {
 
 .hero-name {
   font-family: var(--font-display);
-  font-size: 1.9rem;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .hero-parents {
+  font-weight: 600;
   color: var(--muted);
 }
 
@@ -398,6 +443,7 @@ button {
   align-items: center;
   gap: 0.3rem;
   padding: 1.4rem 1rem;
+  border: 2px solid var(--edge);
   border-radius: var(--radius);
   background: linear-gradient(150deg, var(--pink), var(--lavender));
   text-align: center;
@@ -405,30 +451,35 @@ button {
 
 .hero-number {
   font-family: var(--font-display);
-  font-size: 1.85rem;
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   line-height: 1.15;
 }
 
 .hero-sub {
   font-size: 0.92rem;
+  font-weight: 600;
   color: #6f5a64;
 }
 
 .chip {
   display: inline-block;
   padding: 0.2rem 0.75rem;
+  border: 2px solid var(--edge);
   border-radius: 999px;
   background: var(--mint);
   font-size: 0.8rem;
-  font-weight: 650;
+  font-weight: 800;
 }
 
 .progress {
   width: min(100%, 20rem);
-  height: 0.5rem;
+  height: 0.7rem;
   margin-top: 0.5rem;
+  border: 2px solid var(--edge);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.7);
   overflow: hidden;
 }
 
@@ -465,16 +516,17 @@ button {
 }
 
 .sign-emoji {
-  font-size: 1.9rem;
+  font-size: 2rem;
   line-height: 1.1;
 }
 
 .sign-name {
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .sign-meta {
   font-size: 0.75rem;
+  font-weight: 600;
   color: var(--muted);
 }
 
@@ -500,13 +552,14 @@ button {
 
 .fact-label {
   font-size: 0.7rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .fact-value {
-  font-weight: 650;
+  font-weight: 800;
 }
 
 .fact-detail {
@@ -516,8 +569,7 @@ button {
 
 .rhyme {
   margin-top: 0.8rem;
-  font-family: var(--font-display);
-  font-style: italic;
+  font-weight: 700;
   color: #6f5a64;
 }
 
@@ -537,7 +589,7 @@ button {
   list-style: none;
   margin: 0;
   padding: 0 0 0 1.1rem;
-  border-left: 2px dashed var(--line);
+  border-left: 3px dashed var(--line);
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -551,10 +603,10 @@ button {
 
 .timeline-dot {
   position: absolute;
-  left: -1.5rem;
-  top: 0.35rem;
-  width: 0.7rem;
-  height: 0.7rem;
+  left: -1.55rem;
+  top: 0.3rem;
+  width: 0.8rem;
+  height: 0.8rem;
   border-radius: 50%;
   background: var(--line);
 }
@@ -564,7 +616,7 @@ button {
 }
 
 .timeline-label {
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .timeline-item:not(.done) .timeline-label {
@@ -597,7 +649,7 @@ button {
 
 .field-label {
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
@@ -611,10 +663,11 @@ button {
 .input {
   width: 100%;
   padding: 0.75rem 0.9rem;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 16px;
   background: var(--paper);
   font: inherit;
+  font-weight: 600;
   color: inherit;
 }
 
@@ -628,6 +681,7 @@ textarea.input {
   grid-template-columns: 1fr 1fr;
   gap: 0.3rem;
   padding: 0.3rem;
+  border: 2px solid var(--edge);
   border-radius: 999px;
   background: var(--line);
 }
@@ -637,14 +691,14 @@ textarea.input {
   border: none;
   border-radius: 999px;
   background: transparent;
-  font-weight: 650;
+  font-weight: 800;
   color: var(--muted);
 }
 
 .segmented button.active {
   background: var(--paper);
   color: var(--ink);
-  box-shadow: var(--shadow);
+  box-shadow: 0 2px 0 rgba(109, 74, 90, 0.35);
 }
 
 .photo-row {
@@ -673,10 +727,12 @@ textarea.input {
 
 .form-error {
   padding: 0.7rem 1rem;
+  border: 2px solid var(--berry);
   border-radius: 16px;
-  background: #fde4ea;
+  background: #ffe3ea;
   color: #a83f5c;
   font-size: 0.9rem;
+  font-weight: 700;
 }
 
 /* -------------------------------------------------------------- settings */
@@ -686,7 +742,7 @@ textarea.input {
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 0;
-  border-top: 1px solid var(--line);
+  border-top: 2px solid var(--line);
 }
 
 .setting:first-of-type {
@@ -701,7 +757,7 @@ textarea.input {
 }
 
 .setting-title {
-  font-weight: 650;
+  font-weight: 800;
 }
 
 .setting-body {
@@ -713,18 +769,19 @@ textarea.input {
   width: 100%;
   padding: 0.8rem;
   margin-bottom: 0.6rem;
-  border: 2px dashed var(--pink);
+  border: 2px dashed var(--edge);
   border-radius: 16px;
   background: transparent;
-  font-weight: 650;
+  font-weight: 800;
   color: var(--muted);
+  transition: translate 0.08s ease, box-shadow 0.08s ease;
 }
 
 .gift-toggle.done {
   border-style: solid;
-  border-color: var(--mint);
   background: var(--mint);
   color: var(--ink);
+  box-shadow: var(--pop);
 }
 
 .danger-zone {
@@ -742,7 +799,7 @@ textarea.input {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(74, 59, 66, 0.42);
+  background: rgba(75, 51, 64, 0.45);
   overscroll-behavior: contain;
   animation: fade-in 0.18s ease;
 }
@@ -754,9 +811,10 @@ textarea.input {
   max-width: 40rem;
   max-height: 92dvh;
   /* Rises from the bottom edge on a phone, so it reads as a sheet. */
-  border-radius: 26px 26px 0 0;
+  border: 3px solid var(--edge);
+  border-bottom: none;
+  border-radius: 28px 28px 0 0;
   background: var(--cream);
-  box-shadow: 0 -8px 40px rgba(74, 59, 66, 0.25);
   animation: rise 0.22s ease;
 }
 
@@ -768,7 +826,9 @@ textarea.input {
 
   .sheet {
     max-height: 86dvh;
-    border-radius: 26px;
+    border-bottom: 3px solid var(--edge);
+    border-radius: 28px;
+    box-shadow: var(--pop-deep);
   }
 }
 
@@ -777,14 +837,16 @@ textarea.input {
   align-items: center;
   gap: 0.5rem;
   padding: 0.9rem 1rem;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 2px solid var(--line);
 }
 
 .sheet-title {
   flex: 1;
   min-width: 0;
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -845,23 +907,26 @@ textarea.input {
 }
 
 .empty-glyph {
-  font-size: 3.5rem;
+  font-size: 3.8rem;
 }
 
 .empty h2 {
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: 1.45rem;
+  font-weight: 800;
 }
 
 .banner {
   max-width: 640px;
   margin: 0 auto 0.5rem;
   padding: 0.75rem 1rem;
+  border: 2px solid var(--berry);
   border-radius: 16px;
-  background: #fde4ea;
+  background: #ffe3ea;
   color: #a83f5c;
   font-size: 0.88rem;
+  font-weight: 700;
 }
 
 .toast {
@@ -873,10 +938,12 @@ textarea.input {
   z-index: 40;
   max-width: min(90vw, 24rem);
   padding: 0.7rem 1.2rem;
+  border: 2px solid var(--edge);
   border-radius: 999px;
   background: var(--ink);
   color: var(--cream);
   font-size: 0.9rem;
+  font-weight: 700;
   text-align: center;
   opacity: 0;
   pointer-events: none;
@@ -892,5 +959,10 @@ textarea.input {
   * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+
+  .tile:nth-child(odd),
+  .tile:nth-child(even) {
+    rotate: none;
   }
 }

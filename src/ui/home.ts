@@ -94,6 +94,7 @@ function thisWeek(babies: Baby[], ctx: AppContext): HTMLElement | null {
 
 export function renderHome(ctx: AppContext): HTMLElement {
   const header = screenHeader("Stork", {
+    mark: true,
     actions: [
       iconButton("Settings", "\u2699", () => ctx.navigate("#/settings")),
       iconButton("Add a baby", "\uFF0B", () => ctx.navigate("#/add")),
