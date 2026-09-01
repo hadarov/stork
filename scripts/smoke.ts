@@ -25,6 +25,7 @@ import {
   ordinal,
   sortByNextEvent,
 } from "../src/domain/derive.ts";
+import { areSiblings, relation, siblingsOf } from "../src/domain/family.ts";
 import { toICalendar } from "../src/domain/ics.ts";
 import type { Baby } from "../src/domain/types.ts";
 import { migrate } from "../src/storage/migrate.ts";
@@ -246,6 +247,72 @@ describe("what happens next", () => {
   test("an unnamed baby is described by its parents", () => {
     assert.equal(displayName(baby({ name: undefined })), "Sarah's baby");
     assert.equal(displayName(baby({ name: "Mila" })), "Mila");
+  });
+});
+
+describe("families", () => {
+  const of = (id: string, parents: string[], over: Partial<Baby> = {}): Baby => ({
+    id,
+    name: id,
+    parents,
+    status: "born",
+    birthDate: "2022-01-01",
+    updatedAt: "2022-01-01T00:00:00.000Z",
+    ...over,
+  });
+
+  test("sharing a parent makes two babies siblings, whatever the spelling", () => {
+    assert.equal(areSiblings(of("a", ["Sarah", "Tom"]), of("b", [" sarah "])), true);
+  });
+
+  test("different parents are different families", () => {
+    assert.equal(areSiblings(of("a", ["Sarah"]), of("b", ["Dana"])), false);
+  });
+
+  test("a baby is not their own sibling", () => {
+    assert.equal(areSiblings(of("a", ["Sarah"]), of("a", ["Sarah"])), false);
+  });
+
+  test("a blank parent name does not marry two families together", () => {
+    assert.equal(areSiblings(of("a", ["Sarah", "  "]), of("b", ["", "Dana"])), false);
+  });
+
+  test("siblings come back oldest first, with anyone on the way last", () => {
+    const all = [
+      of("bump", ["Sarah"], { status: "expecting", birthDate: undefined, dueDate: "2026-11-01" }),
+      of("younger", ["Sarah"], { birthDate: "2024-03-04" }),
+      of("eldest", ["Sarah"], { birthDate: "2019-07-02" }),
+    ];
+    assert.deepEqual(
+      siblingsOf(of("me", ["Sarah"], { birthDate: "2021-01-01" }), all).map((baby) => baby.id),
+      ["eldest", "younger", "bump"],
+    );
+  });
+
+  test("an older girl is a big sister and a younger boy a little brother", () => {
+    const me = of("me", ["Sarah"], { birthDate: "2022-01-01" });
+    assert.equal(relation(me, of("a", ["Sarah"], { birthDate: "2019-01-01", sex: "girl" })), "big sister");
+    assert.equal(relation(me, of("b", ["Sarah"], { birthDate: "2024-01-01", sex: "boy" })), "little brother");
+  });
+
+  test("without a sex it is just an older or younger sibling", () => {
+    const me = of("me", ["Sarah"], { birthDate: "2022-01-01" });
+    assert.equal(relation(me, of("a", ["Sarah"], { birthDate: "2019-01-01" })), "older sibling");
+    assert.equal(
+      relation(me, of("b", ["Sarah"], { birthDate: "2024-01-01", sex: "surprise" })),
+      "younger sibling",
+    );
+  });
+
+  test("a bump is younger than a baby who is already here", () => {
+    const me = of("me", ["Sarah"], { birthDate: "2022-01-01" });
+    const bump = of("b", ["Sarah"], {
+      status: "expecting",
+      birthDate: undefined,
+      dueDate: "2019-01-01",
+      sex: "girl",
+    });
+    assert.equal(relation(me, bump), "little sister");
   });
 });
 

@@ -16,6 +16,7 @@ import {
   parseDate,
   starSign,
 } from "../domain/derive.ts";
+import { relation, siblingsOf } from "../domain/family.ts";
 import { toICalendar } from "../domain/ics.ts";
 import type { Baby } from "../domain/types.ts";
 import { albumSection } from "./album.ts";
@@ -200,6 +201,50 @@ function expectingBody(baby: Baby, ctx: AppContext): HTMLElement {
   );
 }
 
+/** How a sibling is getting on, in the few words that fit on one line. */
+function siblingStatus(baby: Baby, now: Date): string {
+  if (baby.status === "born" && baby.birthDate) return describeAge(baby.birthDate, now).label;
+  return baby.dueDate ? dueCountdown(baby.dueDate, now).label : "on the way";
+}
+
+function familySection(baby: Baby, ctx: AppContext): HTMLElement {
+  const siblings = siblingsOf(baby, ctx.babies);
+
+  return section(
+    "Family",
+    ...siblings.map((sibling) =>
+      el(
+        "button",
+        {
+          class: "sibling",
+          type: "button",
+          onclick: () => ctx.navigate(`#/baby/${encodeURIComponent(sibling.id)}`),
+        },
+        avatar(sibling, "sm"),
+        el(
+          "span",
+          { class: "sibling-text" },
+          el("span", { class: "sibling-name" }, displayName(sibling)),
+          el(
+            "span",
+            { class: "sibling-meta" },
+            `${relation(baby, sibling)} \u00b7 ${siblingStatus(sibling, ctx.now)}`,
+          ),
+        ),
+      ),
+    ),
+    el(
+      "button",
+      {
+        class: "secondary",
+        type: "button",
+        onclick: () => ctx.navigate(`#/sibling/${encodeURIComponent(baby.id)}`),
+      },
+      siblings.length > 0 ? "\uFF0B Another one" : "\uFF0B Add a sibling",
+    ),
+  );
+}
+
 export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
   const parents = describeParents(baby.parents);
 
@@ -241,6 +286,7 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
       baby.status === "born" && baby.birthDate
         ? bornBody(baby, ctx)
         : expectingBody(baby, ctx),
+      baby.parents.length > 0 ? familySection(baby, ctx) : null,
       albumSection(baby, ctx),
       baby.notes ? section("Notes", el("p", { class: "notes" }, baby.notes)) : null,
       section(

@@ -71,6 +71,7 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
       ];
     }
 
+    if (route.name === "sibling") return [renderEdit(ctx, null, baby.parents)];
     if (route.name === "edit") return [renderEdit(ctx, baby)];
     if (route.name === "born") return [renderDetail(ctx, baby), renderArrival(ctx, baby)];
     if (route.name === "remove") {
@@ -111,7 +112,7 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
    */
   const isFilling = (): boolean => {
     const route = parseRoute(location.hash);
-    return route.name === "add" || route.name === "edit";
+    return route.name === "add" || route.name === "edit" || route.name === "sibling";
   };
 
   // Another tab editing the same book should not leave this one stale.

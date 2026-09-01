@@ -583,6 +583,34 @@ button {
   overflow-wrap: anywhere;
 }
 
+/* ---------------------------------------------------------------- family */
+
+.sibling {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.5rem 0;
+  border: none;
+  background: none;
+  text-align: left;
+}
+
+.sibling-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sibling-name {
+  font-weight: 800;
+}
+
+.sibling-meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
 /* ----------------------------------------------------------------- album */
 
 .album {

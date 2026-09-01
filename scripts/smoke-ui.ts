@@ -312,6 +312,61 @@ describe("detail screen", () => {
   });
 });
 
+/* -------------------------------------------------------------- family */
+
+describe("family", () => {
+  const sibling = baby({
+    id: "otto",
+    name: "Otto",
+    parents: ["Sarah", "Tom"],
+    birthDate: "2021-02-03",
+    sex: "boy",
+  });
+
+  test("a sibling is named, placed and reachable", async () => {
+    const local = makeRig([baby(), sibling]);
+    const screen = renderDetail(local.ctx, baby());
+
+    const rows = byClass(screen, "sibling");
+    assert.equal(rows.length, 1);
+    assert.match(textOf(rows[0]), /Otto/);
+    assert.match(textOf(rows[0]), /big brother/);
+
+    await rows[0]!.click();
+    assert.deepEqual(local.routes, ["#/baby/otto"]);
+  });
+
+  test("someone else's baby is not family", () => {
+    const stranger = baby({ id: "nina", name: "Nina", parents: ["Dana"] });
+    const local = makeRig([baby(), stranger]);
+    assert.equal(byClass(renderDetail(local.ctx, baby()), "sibling").length, 0);
+  });
+
+  test("an only child is offered a sibling rather than an empty list", async () => {
+    const local = makeRig([baby()]);
+    const screen = renderDetail(local.ctx, baby());
+
+    assert.match(textOf(screen), /Add a sibling/);
+    const add = byClass(screen, "secondary").find((node: any) =>
+      textOf(node).includes("Add a sibling"),
+    );
+    await add.click();
+    assert.deepEqual(local.routes, ["#/sibling/mila"]);
+  });
+
+  test("a baby with no parents named is not asked about family at all", () => {
+    const local = makeRig([baby({ parents: [] })]);
+    assert.doesNotMatch(textOf(renderDetail(local.ctx, baby({ parents: [] }))), /Add a sibling/);
+  });
+
+  test("adding a sibling arrives with the parents already filled in", () => {
+    const screen = renderEdit(rig.ctx, null, ["Sarah", "Tom"]);
+    assert.equal(findField(screen, "Parent").value, "Sarah");
+    assert.equal(findField(screen, "Second parent").value, "Tom");
+  });
+
+});
+
 /* --------------------------------------------------------------- album */
 
 describe("the album", () => {
@@ -851,6 +906,18 @@ describe("the app shell", () => {
       location.hash = "#/photo/mila/deleted-yesterday";
       assert.equal(byClass(root, "overlay").length, 1);
       assert.match(textOf(root), /Written in the stars/);
+    });
+  });
+
+  test("a sibling is added with the parents already filled in", async () => {
+    await withApp([baby()], async (root, repo) => {
+      location.hash = "#/sibling/mila";
+      fill(root, "Name", "Otto");
+      fill(root, "Due date", "2026-12-01");
+      await root.querySelector(".form")!.dispatch("submit");
+
+      const otto = (await repo.list()).find((candidate: any) => candidate.name === "Otto");
+      assert.deepEqual(otto?.parents, ["Sarah", "Tom"]);
     });
   });
 

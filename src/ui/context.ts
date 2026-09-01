@@ -22,6 +22,8 @@ export type AppContext = {
 export type Route =
   | { name: "home" }
   | { name: "add" }
+  /** A new baby for the same parents as an existing one. */
+  | { name: "sibling"; id: string }
   | { name: "baby"; id: string }
   | { name: "edit"; id: string }
   /** Asks whether the baby has arrived. Stacks over their page. */
@@ -37,6 +39,7 @@ export function parseRoute(hash: string): Route {
 
   if (head === "add") return { name: "add" };
   if (head === "settings") return { name: "settings" };
+  if (head === "sibling" && param) return { name: "sibling", id: decodeURIComponent(param) };
   if (head === "baby" && param) return { name: "baby", id: decodeURIComponent(param) };
   if (head === "edit" && param) return { name: "edit", id: decodeURIComponent(param) };
   if (head === "born" && param) return { name: "born", id: decodeURIComponent(param) };

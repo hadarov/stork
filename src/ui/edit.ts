@@ -31,12 +31,12 @@ function measure(text: string, min: number, max: number): number | null | undefi
   return Number.isFinite(value) && value >= min && value <= max ? value : null;
 }
 
-function toDraft(baby: Baby | null): Draft {
+function toDraft(baby: Baby | null, parents: string[]): Draft {
   return {
     status: baby?.status ?? "expecting",
     name: baby?.name ?? "",
-    parent: baby?.parents[0] ?? "",
-    secondParent: baby?.parents[1] ?? "",
+    parent: baby?.parents[0] ?? parents[0] ?? "",
+    secondParent: baby?.parents[1] ?? parents[1] ?? "",
     dueDate: baby?.dueDate ?? "",
     birthDate: baby?.birthDate ?? "",
     birthTime: baby?.birthTime ?? "",
@@ -58,8 +58,16 @@ function field(label: string, control: HTMLElement, hint?: string): HTMLElement 
   );
 }
 
-export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement {
-  const draft = toDraft(existing);
+/**
+ * `parents` seeds a brand new baby, which is how adding a sibling saves you
+ * typing the same two names again. It is ignored when editing.
+ */
+export function renderEdit(
+  ctx: AppContext,
+  existing: Baby | null,
+  parents: string[] = [],
+): HTMLElement {
+  const draft = toDraft(existing, parents);
   const errors = el("p", { class: "form-error", role: "alert", hidden: true });
 
   const textInput = (
