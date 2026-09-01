@@ -257,61 +257,80 @@ button {
   color: #7d6570;
 }
 
-/* ------------------------------------------------------------ baby cards */
+/* ------------------------------------------------------------- the grid */
 
-.card {
-  border: none;
-  border-radius: var(--radius);
-  background: var(--paper);
-  box-shadow: var(--shadow);
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.4rem, 1fr));
+  gap: 0.7rem;
 }
 
-.baby-card {
+.tile {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  width: 100%;
-  padding: 0.8rem;
-  text-align: left;
+  flex-direction: column;
+  padding: 0.5rem 0.5rem 0.6rem;
+  border: none;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: var(--shadow);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-.baby-card:active {
-  transform: scale(0.985);
+.tile:active {
+  transform: scale(0.96);
   box-shadow: var(--shadow-lift);
 }
 
-.baby-card-text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+.tile-art {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 15px;
+  /* Lets the tile's own colour show through behind a glyph. */
+  background: rgba(255, 255, 255, 0.6);
+  overflow: hidden;
 }
 
-.baby-card-name {
+.tile-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tile-glyph {
+  font-size: 2.1rem;
+  line-height: 1;
+}
+
+.tile-name {
+  margin-top: 0.4rem;
   font-weight: 700;
-  font-size: 1.05rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.baby-card-parents,
-.baby-card-status {
   font-size: 0.85rem;
-  color: var(--muted);
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.baby-card-status {
-  color: var(--pink-deep);
-  font-weight: 600;
+.tile-sub {
+  font-size: 0.75rem;
+  color: #7d6570;
 }
 
-.baby-card-flag {
-  font-size: 1.25rem;
+.tile-badge {
+  position: absolute;
+  top: -0.3rem;
+  right: -0.3rem;
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  font-size: 0.9rem;
 }
 
 /* --------------------------------------------------------------- avatars */
@@ -705,6 +724,90 @@ textarea.input {
   padding-top: 0.5rem;
 }
 
+/* --------------------------------------------------------------- popups */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(74, 59, 66, 0.42);
+  overscroll-behavior: contain;
+  animation: fade-in 0.18s ease;
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 40rem;
+  max-height: 92dvh;
+  /* Rises from the bottom edge on a phone, so it reads as a sheet. */
+  border-radius: 26px 26px 0 0;
+  background: var(--cream);
+  box-shadow: 0 -8px 40px rgba(74, 59, 66, 0.25);
+  animation: rise 0.22s ease;
+}
+
+@media (min-width: 40rem) {
+  .overlay {
+    align-items: center;
+    padding: 1.5rem;
+  }
+
+  .sheet {
+    max-height: 86dvh;
+    border-radius: 26px;
+  }
+}
+
+.sheet-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sheet-title {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheet-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 1.1rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(1.5rem);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 /* ----------------------------------------------------------- empty, toast */
 
 .empty {
@@ -742,7 +845,8 @@ textarea.input {
   left: 50%;
   bottom: calc(1.5rem + env(safe-area-inset-bottom));
   transform: translate(-50%, 1.5rem);
-  z-index: 20;
+  /* Above the popups, since most toasts are triggered from inside one. */
+  z-index: 40;
   max-width: min(90vw, 24rem);
   padding: 0.7rem 1.2rem;
   border-radius: 999px;

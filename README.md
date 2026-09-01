@@ -16,6 +16,19 @@ Each person who opens the link gets their own private book. Nothing is uploaded
 and nothing is shared, so your friends can use the same link without ever seeing
 each other's lists.
 
+## How it is laid out
+
+The book itself is a grid of squares, one per baby, each in its own colour and
+showing a photo if you have added one. Everything else - adding a baby, their
+details, editing, settings - opens as a popup over that grid, so you are never
+taken away from it and closing one always lands you back where you were. Escape,
+the backdrop and the phone's back button all close a popup.
+
+A baby is either on the way or here, and that decides which date you are asked
+for: a bump has a due date, a baby has a birthday, and never both. Changing one
+to the other clears the date that no longer applies. Parents are two separate
+fields and only the first is expected.
+
 ## What it works out for you
 
 Give it a name, whose baby it is, and a date. Everything else is derived:
@@ -132,7 +145,9 @@ methods. No screen changes.
 | `src/storage/repo.ts` | The `BabyRepo` interface and the merge rule |
 | `src/storage/localRepo.ts` | The localStorage implementation of it |
 | `src/storage/migrate.ts` | Making untrusted stored or imported data safe to render |
-| `src/ui/` | The four screens, the router and a small DOM helper |
+| `src/ui/home.ts` | The grid, the search and the "this week" strip |
+| `src/ui/modal.ts` | The popup every other screen is rendered into |
+| `src/ui/` | The rest: detail, form, settings, router and a small DOM helper |
 | `web/` | HTML, CSS, manifest and the service worker template |
 | `scripts/build.mjs` | Strips types, rewrites imports, draws icons, verifies the result |
 | `scripts/icon.mjs` | Draws the chick and encodes a PNG |

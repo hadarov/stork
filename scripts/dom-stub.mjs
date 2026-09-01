@@ -258,6 +258,8 @@ function makeHistory(emit) {
 export function installDom() {
   const body = new StubNode("body");
 
+  const documentListeners = new Map();
+
   const document = {
     body,
     createElement: (tag) => new StubNode(tag),
@@ -265,6 +267,14 @@ export function installDom() {
     createDocumentFragment: () => new StubFragment(),
     getElementById: () => null,
     hidden: false,
+    addEventListener: (type, handler) => {
+      const existing = documentListeners.get(type) ?? [];
+      existing.push(handler);
+      documentListeners.set(type, existing);
+    },
+    dispatchEvent: (event) => {
+      for (const handler of documentListeners.get(event.type) ?? []) handler(event);
+    },
   };
 
   const windowListeners = new Map();

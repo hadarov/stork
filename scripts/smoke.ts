@@ -263,6 +263,15 @@ describe("stored data", () => {
   test("a born baby with no birth date is demoted rather than left broken", () => {
     const store = migrate([{ name: "Mila", status: "born", dueDate: "2026-10-01" }]);
     assert.equal(store.babies[0]?.status, "expecting");
+    assert.equal(store.babies[0]?.dueDate, "2026-10-01");
+  });
+
+  test("a baby who is here keeps a birthday and loses any due date", () => {
+    const store = migrate([
+      { name: "Mila", status: "born", birthDate: "2024-06-15", dueDate: "2024-06-20" },
+    ]);
+    assert.equal(store.babies[0]?.birthDate, "2024-06-15");
+    assert.equal(store.babies[0]?.dueDate, undefined);
   });
 
   test("empty shells and duplicate ids are dropped", () => {

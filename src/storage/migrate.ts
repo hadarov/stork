@@ -63,8 +63,13 @@ export function coerceBaby(value: unknown): Baby | null {
   };
 
   if (name) baby.name = name;
-  if (birthDate) baby.birthDate = birthDate;
-  if (dueDate) baby.dueDate = dueDate;
+  // A bump has a due date and a baby has a birthday, never both, so an import
+  // carrying both is normalised rather than left to contradict itself.
+  if (baby.status === "born") {
+    if (birthDate) baby.birthDate = birthDate;
+  } else if (dueDate) {
+    baby.dueDate = dueDate;
+  }
   if (CLOCK_TIME.test(str(raw.birthTime) ?? "")) baby.birthTime = str(raw.birthTime);
   if (sexValue && (SEXES as string[]).includes(sexValue)) baby.sex = sexValue as BabySex;
   if (photo) baby.photo = photo;

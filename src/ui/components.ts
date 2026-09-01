@@ -11,6 +11,10 @@ export function tintFor(id: string): string {
   return `tint-${hash % TINTS}`;
 }
 
+function glyphFor(baby: Baby): string {
+  return baby.status === "expecting" ? "\u{1F423}" : "\u{1F476}";
+}
+
 export function avatar(baby: Baby, size: "sm" | "lg" = "sm"): HTMLElement {
   if (baby.photo) {
     return el("img", {
@@ -23,7 +27,38 @@ export function avatar(baby: Baby, size: "sm" | "lg" = "sm"): HTMLElement {
   return el(
     "div",
     { class: `avatar avatar-${size} ${tintFor(baby.id)}`, "aria-hidden": "true" },
-    baby.status === "expecting" ? "\u{1F423}" : "\u{1F476}",
+    glyphFor(baby),
+  );
+}
+
+/**
+ * One square in the grid: a photo if there is one, otherwise a big glyph on the
+ * baby's own colour, with the name underneath and a badge for anything
+ * happening imminently.
+ */
+export function tile(
+  baby: Baby,
+  options: { sub: string; badge?: string; onOpen: () => void },
+): HTMLElement {
+  return el(
+    "button",
+    {
+      class: `tile ${tintFor(baby.id)}`,
+      type: "button",
+      onclick: options.onOpen,
+    },
+    el(
+      "span",
+      { class: "tile-art" },
+      baby.photo
+        ? el("img", { src: baby.photo, alt: displayName(baby), loading: "lazy" })
+        : el("span", { class: "tile-glyph", "aria-hidden": "true" }, glyphFor(baby)),
+    ),
+    el("span", { class: "tile-name" }, displayName(baby)),
+    el("span", { class: "tile-sub" }, options.sub),
+    options.badge
+      ? el("span", { class: "tile-badge", "aria-hidden": "true" }, options.badge)
+      : null,
   );
 }
 

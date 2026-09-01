@@ -99,6 +99,30 @@ const baby = (over: Partial<Baby> = {}): Baby => ({
   ...over,
 });
 
+/** Finds a form control by the label above it, rather than by its position. */
+function findField(screen: any, label: string): any {
+  const field = byClass(screen, "field").find(
+    (candidate: any) => textOf(candidate.querySelector(".field-label")) === label,
+  );
+  assert.ok(field, `no field labelled "${label}"`);
+  return field.querySelector(".input");
+}
+
+function fill(screen: any, label: string, value: string): any {
+  const input = findField(screen, label);
+  input.dispatch("input", { target: { value } });
+  return input;
+}
+
+/** True when the field's whole group is hidden, as the two date fields are. */
+function fieldHidden(screen: any, label: string): boolean {
+  const field = byClass(screen, "field").find(
+    (candidate: any) => textOf(candidate.querySelector(".field-label")) === label,
+  );
+  assert.ok(field, `no field labelled "${label}"`);
+  return field.parentNode?.hidden === true;
+}
+
 beforeEach(() => {
   rig = makeRig();
 });
@@ -110,10 +134,10 @@ describe("home screen", () => {
     const screen = renderHome(rig.ctx);
     const text = textOf(screen);
     assert.match(text, /No babies yet/);
-    assert.equal(byClass(screen, "baby-card").length, 0);
+    assert.equal(byClass(screen, "tile").length, 0);
   });
 
-  test("babies are listed under the right heading with their age", () => {
+  test("babies fill a grid under the right heading, with a short status", () => {
     const local = makeRig([
       baby(),
       baby({ id: "bump", name: undefined, status: "expecting", birthDate: undefined, dueDate: "2026-11-20" }),
@@ -126,8 +150,27 @@ describe("home screen", () => {
     assert.match(text, /Mila/);
     // Unnamed bumps fall back to whose baby it is.
     assert.match(text, /Sarah's baby/);
-    assert.match(text, /2 years, 2 months old/);
-    assert.equal(byClass(screen, "baby-card").length, 2);
+    assert.equal(byClass(screen, "tile").length, 2);
+
+    // A tile has room for "2y", not for "2 years, 2 months old".
+    const subs = byClass(screen, "tile-sub").map((node: any) => textOf(node));
+    assert.deepEqual(subs.sort(), ["11w", "2y"]);
+  });
+
+  test("each baby keeps its own colour, and a photo replaces the glyph", () => {
+    const local = makeRig([
+      baby(),
+      baby({ id: "theo", name: "Theo", photo: "data:image/jpeg;base64,abc" }),
+    ]);
+    const tiles = byClass(renderHome(local.ctx), "tile");
+
+    const tints = tiles.map(
+      (node: any) => node.className.split(" ").find((name: string) => name.startsWith("tint-")),
+    );
+    assert.ok(tints.every(Boolean), "every tile should carry a tint class");
+
+    assert.equal(tiles[0]!.querySelectorAll("img").length, 0, "no photo means a glyph");
+    assert.equal(tiles[1]!.querySelectorAll("img").length, 1, "a photo should be shown");
   });
 
   test("only imminent events reach the this-week strip", () => {
@@ -138,10 +181,10 @@ describe("home screen", () => {
     assert.doesNotMatch(textOf(renderHome(later.ctx)), /This week/);
   });
 
-  test("tapping a card opens that baby", async () => {
+  test("tapping a tile opens that baby", async () => {
     const local = makeRig([baby()]);
     const screen = renderHome(local.ctx);
-    await byClass(screen, "baby-card")[0]!.click();
+    await byClass(screen, "tile")[0]!.click();
     assert.deepEqual(local.routes, ["#/baby/mila"]);
   });
 
@@ -235,24 +278,24 @@ describe("detail screen", () => {
 /* ------------------------------------------------------------------ form */
 
 describe("add and edit", () => {
-  test("the form starts on expecting and hides the birth fields", () => {
+  test("a bump is offered a due date and no birthday", () => {
     const screen = renderEdit(rig.ctx, null);
     const [expecting, born] = byClass(screen, "segmented")[0]!.querySelectorAll("button");
 
     assert.ok(expecting!.classList.contains("active"));
     assert.ok(!born!.classList.contains("active"));
-    assert.equal(byClass(screen, "field-group")[0]!.hidden, true);
-    assert.match(textOf(screen), /Due date/);
+    assert.equal(fieldHidden(screen, "Due date"), false);
+    assert.equal(fieldHidden(screen, "Birthday"), true);
   });
 
-  test("switching to born reveals them and relabels the due date", () => {
+  test("and a baby who is here gets a birthday and no due date", () => {
     const screen = renderEdit(rig.ctx, null);
     const born = byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!;
 
     born.click();
     assert.ok(born.classList.contains("active"));
-    assert.equal(byClass(screen, "field-group")[0]!.hidden, false);
-    assert.match(textOf(screen), /Was due/);
+    assert.equal(fieldHidden(screen, "Due date"), true);
+    assert.equal(fieldHidden(screen, "Birthday"), false);
   });
 
   test("a born baby with no birthday is refused, with a reason", async () => {
@@ -267,10 +310,9 @@ describe("add and edit", () => {
     assert.equal(rig.repo.babies.length, 0);
   });
 
-  test("a baby with neither a name nor parents is refused", async () => {
+  test("a baby with neither a name nor a parent is refused", async () => {
     const screen = renderEdit(rig.ctx, null);
-    const inputs = byClass(screen, "input");
-    inputs[2]!.dispatch("input", { target: { value: "2026-11-01" } }); // due date
+    fill(screen, "Due date", "2026-11-01");
 
     await screen.querySelector(".form")!.dispatch("submit");
     assert.match(textOf(byClass(screen, "form-error")[0]!), /whose baby this is/);
@@ -278,10 +320,10 @@ describe("add and edit", () => {
 
   test("a valid bump saves and opens its page", async () => {
     const screen = renderEdit(rig.ctx, null);
-    const inputs = byClass(screen, "input");
-    inputs[0]!.dispatch("input", { target: { value: "Poppy" } });
-    inputs[1]!.dispatch("input", { target: { value: "Dana, Alex" } });
-    inputs[2]!.dispatch("input", { target: { value: "2026-11-01" } });
+    fill(screen, "Name", "Poppy");
+    fill(screen, "Parent", "Dana");
+    fill(screen, "Second parent", "Alex");
+    fill(screen, "Due date", "2026-11-01");
 
     await screen.querySelector(".form")!.dispatch("submit");
 
@@ -294,11 +336,36 @@ describe("add and edit", () => {
     assert.equal(rig.routes[0], `#/baby/${saved.id}`);
   });
 
+  test("the second parent really is optional", async () => {
+    const screen = renderEdit(rig.ctx, null);
+    fill(screen, "Parent", "Dana");
+    fill(screen, "Due date", "2026-11-01");
+
+    await screen.querySelector(".form")!.dispatch("submit");
+    assert.deepEqual(rig.repo.babies[0]?.parents, ["Dana"]);
+  });
+
+  test("arriving clears the due date, so the two can never contradict", async () => {
+    const screen = renderEdit(rig.ctx, null);
+    fill(screen, "Name", "Poppy");
+    fill(screen, "Parent", "Dana");
+    fill(screen, "Due date", "2026-11-01");
+
+    byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!.click();
+    fill(screen, "Birthday", "2026-08-28");
+    await screen.querySelector(".form")!.dispatch("submit");
+
+    const saved = rig.repo.babies[0]!;
+    assert.equal(saved.status, "born");
+    assert.equal(saved.birthDate, "2026-08-28");
+    assert.equal(saved.dueDate, undefined);
+  });
+
   test("editing keeps the same record rather than making a second one", async () => {
     const local = makeRig([baby()]);
     const screen = renderEdit(local.ctx, baby());
 
-    byClass(screen, "input")[0]!.dispatch("input", { target: { value: "Mila Rose" } });
+    fill(screen, "Name", "Mila Rose");
     await screen.querySelector(".form")!.dispatch("submit");
 
     assert.equal(local.repo.babies.length, 1);
@@ -306,11 +373,50 @@ describe("add and edit", () => {
     assert.equal(local.repo.babies[0]?.name, "Mila Rose");
   });
 
+  test("an existing pair of parents comes back into its two fields", () => {
+    const screen = renderEdit(rig.ctx, baby());
+    assert.equal(findField(screen, "Parent").value, "Sarah");
+    assert.equal(findField(screen, "Second parent").value, "Tom");
+  });
+
   test("a gift already sent is not forgotten by an edit", async () => {
     const local = makeRig([baby({ giftSent: true })]);
     const screen = renderEdit(local.ctx, baby({ giftSent: true }));
     await screen.querySelector(".form")!.dispatch("submit");
     assert.equal(local.repo.babies[0]?.giftSent, true);
+  });
+});
+
+/* -------------------------------------------------------------- popups */
+
+describe("popups", () => {
+  test("every screen other than the book opens as one", () => {
+    for (const screen of [
+      renderEdit(rig.ctx, null),
+      renderDetail(rig.ctx, baby()),
+      renderSettings(rig.ctx),
+    ]) {
+      assert.ok(screen.classList.contains("overlay"), "should be an overlay");
+      assert.equal(screen.getAttribute("aria-modal"), "true");
+      assert.equal(byClass(screen, "sheet").length, 1);
+    }
+  });
+
+  test("the close button and the backdrop both dismiss it", async () => {
+    const closed = renderSettings(rig.ctx);
+    await byClass(closed, "sheet-bar")[0]!.querySelectorAll("button").at(-1)!.click();
+    assert.deepEqual(rig.routes, ["back"]);
+
+    const dismissed = renderSettings(rig.ctx);
+    await dismissed.dispatch("click", { target: dismissed, currentTarget: dismissed });
+    assert.deepEqual(rig.routes, ["back", "back"]);
+  });
+
+  test("but a tap inside the sheet does not", async () => {
+    const screen = renderSettings(rig.ctx);
+    const sheet = byClass(screen, "sheet")[0]!;
+    await screen.dispatch("click", { target: sheet, currentTarget: screen });
+    assert.deepEqual(rig.routes, []);
   });
 });
 
@@ -359,29 +465,61 @@ describe("the app shell", () => {
     }
   }
 
-  test("it opens on the book itself", async () => {
+  test("it opens on the book itself, with no popup over it", async () => {
     await withApp([baby()], (root) => {
       assert.match(textOf(root), /Little ones/);
       assert.match(textOf(root), /Mila/);
+      assert.equal(byClass(root, "overlay").length, 0);
     });
   });
 
-  test("every route renders, and back returns to the book", async () => {
+  test("every route opens a popup, and the book stays behind it", async () => {
     await withApp([baby()], (root) => {
-      location.hash = "#/settings";
-      assert.match(textOf(root), /Backup/);
-
-      location.hash = "#/add";
-      assert.match(textOf(root), /New baby/);
-
-      location.hash = "#/baby/mila";
-      assert.match(textOf(root), /Written in the stars/);
-
-      location.hash = "#/edit/mila";
-      assert.match(textOf(root), /Edit/);
+      for (const [hash, expected] of [
+        ["#/settings", /Backup/],
+        ["#/add", /New baby/],
+        ["#/baby/mila", /Written in the stars/],
+        ["#/edit/mila", /Edit/],
+      ] as const) {
+        location.hash = hash;
+        assert.match(textOf(root), expected);
+        assert.equal(byClass(root, "overlay").length, 1, `${hash} should open one popup`);
+        // The grid is still rendered underneath, not torn down and rebuilt.
+        assert.ok(byClass(root, "tile").length > 0, `${hash} should keep the book behind`);
+      }
 
       history.back();
       assert.match(textOf(root), /Written in the stars/);
+    });
+  });
+
+  test("closing the last popup leaves just the book", async () => {
+    await withApp([baby()], (root) => {
+      location.hash = "#/settings";
+      assert.equal(byClass(root, "overlay").length, 1);
+
+      history.back();
+      assert.equal(byClass(root, "overlay").length, 0);
+      assert.match(textOf(root), /Little ones/);
+    });
+  });
+
+  test("Escape closes a popup, and does nothing on the book", async () => {
+    await withApp([baby()], (root) => {
+      const press = (key: string) =>
+        (document as never as { dispatchEvent: (e: object) => void }).dispatchEvent({
+          type: "keydown",
+          key,
+        });
+
+      location.hash = "#/settings";
+      press("Escape");
+      assert.equal(byClass(root, "overlay").length, 0);
+
+      // Already on the book: nothing to close, and nothing should break.
+      press("Escape");
+      assert.equal(byClass(root, "overlay").length, 0);
+      assert.match(textOf(root), /Little ones/);
     });
   });
 
@@ -389,6 +527,7 @@ describe("the app shell", () => {
     await withApp([baby()], (root) => {
       location.hash = "#/nonsense";
       assert.match(textOf(root), /Little ones/);
+      assert.equal(byClass(root, "overlay").length, 0);
     });
   });
 
@@ -401,18 +540,18 @@ describe("the app shell", () => {
 
   test("coming back to the app redraws the book, so countdowns stay honest", async () => {
     await withApp([baby()], (root) => {
-      const before = byClass(root, "baby-card")[0];
+      const before = byClass(root, "tile")[0];
       (window as never as { dispatchEvent: (e: { type: string }) => void }).dispatchEvent({
         type: "visibilitychange",
       });
-      assert.notEqual(byClass(root, "baby-card")[0], before, "home should have redrawn");
+      assert.notEqual(byClass(root, "tile")[0], before, "the book should have redrawn");
     });
   });
 
   test("but it never redraws over a half-filled form", async () => {
     await withApp([], (root) => {
       location.hash = "#/add";
-      const input = byClass(root, "input")[0]!;
+      const input = findField(root, "Name");
       input.dispatch("input", { target: { value: "Poppy" } });
 
       (window as never as { dispatchEvent: (e: { type: string }) => void }).dispatchEvent({
@@ -421,7 +560,7 @@ describe("the app shell", () => {
 
       assert.match(textOf(root), /New baby/);
       assert.equal(
-        byClass(root, "input")[0],
+        findField(root, "Name"),
         input,
         "the form was rebuilt, losing whatever was typed into it",
       );

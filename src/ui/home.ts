@@ -1,13 +1,12 @@
 import {
   describeAge,
-  describeParents,
   displayName,
   dueCountdown,
   nextEvent,
   sortByNextEvent,
 } from "../domain/derive.ts";
 import type { Baby } from "../domain/types.ts";
-import { avatar, emptyState, iconButton, screenHeader } from "./components.ts";
+import { emptyState, iconButton, screenHeader, tile } from "./components.ts";
 import type { AppContext } from "./context.ts";
 import { el } from "./dom.ts";
 
@@ -22,38 +21,38 @@ function matches(baby: Baby, needle: string): boolean {
   return haystack.includes(needle);
 }
 
-/** The one-line summary under a name on a card. */
-function statusLine(baby: Baby, now: Date): string {
+/** The two or three characters that fit under a name in the grid. */
+function shortStatus(baby: Baby, now: Date): string {
   if (baby.status === "expecting") {
-    if (!baby.dueDate) return "on the way";
-    const due = dueCountdown(baby.dueDate, now);
-    return `${due.label} \u00b7 week ${due.week}`;
+    return baby.dueDate ? dueCountdown(baby.dueDate, now).short : "soon";
   }
-  return baby.birthDate ? describeAge(baby.birthDate, now).label : "here";
+  return baby.birthDate ? describeAge(baby.birthDate, now).short : "here";
 }
 
-function babyCard(baby: Baby, ctx: AppContext): HTMLElement {
-  const event = nextEvent(baby, ctx.now);
-  const parents = describeParents(baby.parents);
+function grid(title: string, babies: Baby[], ctx: AppContext): HTMLElement | null {
+  if (babies.length === 0) return null;
 
   return el(
-    "button",
-    {
-      class: "card baby-card",
-      type: "button",
-      onclick: () => ctx.navigate(`#/baby/${encodeURIComponent(baby.id)}`),
-    },
-    avatar(baby),
+    "section",
+    { class: "group" },
     el(
-      "span",
-      { class: "baby-card-text" },
-      el("span", { class: "baby-card-name" }, displayName(baby)),
-      parents ? el("span", { class: "baby-card-parents" }, parents) : null,
-      el("span", { class: "baby-card-status" }, statusLine(baby, ctx.now)),
+      "h2",
+      { class: "section-title" },
+      title,
+      el("span", { class: "section-count" }, String(babies.length)),
     ),
-    event && event.daysUntil <= HORIZON_DAYS
-      ? el("span", { class: "baby-card-flag" }, event.emoji)
-      : null,
+    el(
+      "div",
+      { class: "grid" },
+      ...babies.map((baby) => {
+        const event = nextEvent(baby, ctx.now);
+        return tile(baby, {
+          sub: shortStatus(baby, ctx.now),
+          badge: event && event.daysUntil <= HORIZON_DAYS ? event.emoji : undefined,
+          onOpen: () => ctx.navigate(`#/baby/${encodeURIComponent(baby.id)}`),
+        });
+      }),
+    ),
   );
 }
 
@@ -90,21 +89,6 @@ function thisWeek(babies: Baby[], ctx: AppContext): HTMLElement | null {
         ),
       ),
     ),
-  );
-}
-
-function group(title: string, babies: Baby[], ctx: AppContext): HTMLElement | null {
-  if (babies.length === 0) return null;
-  return el(
-    "section",
-    { class: "group" },
-    el(
-      "h2",
-      { class: "section-title" },
-      title,
-      el("span", { class: "section-count" }, String(babies.length)),
-    ),
-    el("div", { class: "stack" }, ...babies.map((baby) => babyCard(baby, ctx))),
   );
 }
 
@@ -146,8 +130,8 @@ export function renderHome(ctx: AppContext): HTMLElement {
 
     const children: (HTMLElement | null)[] = [];
     if (!query) children.push(thisWeek(ctx.babies, ctx));
-    children.push(group("On the way", expecting, ctx));
-    children.push(group("Little ones", born, ctx));
+    children.push(grid("On the way", expecting, ctx));
+    children.push(grid("Little ones", born, ctx));
 
     const anything = children.some((child) => child !== null);
     results.replaceChildren(

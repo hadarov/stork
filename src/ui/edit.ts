@@ -1,15 +1,17 @@
 import { toISODate } from "../domain/derive.ts";
 import type { Baby, BabySex, BabyStatus } from "../domain/types.ts";
 import { newId } from "../storage/repo.ts";
-import { screenHeader } from "./components.ts";
 import type { AppContext } from "./context.ts";
 import { el } from "./dom.ts";
+import { popup } from "./modal.ts";
 import { readPhoto } from "./photo.ts";
 
 type Draft = {
   status: BabyStatus;
   name: string;
-  parents: string;
+  /** Held apart rather than as one list, because only the first is expected. */
+  parent: string;
+  secondParent: string;
   dueDate: string;
   birthDate: string;
   birthTime: string;
@@ -22,7 +24,8 @@ function toDraft(baby: Baby | null): Draft {
   return {
     status: baby?.status ?? "expecting",
     name: baby?.name ?? "",
-    parents: baby?.parents.join(", ") ?? "",
+    parent: baby?.parents[0] ?? "",
+    secondParent: baby?.parents[1] ?? "",
     dueDate: baby?.dueDate ?? "",
     birthDate: baby?.birthDate ?? "",
     birthTime: baby?.birthTime ?? "",
@@ -46,8 +49,8 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
   const draft = toDraft(existing);
   const errors = el("p", { class: "form-error", role: "alert", hidden: true });
 
-  const text = (
-    key: "name" | "parents" | "notes",
+  const textInput = (
+    key: "name" | "parent" | "secondParent" | "notes",
     props: Record<string, unknown> = {},
   ): HTMLElement =>
     el(key === "notes" ? "textarea" : "input", {
@@ -73,14 +76,38 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
   /* ----------------------------------------------------------- the photo */
 
   const preview = el("div", { class: "photo-preview" });
-  const paintPreview = (): void => {
+  const photoButtons = el("div", { class: "photo-buttons" });
+
+  const paintPhoto = (): void => {
     preview.replaceChildren(
       draft.photo
         ? el("img", { class: "avatar avatar-lg", src: draft.photo, alt: "" })
         : el("div", { class: "avatar avatar-lg tint-2", "aria-hidden": "true" }, "\u{1F4F7}"),
     );
+    photoButtons.replaceChildren(
+      el(
+        "button",
+        { class: "secondary", type: "button", onclick: () => photoInput.click() },
+        draft.photo ? "Change photo" : "Add a photo",
+      ),
+      ...(draft.photo
+        ? [
+            el(
+              "button",
+              {
+                class: "quiet",
+                type: "button",
+                onclick: () => {
+                  draft.photo = "";
+                  paintPhoto();
+                },
+              },
+              "Remove",
+            ),
+          ]
+        : []),
+    );
   };
-  paintPreview();
 
   const photoInput = el("input", {
     type: "file",
@@ -92,7 +119,7 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
       if (!file) return;
       try {
         draft.photo = await readPhoto(file);
-        paintPreview();
+        paintPhoto();
       } catch (error) {
         ctx.toast(error instanceof Error ? error.message : "Could not read that image.");
       } finally {
@@ -102,80 +129,16 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
     },
   });
 
-  const photoRow = el(
+  paintPhoto();
+
+  /* --------------------------------------------- on the way, or here yet */
+
+  // A bump has a due date and a baby has a birthday. Never both: the two are
+  // answers to the same question, and showing both invites contradictions.
+  const expectingOnly = el("div", { class: "field-group" }, field("Due date", dateInput("dueDate")));
+  const bornOnly = el(
     "div",
-    { class: "photo-row" },
-    preview,
-    el(
-      "div",
-      { class: "photo-buttons" },
-      el(
-        "button",
-        { class: "secondary", type: "button", onclick: () => photoInput.click() },
-        draft.photo ? "Change photo" : "Add a photo",
-      ),
-      draft.photo
-        ? el(
-            "button",
-            {
-              class: "quiet",
-              type: "button",
-              onclick: (event: Event) => {
-                draft.photo = "";
-                paintPreview();
-                (event.currentTarget as HTMLElement).remove();
-              },
-            },
-            "Remove",
-          )
-        : null,
-    ),
-    photoInput,
-  );
-
-  /* ------------------------------------------------- expecting or here yet */
-
-  const bornOnly = el("div", { class: "field-group" });
-  const dueField = field(
-    "Due date",
-    dateInput("dueDate"),
-    "The date everyone is counting down to.",
-  );
-
-  const setStatus = (status: BabyStatus): void => {
-    draft.status = status;
-    for (const button of segmented.querySelectorAll("button")) {
-      const active = button.dataset.status === status;
-      button.classList.toggle("active", active);
-      button.setAttribute("aria-pressed", String(active));
-    }
-    bornOnly.hidden = status !== "born";
-    const dueLabel = dueField.querySelector(".field-label");
-    if (dueLabel) dueLabel.textContent = status === "born" ? "Was due" : "Due date";
-  };
-
-  const segmented = el(
-    "div",
-    { class: "segmented", role: "group", "aria-label": "Has the baby arrived?" },
-    ...(
-      [
-        ["expecting", "\u{1F423} On the way"],
-        ["born", "\u{1F476} Here"],
-      ] as const
-    ).map(([status, label]) =>
-      el(
-        "button",
-        {
-          type: "button",
-          dataset: { status },
-          onclick: () => setStatus(status),
-        },
-        label,
-      ),
-    ),
-  );
-
-  bornOnly.append(
+    { class: "field-group" },
     field("Birthday", dateInput("birthDate", { max: toISODate(ctx.now) })),
     field(
       "Time of birth",
@@ -188,6 +151,30 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
         },
       }),
       "Optional, but it settles a star sign born on a cusp.",
+    ),
+  );
+
+  const setStatus = (status: BabyStatus): void => {
+    draft.status = status;
+    for (const button of segmented.querySelectorAll("button")) {
+      const active = button.dataset.status === status;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    }
+    expectingOnly.hidden = status !== "expecting";
+    bornOnly.hidden = status !== "born";
+  };
+
+  const segmented = el(
+    "div",
+    { class: "segmented", role: "group", "aria-label": "Has the baby arrived?" },
+    ...(
+      [
+        ["expecting", "\u{1F423} On the way"],
+        ["born", "\u{1F476} Here"],
+      ] as const
+    ).map(([status, label]) =>
+      el("button", { type: "button", dataset: { status }, onclick: () => setStatus(status) }, label),
     ),
   );
 
@@ -206,16 +193,19 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
         ["boy", "Boy"],
         ["surprise", "A surprise"],
       ] as const
-    ).map(([value, label]) =>
-      el("option", { value, selected: draft.sex === value }, label),
-    ),
+    ).map(([value, label]) => el("option", { value, selected: draft.sex === value }, label)),
   );
 
   /* ------------------------------------------------------------- saving */
 
+  function fail(message: string): void {
+    errors.textContent = message;
+    errors.hidden = false;
+    errors.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   const save = async (): Promise<void> => {
-    const parents = draft.parents
-      .split(",")
+    const parents = [draft.parent, draft.secondParent]
       .map((part) => part.trim())
       .filter(Boolean);
 
@@ -236,10 +226,13 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
       updatedAt: new Date().toISOString(),
     };
     if (draft.name) baby.name = draft.name.trim();
-    if (draft.dueDate) baby.dueDate = draft.dueDate;
+    // Only the date that belongs to the current state is kept, so switching
+    // from a bump to a baby leaves no stale due date behind.
     if (draft.status === "born") {
       baby.birthDate = draft.birthDate;
       if (draft.birthTime) baby.birthTime = draft.birthTime;
+    } else if (draft.dueDate) {
+      baby.dueDate = draft.dueDate;
     }
     if (draft.sex) baby.sex = draft.sex;
     if (draft.photo) baby.photo = draft.photo;
@@ -251,12 +244,6 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
     ctx.toast(existing ? "Saved" : "Added");
     ctx.navigate(`#/baby/${encodeURIComponent(baby.id)}`);
   };
-
-  function fail(message: string): void {
-    errors.textContent = message;
-    errors.hidden = false;
-    errors.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
 
   const form = el(
     "form",
@@ -271,17 +258,14 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
     },
     errors,
     segmented,
-    photoRow,
-    field("Name", text("name", { placeholder: "Still deciding?" })),
-    field(
-      "Parents",
-      text("parents", { placeholder: "Sarah, Tom" }),
-      "Separate two names with a comma.",
-    ),
-    dueField,
+    el("div", { class: "photo-row" }, preview, photoButtons, photoInput),
+    field("Name", textInput("name", { placeholder: "Still deciding?" })),
+    field("Parent", textInput("parent", { placeholder: "Sarah" })),
+    field("Second parent", textInput("secondParent", { placeholder: "Optional" })),
+    expectingOnly,
     bornOnly,
     field("Girl or boy", sexSelect),
-    field("Notes", text("notes", { rows: 3, placeholder: "Gift ideas, hospital, anything" })),
+    field("Notes", textInput("notes", { rows: 3, placeholder: "Gift ideas, hospital, anything" })),
     el(
       "div",
       { class: "form-actions" },
@@ -292,10 +276,9 @@ export function renderEdit(ctx: AppContext, existing: Baby | null): HTMLElement 
 
   setStatus(draft.status);
 
-  return el(
-    "div",
-    { class: "screen" },
-    screenHeader(existing ? "Edit" : "New baby", { onBack: () => ctx.back() }),
-    el("div", { class: "content" }, form),
-  );
+  return popup({
+    title: existing ? "Edit" : "New baby",
+    onClose: () => ctx.back(),
+    body: [form],
+  });
 }

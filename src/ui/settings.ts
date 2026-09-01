@@ -1,8 +1,8 @@
 import { toICalendar } from "../domain/ics.ts";
 import { backupFilename, readBackup, toBackup } from "../storage/backup.ts";
-import { screenHeader } from "./components.ts";
 import type { AppContext } from "./context.ts";
 import { downloadFile, el } from "./dom.ts";
+import { popup } from "./modal.ts";
 
 function row(title: string, body: string, action: HTMLElement): HTMLElement {
   return el(
@@ -66,13 +66,10 @@ export function renderSettings(ctx: AppContext): HTMLElement {
     ctx.toast("Calendar file saved - open it to add every date");
   };
 
-  return el(
-    "div",
-    { class: "screen" },
-    screenHeader("Settings", { onBack: () => ctx.back() }),
-    el(
-      "div",
-      { class: "content" },
+  return popup({
+    title: "Settings",
+    onClose: () => ctx.back(),
+    body: [
       el(
         "section",
         { class: "panel" },
@@ -119,6 +116,6 @@ export function renderSettings(ctx: AppContext): HTMLElement {
           "Star sign dates shift by a day between years, so a birthday on a boundary is flagged rather than guessed. The Chinese zodiac turns over at Lunar New Year, not on 1 January.",
         ),
       ),
-    ),
-  );
+    ],
+  });
 }

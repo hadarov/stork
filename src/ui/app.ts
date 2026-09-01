@@ -1,11 +1,12 @@
 import type { Baby } from "../domain/types.ts";
 import type { BabyRepo } from "../storage/repo.ts";
 import { emptyState } from "./components.ts";
-import { parseRoute, type AppContext } from "./context.ts";
+import { parseRoute, type AppContext, type Route } from "./context.ts";
 import { renderDetail } from "./detail.ts";
 import { clear, el } from "./dom.ts";
 import { renderEdit } from "./edit.ts";
 import { renderHome } from "./home.ts";
+import { popup } from "./modal.ts";
 import { renderSettings } from "./settings.ts";
 
 export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void> {
@@ -46,46 +47,46 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
     return { repo, babies, now: new Date(), navigate, back, refresh, toast };
   }
 
+  /** The popup, if any, that belongs over the book on this route. */
+  function overlayFor(route: Route, ctx: AppContext): HTMLElement | null {
+    if (route.name === "home") return null;
+    if (route.name === "add") return renderEdit(ctx, null);
+    if (route.name === "settings") return renderSettings(ctx);
+
+    const baby = babies.find((candidate) => candidate.id === route.id);
+    if (!baby) {
+      // Reachable from a stale bookmark or after a delete, so it must not throw.
+      return popup({
+        title: "Not here any more",
+        onClose: back,
+        body: [emptyState("Not here any more", "That baby is no longer in your book.")],
+      });
+    }
+
+    return route.name === "edit" ? renderEdit(ctx, baby) : renderDetail(ctx, baby);
+  }
+
   function render(): void {
     const ctx = context();
     const route = parseRoute(location.hash);
+    const overlay = overlayFor(route, ctx);
 
-    let screen: HTMLElement;
-    if (route.name === "add") {
-      screen = renderEdit(ctx, null);
-    } else if (route.name === "settings") {
-      screen = renderSettings(ctx);
-    } else if (route.name === "baby" || route.name === "edit") {
-      const baby = babies.find((candidate) => candidate.id === route.id);
-      if (!baby) {
-        // Reachable from a stale bookmark or after a delete, so it must not throw.
-        screen = el(
-          "div",
-          { class: "screen" },
-          el(
-            "div",
-            { class: "content" },
-            emptyState(
-              "Not here any more",
-              "That baby is no longer in your book.",
-              el("button", { class: "primary", type: "button", onclick: () => navigate("#/") }, "Back to the book"),
-            ),
-          ),
-        );
-      } else {
-        screen = route.name === "edit" ? renderEdit(ctx, baby) : renderDetail(ctx, baby);
-      }
-    } else {
-      screen = renderHome(ctx);
-    }
-
+    // The book is always underneath, so closing a popup reveals it already
+    // drawn rather than rebuilding a screen behind the animation.
     clear(root);
-    root.append(screen, toastNode);
-    // A fresh screen should start at the top, not wherever the last one was.
-    window.scrollTo(0, 0);
+    root.append(renderHome(ctx));
+    if (overlay) root.append(overlay);
+    root.append(toastNode);
+
+    if (!overlay) window.scrollTo(0, 0);
   }
 
   window.addEventListener("hashchange", render);
+
+  // Escape closes the popup, the same as tapping the backdrop.
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && parseRoute(location.hash).name !== "home") back();
+  });
 
   /**
    * A redraw throws away whatever is typed into the form, so the two background

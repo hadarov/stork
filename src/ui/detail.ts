@@ -16,9 +16,10 @@ import {
 } from "../domain/derive.ts";
 import { toICalendar } from "../domain/ics.ts";
 import type { Baby } from "../domain/types.ts";
-import { avatar, chip, factCard, iconButton, screenHeader } from "./components.ts";
+import { avatar, chip, factCard, iconButton } from "./components.ts";
 import type { AppContext } from "./context.ts";
 import { downloadFile, el } from "./dom.ts";
+import { popup } from "./modal.ts";
 
 function section(title: string, ...children: (Node | null)[]): HTMLElement {
   return el(
@@ -199,20 +200,14 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
     ctx.navigate("#/");
   };
 
-  return el(
-    "div",
-    { class: "screen" },
-    screenHeader(displayName(baby), {
-      onBack: () => ctx.back(),
-      actions: [
-        iconButton("Edit", "\u270E", () =>
-          ctx.navigate(`#/edit/${encodeURIComponent(baby.id)}`),
-        ),
-      ],
-    }),
-    el(
-      "div",
-      { class: "content" },
+  return popup({
+    title: displayName(baby),
+    wide: true,
+    onClose: () => ctx.back(),
+    actions: [
+      iconButton("Edit", "\u270E", () => ctx.navigate(`#/edit/${encodeURIComponent(baby.id)}`)),
+    ],
+    body: [
       el(
         "div",
         { class: "hero" },
@@ -252,6 +247,6 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
         { class: "danger-zone" },
         el("button", { class: "quiet danger", type: "button", onclick: () => remove() }, "Remove"),
       ),
-    ),
-  );
+    ],
+  });
 }

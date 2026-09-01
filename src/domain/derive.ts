@@ -168,6 +168,8 @@ export type DueInfo = {
   trimester: 1 | 2 | 3;
   overdue: boolean;
   label: string;
+  /** "3w" - for the corner of a tile. */
+  short: string;
 };
 
 export function dueCountdown(dueDate: string, now: Date): DueInfo {
@@ -177,13 +179,26 @@ export function dueCountdown(dueDate: string, now: Date): DueInfo {
   const trimester = week <= 13 ? 1 : week <= 27 ? 2 : 3;
 
   let label: string;
-  if (daysUntil === 0) label = "due today";
-  else if (daysUntil < 0) label = `${plural(-daysUntil, "day")} overdue`;
-  else if (daysUntil === 1) label = "due tomorrow";
-  else if (daysUntil < 21) label = `due in ${plural(daysUntil, "day")}`;
-  else label = `due in ${plural(Math.round(daysUntil / 7), "week")}`;
+  let short: string;
+  if (daysUntil === 0) {
+    label = "due today";
+    short = "today";
+  } else if (daysUntil < 0) {
+    label = `${plural(-daysUntil, "day")} overdue`;
+    short = `+${-daysUntil}d`;
+  } else if (daysUntil === 1) {
+    label = "due tomorrow";
+    short = "1d";
+  } else if (daysUntil < 21) {
+    label = `due in ${plural(daysUntil, "day")}`;
+    short = `${daysUntil}d`;
+  } else {
+    const weeks = Math.round(daysUntil / 7);
+    label = `due in ${plural(weeks, "week")}`;
+    short = `${weeks}w`;
+  }
 
-  return { date, daysUntil, week, trimester, overdue: daysUntil < 0, label };
+  return { date, daysUntil, week, trimester, overdue: daysUntil < 0, label, short };
 }
 
 /* ------------------------------------------------------------- milestones */
