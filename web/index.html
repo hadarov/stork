@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Stork</title>
+    <meta
+      name="description"
+      content="Keep up with your friends' babies: due dates, birthdays, star signs and the milestones in between."
+    />
+    <meta name="theme-color" content="#f7cfd8" />
+    <meta name="color-scheme" content="light" />
+
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+
+    <!-- iOS ignores the manifest and reads these instead. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Stork" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <noscript>
+      <p style="padding: 2rem; text-align: center">
+        Stork needs JavaScript to work out ages and countdowns.
+      </p>
+    </noscript>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

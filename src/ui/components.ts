@@ -1,0 +1,84 @@
+import { displayName } from "../domain/derive.ts";
+import type { Baby } from "../domain/types.ts";
+import { el } from "./dom.ts";
+
+/** Six pastels, picked from the id so a baby keeps the same colour forever. */
+const TINTS = 6;
+
+export function tintFor(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  return `tint-${hash % TINTS}`;
+}
+
+export function avatar(baby: Baby, size: "sm" | "lg" = "sm"): HTMLElement {
+  if (baby.photo) {
+    return el("img", {
+      class: `avatar avatar-${size}`,
+      src: baby.photo,
+      alt: displayName(baby),
+      loading: "lazy",
+    });
+  }
+  return el(
+    "div",
+    { class: `avatar avatar-${size} ${tintFor(baby.id)}`, "aria-hidden": "true" },
+    baby.status === "expecting" ? "\u{1F423}" : "\u{1F476}",
+  );
+}
+
+export function screenHeader(
+  title: string,
+  options: { onBack?: () => void; actions?: HTMLElement[] } = {},
+): HTMLElement {
+  return el(
+    "header",
+    { class: "topbar" },
+    options.onBack
+      ? el(
+          "button",
+          { class: "icon-button", type: "button", "aria-label": "Back", onclick: options.onBack },
+          "\u2190",
+        )
+      : null,
+    el("h1", { class: "topbar-title" }, title),
+    el("div", { class: "topbar-actions" }, ...(options.actions ?? [])),
+  );
+}
+
+export function iconButton(
+  label: string,
+  glyph: string,
+  onClick: () => void,
+): HTMLButtonElement {
+  return el(
+    "button",
+    { class: "icon-button", type: "button", "aria-label": label, title: label, onclick: onClick },
+    glyph,
+  );
+}
+
+export function chip(text: string, variant = ""): HTMLElement {
+  return el("span", { class: `chip ${variant}`.trim() }, text);
+}
+
+export function factCard(label: string, value: string, detail?: string): HTMLElement {
+  return el(
+    "div",
+    { class: "fact" },
+    el("span", { class: "fact-label" }, label),
+    el("span", { class: "fact-value" }, value),
+    detail ? el("span", { class: "fact-detail" }, detail) : null,
+  );
+}
+
+export function emptyState(heading: string, body: string, action?: HTMLElement): HTMLElement {
+  return el(
+    "div",
+    { class: "empty" },
+    el("div", { class: "empty-glyph", "aria-hidden": "true" }, "\u{1F423}"),
+    el("h2", {}, heading),
+    el("p", {}, body),
+    action ?? null,
+  );
+}

@@ -1,0 +1,440 @@
+/*
+ * Renders every screen against the stub DOM in dom-stub.mjs.
+ *
+ * There is no browser to click through here, so these check the thing a browser
+ * would show: that each screen builds without throwing, and that the numbers
+ * and labels a person reads are the ones the domain functions worked out.
+ *
+ * Usage: npm run smoke
+ */
+import assert from "node:assert/strict";
+import { after, beforeEach, describe, test } from "node:test";
+
+import { byClass, installDom, textOf } from "./dom-stub.mjs";
+
+import type { Baby } from "../src/domain/types.ts";
+import type { BabyRepo, MergeResult } from "../src/storage/repo.ts";
+import type { AppContext } from "../src/ui/context.ts";
+
+// Installed before the screens are imported, and before any hook could run, so
+// that anything they touch at module scope finds a DOM waiting for it.
+const teardown = installDom();
+after(() => teardown());
+
+const { renderHome } = await import("../src/ui/home.ts");
+const { renderDetail } = await import("../src/ui/detail.ts");
+const { renderEdit } = await import("../src/ui/edit.ts");
+const { renderSettings } = await import("../src/ui/settings.ts");
+const { startApp } = await import("../src/ui/app.ts");
+
+/* ------------------------------------------------------------- test rig */
+
+class MemoryRepo implements BabyRepo {
+  public babies: Baby[] = [];
+
+  async list(): Promise<Baby[]> {
+    return this.babies.filter((baby) => baby.deletedAt == null);
+  }
+
+  async listAll(): Promise<Baby[]> {
+    return [...this.babies];
+  }
+
+  async save(baby: Baby): Promise<void> {
+    this.babies = [...this.babies.filter((existing) => existing.id !== baby.id), baby];
+  }
+
+  async remove(id: string): Promise<void> {
+    const now = new Date().toISOString();
+    this.babies = this.babies.map((baby) =>
+      baby.id === id ? { ...baby, deletedAt: now, updatedAt: now } : baby,
+    );
+  }
+
+  async merge(incoming: Baby[]): Promise<MergeResult> {
+    for (const baby of incoming) await this.save(baby);
+    return { added: incoming.length, updated: 0, skipped: 0 };
+  }
+}
+
+const NOW = new Date(2026, 8, 1);
+
+type Rig = {
+  ctx: AppContext;
+  repo: MemoryRepo;
+  toasts: string[];
+  routes: string[];
+};
+
+let rig: Rig;
+
+function makeRig(babies: Baby[] = []): Rig {
+  const repo = new MemoryRepo();
+  repo.babies = babies;
+  const toasts: string[] = [];
+  const routes: string[] = [];
+
+  const ctx: AppContext = {
+    repo,
+    babies: babies.filter((baby) => baby.deletedAt == null),
+    now: NOW,
+    navigate: (path) => routes.push(path),
+    back: () => routes.push("back"),
+    refresh: async () => {
+      ctx.babies = await repo.list();
+    },
+    toast: (message) => toasts.push(message),
+  };
+
+  return { ctx, repo, toasts, routes };
+}
+
+const baby = (over: Partial<Baby> = {}): Baby => ({
+  id: "mila",
+  name: "Mila",
+  parents: ["Sarah", "Tom"],
+  status: "born",
+  birthDate: "2024-06-15",
+  updatedAt: "2024-06-15T00:00:00.000Z",
+  ...over,
+});
+
+beforeEach(() => {
+  rig = makeRig();
+});
+
+/* ------------------------------------------------------------------ home */
+
+describe("home screen", () => {
+  test("an empty book invites you to add the first baby", () => {
+    const screen = renderHome(rig.ctx);
+    const text = textOf(screen);
+    assert.match(text, /No babies yet/);
+    assert.equal(byClass(screen, "baby-card").length, 0);
+  });
+
+  test("babies are listed under the right heading with their age", () => {
+    const local = makeRig([
+      baby(),
+      baby({ id: "bump", name: undefined, status: "expecting", birthDate: undefined, dueDate: "2026-11-20" }),
+    ]);
+    const screen = renderHome(local.ctx);
+    const text = textOf(screen);
+
+    assert.match(text, /On the way/);
+    assert.match(text, /Little ones/);
+    assert.match(text, /Mila/);
+    // Unnamed bumps fall back to whose baby it is.
+    assert.match(text, /Sarah's baby/);
+    assert.match(text, /2 years, 2 months old/);
+    assert.equal(byClass(screen, "baby-card").length, 2);
+  });
+
+  test("only imminent events reach the this-week strip", () => {
+    const soon = makeRig([baby({ id: "soon", name: "Ada", birthDate: "2024-09-04" })]);
+    assert.match(textOf(renderHome(soon.ctx)), /This week/);
+
+    const later = makeRig([baby({ id: "later", name: "Ada", birthDate: "2024-12-04" })]);
+    assert.doesNotMatch(textOf(renderHome(later.ctx)), /This week/);
+  });
+
+  test("tapping a card opens that baby", async () => {
+    const local = makeRig([baby()]);
+    const screen = renderHome(local.ctx);
+    await byClass(screen, "baby-card")[0]!.click();
+    assert.deepEqual(local.routes, ["#/baby/mila"]);
+  });
+
+  test("searching narrows the list, by parent as well as by name", () => {
+    const local = makeRig([baby(), baby({ id: "theo", name: "Theo", parents: ["Dana"] })]);
+    const screen = renderHome(local.ctx);
+    const search = byClass(screen, "search")[0]!;
+
+    search.dispatch("input", { target: { value: "dana" } });
+    const text = textOf(screen);
+    assert.match(text, /Theo/);
+    assert.doesNotMatch(text, /Mila/);
+
+    search.dispatch("input", { target: { value: "nobody" } });
+    assert.match(textOf(screen), /Nobody by that name/);
+  });
+});
+
+/* ---------------------------------------------------------------- detail */
+
+describe("detail screen", () => {
+  test("a born baby shows age, both zodiacs and the almanac facts", () => {
+    const screen = renderDetail(rig.ctx, baby());
+    const text = textOf(screen);
+
+    assert.match(text, /2 years, 2 months old/);
+    assert.match(text, /Gemini/);
+    assert.match(text, /Wood Dragon/);
+    assert.match(text, /Pearl/); // June birthstone
+    assert.match(text, /Rose/); // June flower
+    assert.match(text, /Saturday/); // 15 June 2024
+    assert.match(text, /Turns 3rd in/);
+  });
+
+  test("milestones already passed are marked done, and the rest are not", () => {
+    // Three months old at NOW, so only the arrival is behind them.
+    const screen = renderDetail(rig.ctx, baby({ birthDate: "2026-06-01" }));
+    const items = byClass(screen, "timeline-item");
+
+    assert.equal(items.length, 5);
+    assert.ok(items[0]!.classList.contains("done"), "arrival should be done");
+    assert.ok(!items[1]!.classList.contains("done"), "100 days is still ahead");
+    assert.ok(!items.at(-1)!.classList.contains("done"), "first birthday is still ahead");
+
+    // A two year old has everything on the timeline behind them.
+    const older = byClass(renderDetail(rig.ctx, baby()), "timeline-item");
+    assert.ok(older.every((item) => item.classList.contains("done")));
+  });
+
+  test("an expecting baby counts down instead, and guesses the sign", () => {
+    const screen = renderDetail(
+      rig.ctx,
+      baby({ status: "expecting", birthDate: undefined, dueDate: "2026-10-01" }),
+    );
+    const text = textOf(screen);
+
+    assert.match(text, /due in 4 weeks/);
+    assert.match(text, /Week 35/);
+    assert.match(text, /If they arrive on time/);
+    assert.match(text, /Libra/);
+    assert.match(text, /rarely read the calendar/);
+  });
+
+  test("a cusp birthday is flagged rather than stated flatly", () => {
+    const screen = renderDetail(rig.ctx, baby({ birthDate: "2024-01-20" }));
+    assert.match(textOf(screen), /Right on the cusp with Capricorn/);
+  });
+
+  test("the gift toggle writes through and survives a reload", async () => {
+    const local = makeRig([baby()]);
+    const screen = renderDetail(local.ctx, baby());
+
+    await byClass(screen, "gift-toggle")[0]!.click();
+    assert.equal((await local.repo.list())[0]?.giftSent, true);
+    assert.deepEqual(local.toasts, ["Gift marked as sent"]);
+
+    assert.match(textOf(renderDetail(local.ctx, baby({ giftSent: true }))), /Gift sent/);
+  });
+
+  test("removing a baby confirms, soft deletes and goes home", async () => {
+    const local = makeRig([baby()]);
+    const screen = renderDetail(local.ctx, baby());
+
+    await byClass(screen, "danger")[0]!.click();
+    assert.equal((await local.repo.list()).length, 0);
+    assert.equal((await local.repo.listAll())[0]?.deletedAt !== undefined, true);
+    assert.deepEqual(local.routes, ["#/"]);
+  });
+});
+
+/* ------------------------------------------------------------------ form */
+
+describe("add and edit", () => {
+  test("the form starts on expecting and hides the birth fields", () => {
+    const screen = renderEdit(rig.ctx, null);
+    const [expecting, born] = byClass(screen, "segmented")[0]!.querySelectorAll("button");
+
+    assert.ok(expecting!.classList.contains("active"));
+    assert.ok(!born!.classList.contains("active"));
+    assert.equal(byClass(screen, "field-group")[0]!.hidden, true);
+    assert.match(textOf(screen), /Due date/);
+  });
+
+  test("switching to born reveals them and relabels the due date", () => {
+    const screen = renderEdit(rig.ctx, null);
+    const born = byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!;
+
+    born.click();
+    assert.ok(born.classList.contains("active"));
+    assert.equal(byClass(screen, "field-group")[0]!.hidden, false);
+    assert.match(textOf(screen), /Was due/);
+  });
+
+  test("a born baby with no birthday is refused, with a reason", async () => {
+    const screen = renderEdit(rig.ctx, null);
+    byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!.click();
+
+    await screen.querySelector(".form")!.dispatch("submit");
+
+    const error = byClass(screen, "form-error")[0]!;
+    assert.equal(error.hidden, false);
+    assert.match(textOf(error), /birthday is needed/);
+    assert.equal(rig.repo.babies.length, 0);
+  });
+
+  test("a baby with neither a name nor parents is refused", async () => {
+    const screen = renderEdit(rig.ctx, null);
+    const inputs = byClass(screen, "input");
+    inputs[2]!.dispatch("input", { target: { value: "2026-11-01" } }); // due date
+
+    await screen.querySelector(".form")!.dispatch("submit");
+    assert.match(textOf(byClass(screen, "form-error")[0]!), /whose baby this is/);
+  });
+
+  test("a valid bump saves and opens its page", async () => {
+    const screen = renderEdit(rig.ctx, null);
+    const inputs = byClass(screen, "input");
+    inputs[0]!.dispatch("input", { target: { value: "Poppy" } });
+    inputs[1]!.dispatch("input", { target: { value: "Dana, Alex" } });
+    inputs[2]!.dispatch("input", { target: { value: "2026-11-01" } });
+
+    await screen.querySelector(".form")!.dispatch("submit");
+
+    const saved = rig.repo.babies[0]!;
+    assert.equal(saved.name, "Poppy");
+    assert.deepEqual(saved.parents, ["Dana", "Alex"]);
+    assert.equal(saved.dueDate, "2026-11-01");
+    assert.equal(saved.status, "expecting");
+    assert.deepEqual(rig.toasts, ["Added"]);
+    assert.equal(rig.routes[0], `#/baby/${saved.id}`);
+  });
+
+  test("editing keeps the same record rather than making a second one", async () => {
+    const local = makeRig([baby()]);
+    const screen = renderEdit(local.ctx, baby());
+
+    byClass(screen, "input")[0]!.dispatch("input", { target: { value: "Mila Rose" } });
+    await screen.querySelector(".form")!.dispatch("submit");
+
+    assert.equal(local.repo.babies.length, 1);
+    assert.equal(local.repo.babies[0]?.id, "mila");
+    assert.equal(local.repo.babies[0]?.name, "Mila Rose");
+  });
+
+  test("a gift already sent is not forgotten by an edit", async () => {
+    const local = makeRig([baby({ giftSent: true })]);
+    const screen = renderEdit(local.ctx, baby({ giftSent: true }));
+    await screen.querySelector(".form")!.dispatch("submit");
+    assert.equal(local.repo.babies[0]?.giftSent, true);
+  });
+});
+
+/* -------------------------------------------------------------- settings */
+
+describe("settings screen", () => {
+  test("it says plainly where the data lives", () => {
+    const text = textOf(renderSettings(rig.ctx));
+    assert.match(text, /lives on this device only/);
+    assert.match(text, /Export \.ics/);
+    assert.match(text, /Import/);
+  });
+
+  test("the count is worded for one baby and for several", () => {
+    assert.match(textOf(renderSettings(makeRig([baby()]).ctx)), /1 baby in your book/);
+    assert.match(
+      textOf(renderSettings(makeRig([baby(), baby({ id: "b" })]).ctx)),
+      /2 babies in your book/,
+    );
+  });
+
+  test("exporting a calendar with nothing in it says so instead of downloading", () => {
+    const screen = renderSettings(rig.ctx);
+    byClass(screen, "secondary")[0]!.click();
+    assert.deepEqual(rig.toasts, ["No dates to export yet"]);
+  });
+});
+
+/* --------------------------------------------------------------- routing */
+
+describe("the app shell", () => {
+  /** A fresh window each time, so one test's navigation cannot leak into another. */
+  async function withApp(
+    babies: Baby[],
+    run: (root: any, repo: MemoryRepo) => Promise<void> | void,
+  ): Promise<void> {
+    const restore = installDom();
+    try {
+      const repo = new MemoryRepo();
+      repo.babies = babies;
+      const root = document.createElement("div");
+      await startApp(root as never, repo);
+      await run(root, repo);
+    } finally {
+      restore();
+    }
+  }
+
+  test("it opens on the book itself", async () => {
+    await withApp([baby()], (root) => {
+      assert.match(textOf(root), /Little ones/);
+      assert.match(textOf(root), /Mila/);
+    });
+  });
+
+  test("every route renders, and back returns to the book", async () => {
+    await withApp([baby()], (root) => {
+      location.hash = "#/settings";
+      assert.match(textOf(root), /Backup/);
+
+      location.hash = "#/add";
+      assert.match(textOf(root), /New baby/);
+
+      location.hash = "#/baby/mila";
+      assert.match(textOf(root), /Written in the stars/);
+
+      location.hash = "#/edit/mila";
+      assert.match(textOf(root), /Edit/);
+
+      history.back();
+      assert.match(textOf(root), /Written in the stars/);
+    });
+  });
+
+  test("an unknown route falls back to the book rather than a blank screen", async () => {
+    await withApp([baby()], (root) => {
+      location.hash = "#/nonsense";
+      assert.match(textOf(root), /Little ones/);
+    });
+  });
+
+  test("a link to a baby that is gone explains itself", async () => {
+    await withApp([baby()], (root) => {
+      location.hash = "#/baby/someone-else";
+      assert.match(textOf(root), /Not here any more/);
+    });
+  });
+
+  test("coming back to the app redraws the book, so countdowns stay honest", async () => {
+    await withApp([baby()], (root) => {
+      const before = byClass(root, "baby-card")[0];
+      (window as never as { dispatchEvent: (e: { type: string }) => void }).dispatchEvent({
+        type: "visibilitychange",
+      });
+      assert.notEqual(byClass(root, "baby-card")[0], before, "home should have redrawn");
+    });
+  });
+
+  test("but it never redraws over a half-filled form", async () => {
+    await withApp([], (root) => {
+      location.hash = "#/add";
+      const input = byClass(root, "input")[0]!;
+      input.dispatch("input", { target: { value: "Poppy" } });
+
+      (window as never as { dispatchEvent: (e: { type: string }) => void }).dispatchEvent({
+        type: "visibilitychange",
+      });
+
+      assert.match(textOf(root), /New baby/);
+      assert.equal(
+        byClass(root, "input")[0],
+        input,
+        "the form was rebuilt, losing whatever was typed into it",
+      );
+    });
+  });
+
+  test("a baby deleted from its own page leaves a book that still renders", async () => {
+    await withApp([baby()], async (root, repo) => {
+      location.hash = "#/baby/mila";
+      await byClass(root, "danger")[0]!.click();
+
+      assert.equal((await repo.list()).length, 0);
+      assert.match(textOf(root), /No babies yet/);
+    });
+  });
+});
