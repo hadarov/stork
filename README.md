@@ -18,11 +18,14 @@ each other's lists.
 
 ## How it is laid out
 
-The book itself is a grid of squares, one per baby, each in its own colour and
-showing a photo if you have added one. Everything else - adding a baby, their
-details, editing, settings - opens as a popup over that grid, so you are never
-taken away from it and closing one always lands you back where you were. Escape,
-the backdrop and the phone's back button all close a popup.
+The book itself is a grid of squares, three to a line, one per baby, each in its
+own colour and showing a photo if you have added one. Everything else - adding a
+baby, their details, editing, settings - opens as a popup over that grid, so you
+are never taken away from it and closing one always lands you back where you
+were. Escape, the backdrop and the phone's back button all close a popup.
+
+Confirmations stack over the page that raised them rather than replacing it, so
+backing out of a question leaves you looking at the baby you were reading.
 
 A baby is either on the way or here, and that decides which date you are asked
 for: a bump has a due date, a baby has a birthday, and never both. Changing one
@@ -52,8 +55,39 @@ Give it a name, whose baby it is, and a date. Everything else is derived:
   with the line from the old rhyme.
 - **Milestones**: 100 days, half a year, first and second birthdays.
 
+Birth weight and length are the two things it cannot work out, so it asks. They
+are stored in grams and centimetres and shown both ways round, because whoever
+announced it said one and whoever reads the page is thinking in the other.
+
 The home screen opens on a **This week** strip: anything due, arriving or having
 a birthday in the next seven days, before anything else.
+
+## Families
+
+Two babies who share a parent's name are siblings, worked out from what you
+already typed rather than declared anywhere. A baby's page names the relation
+from the other's point of view - big sister, little brother, or just an older
+sibling when you have not said - and anyone still on the way is the younger one.
+**Add a sibling** opens a new baby with the parents already filled in.
+
+## Albums
+
+Their picture, the one on the tile, is set in the form. The album beside it is a
+separate thing: dated photos in a strip that reads oldest to newest, each with
+its own page where the date and a caption can be corrected, or which can be
+promoted to being their picture. Twelve each, because the whole book is data
+URLs inside a few megabytes of `localStorage`.
+
+## Sending a card
+
+**Share a card** draws the baby's page as a portrait PNG - their colour, their
+photo, the age or the countdown across the middle, their signs as badges - and
+hands it to the phone's share sheet, so the point of keeping all this is that
+you can actually say congratulations. Where there is no share sheet it saves
+the file instead.
+
+It is drawn rather than screenshotted, so it looks the same from any phone and
+carries none of the app's furniture.
 
 ## Reminders
 
@@ -146,13 +180,17 @@ methods. No screen changes.
 | `src/domain/derive.ts` | Age, countdowns, birthdays, milestones, what happens next |
 | `src/domain/almanac.ts` | Star signs, Chinese zodiac, birthstones, flowers, the rhyme |
 | `src/domain/lunarNewYear.ts` | The dates the zodiac animal turns over |
+| `src/domain/family.ts` | Who is whose sibling, and which of them is older |
+| `src/domain/card.ts` | What goes on a shared card, apart from the drawing of it |
 | `src/domain/ics.ts` | Calendar export |
 | `src/storage/repo.ts` | The `BabyRepo` interface and the merge rule |
 | `src/storage/localRepo.ts` | The localStorage implementation of it |
 | `src/storage/migrate.ts` | Making untrusted stored or imported data safe to render |
 | `src/ui/home.ts` | The grid, the search and the "this week" strip |
 | `src/ui/modal.ts` | The popup every other screen is rendered into |
-| `src/ui/` | The rest: detail, form, settings, router and a small DOM helper |
+| `src/ui/album.ts` | The photo strip and the viewer behind it |
+| `src/ui/card.ts` | Drawing the shareable card onto a canvas |
+| `src/ui/` | The rest: detail, form, prompts, settings, router, a DOM helper |
 | `web/` | HTML, CSS, manifest and the service worker template |
 | `scripts/build.mjs` | Strips types, rewrites imports, draws icons, verifies the result |
 | `scripts/icon.mjs` | Draws the chick and encodes a PNG |
