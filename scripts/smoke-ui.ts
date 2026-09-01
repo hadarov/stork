@@ -733,11 +733,22 @@ describe("settings screen", () => {
   });
 
   test("the count is worded for one baby and for several", () => {
-    assert.match(textOf(renderSettings(makeRig([baby()]).ctx)), /1 baby in your book/);
+    assert.match(textOf(renderSettings(makeRig([baby()]).ctx)), /1 baby, never backed up/);
     assert.match(
       textOf(renderSettings(makeRig([baby(), baby({ id: "b" })]).ctx)),
-      /2 babies in your book/,
+      /2 babies, never backed up/,
     );
+  });
+
+  test("it points at a folder the phone already syncs, not at a server", () => {
+    const text = textOf(renderSettings(makeRig([baby()]).ctx));
+    assert.match(text, /iCloud Drive/);
+    assert.match(text, /without anyone running a server/);
+    assert.match(text, /Back up/);
+  });
+
+  test("an empty book is not nagged about backing up", () => {
+    assert.match(textOf(renderSettings(makeRig([]).ctx)), /Nothing to back up yet/);
   });
 
   test("exporting a calendar with nothing in it says so instead of downloading", () => {

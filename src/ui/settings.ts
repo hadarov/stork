@@ -1,7 +1,16 @@
+import { describeBackup } from "../domain/backupStatus.ts";
 import { toICalendar } from "../domain/ics.ts";
-import { backupFilename, readBackup, toBackup } from "../storage/backup.ts";
+import { readBackup } from "../storage/backup.ts";
+import { lastChangedAt } from "../storage/watchRepo.ts";
 import type { AppContext } from "./context.ts";
 import { downloadFile, el } from "./dom.ts";
+import {
+  autoBackupOn,
+  backUpNow,
+  canKeepUpdated,
+  lastBackupAt,
+  setAutoBackup,
+} from "./keeper.ts";
 import { popup } from "./modal.ts";
 
 function row(title: string, body: string, action: HTMLElement): HTMLElement {
@@ -23,6 +32,14 @@ function button(label: string, onClick: () => void, variant = "secondary"): HTML
 }
 
 export function renderSettings(ctx: AppContext): HTMLElement {
+  const keeping = autoBackupOn();
+  const status = describeBackup({
+    lastAt: lastBackupAt(),
+    changedAt: lastChangedAt(ctx.babies),
+    count: ctx.babies.length,
+    now: ctx.now,
+  });
+
   const importInput = el("input", {
     type: "file",
     accept: "application/json,.json",
@@ -50,11 +67,23 @@ export function renderSettings(ctx: AppContext): HTMLElement {
     },
   });
 
-  const exportJson = async (): Promise<void> => {
-    // Tombstones are included, so importing elsewhere does not undo a deletion.
-    const all = await ctx.repo.listAll();
-    downloadFile(backupFilename(ctx.now), "application/json", toBackup(all, ctx.now));
-    ctx.toast("Backup saved");
+  const backUp = async (): Promise<void> => {
+    try {
+      const said = await backUpNow(ctx.repo, ctx.now);
+      if (said) ctx.toast(said);
+      ctx.redraw();
+    } catch {
+      ctx.toast("Could not write the backup");
+    }
+  };
+
+  const toggleAuto = async (): Promise<void> => {
+    try {
+      ctx.toast(await setAutoBackup(!autoBackupOn(), ctx.repo, ctx.now));
+      ctx.redraw();
+    } catch {
+      // Backing out of the folder picker lands here, and needs no telling off.
+    }
   };
 
   const exportIcs = (): void => {
@@ -87,13 +116,30 @@ export function renderSettings(ctx: AppContext): HTMLElement {
         el(
           "p",
           { class: "note" },
-          "Everything you add lives on this device only. Nothing is uploaded, and nobody else can see it - which also means clearing your browser data would take it with it.",
+          "Everything you add lives on this device only. Nothing is uploaded and nobody else can see it, which also means clearing your browser data would take it with it.",
         ),
+        el(
+          "p",
+          { class: "note" },
+          "Put the backup somewhere your phone already syncs - iCloud Drive, Google Drive, Dropbox - and it will follow you to a new phone without anyone running a server for you.",
+        ),
+        el("p", { class: status.stale ? "backup-line stale" : "backup-line" }, status.line),
         row(
-          "Save a backup",
-          `${ctx.babies.length} ${ctx.babies.length === 1 ? "baby" : "babies"} in your book.`,
-          button("Export", () => exportJson()),
+          "Back up now",
+          keeping
+            ? "Written automatically whenever anything changes."
+            : "Choose the folder once; after that it is one tap.",
+          button("Back up", () => backUp(), "primary"),
         ),
+        canKeepUpdated()
+          ? row(
+              "Keep it updated",
+              keeping
+                ? "On. The same file is rewritten a couple of seconds after any change."
+                : "Rewrite that file by itself, so you never have to remember.",
+              button(keeping ? "Turn off" : "Turn on", () => toggleAuto()),
+            )
+          : null,
         row(
           "Restore a backup",
           "Merges rather than overwrites: the newer version of each baby wins.",

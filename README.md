@@ -97,14 +97,36 @@ hands the dates to the calendar you already use instead. **Settings - Export
 due date as a one-off, each nudging you two days early. There is the same button
 on an individual baby's page.
 
-## Your data
+## Your data, and surviving a new phone
 
 Everything lives in this browser on this device. Nothing is uploaded, there is
-no account, and there is no server to leak it.
+no account, and there is no server to leak it. The flip side is that clearing
+your browser data would take it with it.
 
-The flip side is that clearing your browser data would take it with it, so
-**Settings - Export** writes a backup file. Importing merges rather than
-overwrites: the newer version of each baby wins, and deletions stay deleted.
+So instead of a server, **Settings - Back up** puts the whole book in a file
+wherever you say, and the trick is to say a folder your phone already syncs:
+iCloud Drive, Google Drive, Dropbox. That folder is then the sync, and a new
+phone is a matter of opening that file.
+
+How it gets there depends on the browser, and Stork picks the best of the three
+without asking you which:
+
+| Where | How | What you get |
+| --- | --- | --- |
+| Chrome, Edge, Android | The file picker, and the handle is remembered in IndexedDB | Pick the folder once, then **Keep it updated** rewrites the same file a couple of seconds after any change |
+| iOS Safari | The share sheet | Tap **Back up**, choose **Save to Files**, and put it in iCloud Drive |
+| Anything older | A plain download | It lands in Downloads and where it goes next is up to you |
+
+The automatic rewrite only ever *queries* the folder permission, never requests
+it, because requesting needs a tap and a background backup has not got one. If
+the permission has lapsed it stays quiet and the settings line goes yellow, so
+a failed backup looks like a stale one rather than like nothing at all.
+
+Every write goes through a repo wrapper rather than through a convention that
+each screen remembers, so no change can slip past the backup unrecorded.
+
+Restoring merges rather than overwrites: the newer version of each baby wins,
+and deletions stay deleted.
 
 ## Deploying it
 
@@ -173,6 +195,12 @@ fold that import uses today.
 Adding a server therefore means writing a `CloudRepo` against the same three
 methods. No screen changes.
 
+The cloud-folder backup above is deliberately not that: it is a file, not a
+sync, and two phones editing at once would each overwrite the other's file. It
+buys the thing people actually want from sync - not losing the book - without
+anyone having to run or pay for anything. When a real server does arrive, the
+plan is a one-time code by email rather than passwords.
+
 ## Layout
 
 | Path | Role |
@@ -186,6 +214,10 @@ methods. No screen changes.
 | `src/storage/repo.ts` | The `BabyRepo` interface and the merge rule |
 | `src/storage/localRepo.ts` | The localStorage implementation of it |
 | `src/storage/migrate.ts` | Making untrusted stored or imported data safe to render |
+| `src/storage/vault.ts` | Picking a folder, remembering it, writing to it again |
+| `src/storage/watchRepo.ts` | The wrapper that says when something was written |
+| `src/ui/keeper.ts` | Keeping the backup file current, and the three ways to |
+| `src/domain/backupStatus.ts` | The one line that says whether you are safe |
 | `src/ui/home.ts` | The grid, the search and the "this week" strip |
 | `src/ui/modal.ts` | The popup every other screen is rendered into |
 | `src/ui/album.ts` | The photo strip and the viewer behind it |

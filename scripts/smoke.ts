@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import { chineseSign, starSign } from "../src/domain/almanac.ts";
+import { describeBackup } from "../src/domain/backupStatus.ts";
 import { cardContent } from "../src/domain/card.ts";
 import {
   addMonths,
@@ -30,7 +31,8 @@ import { areSiblings, relation, siblingsOf } from "../src/domain/family.ts";
 import { toICalendar } from "../src/domain/ics.ts";
 import type { Baby } from "../src/domain/types.ts";
 import { migrate } from "../src/storage/migrate.ts";
-import { mergeRecords } from "../src/storage/repo.ts";
+import { mergeRecords, type BabyRepo } from "../src/storage/repo.ts";
+import { lastChangedAt, watchRepo } from "../src/storage/watchRepo.ts";
 import { readBackup, toBackup } from "../src/storage/backup.ts";
 
 /** Local-time constructor, matching how the app parses stored dates. */
@@ -248,6 +250,88 @@ describe("what happens next", () => {
   test("an unnamed baby is described by its parents", () => {
     assert.equal(displayName(baby({ name: undefined })), "Sarah's baby");
     assert.equal(displayName(baby({ name: "Mila" })), "Mila");
+  });
+});
+
+describe("keeping a backup", () => {
+  const NOW = new Date("2026-09-01T12:00:00.000Z");
+
+  test("an empty book has nothing to lose and is not nagged", () => {
+    const status = describeBackup({ count: 0, now: NOW });
+    assert.equal(status.line, "Nothing to back up yet");
+    assert.equal(status.stale, false);
+  });
+
+  test("a book that has never been backed up says so, and counts as stale", () => {
+    const status = describeBackup({ count: 3, now: NOW });
+    assert.equal(status.line, "3 babies, never backed up");
+    assert.equal(status.stale, true);
+  });
+
+  test("a backup made after the last change is current, however old it is", () => {
+    const status = describeBackup({
+      lastAt: "2025-01-10T00:00:00.000Z",
+      changedAt: "2025-01-09T00:00:00.000Z",
+      count: 2,
+      now: NOW,
+    });
+    assert.equal(status.stale, false, "nobody has touched the book since");
+    assert.match(status.line, /2 babies, backed up \d+ days ago$/);
+  });
+
+  test("a change since the last backup makes it out of date", () => {
+    const status = describeBackup({
+      lastAt: "2026-08-30T00:00:00.000Z",
+      changedAt: "2026-08-31T00:00:00.000Z",
+      count: 2,
+      now: NOW,
+    });
+    assert.equal(status.stale, true);
+    assert.match(status.line, /out of date$/);
+  });
+
+  test("today and yesterday are named rather than counted", () => {
+    assert.match(
+      describeBackup({ lastAt: "2026-09-01T09:00:00.000Z", count: 1, now: NOW }).line,
+      /backed up today/,
+    );
+    assert.match(
+      describeBackup({ lastAt: "2026-08-31T09:00:00.000Z", count: 1, now: NOW }).line,
+      /backed up yesterday/,
+    );
+  });
+
+  test("the newest change in the book is the one that matters", () => {
+    const babies: Baby[] = [
+      { id: "a", parents: [], status: "expecting", updatedAt: "2026-01-01T00:00:00.000Z" },
+      { id: "b", parents: [], status: "expecting", updatedAt: "2026-06-06T00:00:00.000Z" },
+      { id: "c", parents: [], status: "expecting", updatedAt: "2026-03-03T00:00:00.000Z" },
+    ];
+    assert.equal(lastChangedAt(babies), "2026-06-06T00:00:00.000Z");
+    assert.equal(lastChangedAt([]), undefined);
+  });
+
+  test("every kind of write is announced, and reads are left alone", async () => {
+    const writes: string[] = [];
+    const inner: BabyRepo = {
+      list: async () => [],
+      listAll: async () => [],
+      save: async () => {},
+      remove: async () => {},
+      merge: async () => ({ added: 1, updated: 0, skipped: 0 }),
+    };
+    const watched = watchRepo(inner, () => writes.push("write"));
+
+    await watched.list();
+    await watched.listAll();
+    assert.deepEqual(writes, [], "reading changes nothing");
+
+    await watched.save({ id: "a", parents: [], status: "expecting", updatedAt: "x" });
+    await watched.remove("a");
+    const result = await watched.merge([]);
+
+    assert.deepEqual(writes, ["write", "write", "write"]);
+    assert.deepEqual(result, { added: 1, updated: 0, skipped: 0 }, "and the result comes back");
   });
 });
 

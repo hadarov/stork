@@ -859,6 +859,19 @@ textarea.input {
   color: var(--muted);
 }
 
+.backup-line {
+  padding: 0.6rem 0.9rem;
+  border: 2px solid var(--edge);
+  border-radius: 14px;
+  background: var(--mint);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.backup-line.stale {
+  background: var(--butter);
+}
+
 .gift-toggle {
   width: 100%;
   padding: 0.8rem;
