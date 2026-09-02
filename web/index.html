@@ -11,8 +11,26 @@
       name="description"
       content="Keep up with your friends' babies: due dates, birthdays, star signs and the milestones in between."
     />
-    <meta name="theme-color" content="#ffd3e0" />
-    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#141017" />
+    <meta name="color-scheme" content="dark light" />
+
+    <!--
+      Before the first paint, or a light-mode phone flashes black on every
+      launch. The app sets this again properly once main.js has loaded.
+    -->
+    <script>
+      try {
+        var choice = localStorage.getItem("stork.theme");
+        document.documentElement.dataset.theme =
+          choice === "light" || choice === "dark"
+            ? choice
+            : matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+      } catch (error) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
 
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />

@@ -179,6 +179,16 @@ class StubNode extends StubBaseNode {
 
   #matches(selector) {
     if (selector.startsWith(".")) return this.classList.contains(selector.slice(1));
+
+    // Enough of an attribute selector for meta[name="theme-color"].
+    const attribute = /^([a-z]+)\[([\w-]+)="([^"]*)"\]$/i.exec(selector);
+    if (attribute) {
+      return (
+        this.tagName === attribute[1].toUpperCase() &&
+        this.getAttribute(attribute[2]) === attribute[3]
+      );
+    }
+
     return this.tagName === selector.toUpperCase();
   }
 
@@ -260,12 +270,24 @@ export function installDom() {
 
   const documentListeners = new Map();
 
+  // The theme is set on <html>, and the colour of the phone's status bar is a
+  // meta tag, so both have to exist for the app to boot.
+  const documentElement = new StubNode("html");
+  const head = new StubNode("head");
+  const themeColour = new StubNode("meta");
+  themeColour.setAttribute("name", "theme-color");
+  head.append(themeColour);
+  documentElement.append(head);
+
   const document = {
+    documentElement,
+    head,
     body,
     createElement: (tag) => new StubNode(tag),
     createTextNode: (text) => new StubText(text),
     createDocumentFragment: () => new StubFragment(),
     getElementById: () => null,
+    querySelector: (selector) => documentElement.querySelector(selector),
     hidden: false,
     addEventListener: (type, handler) => {
       const existing = documentListeners.get(type) ?? [];

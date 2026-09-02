@@ -12,6 +12,7 @@ import {
   setAutoBackup,
 } from "./keeper.ts";
 import { popup } from "./modal.ts";
+import { setThemeChoice, themeChoice } from "./theme.ts";
 
 function row(title: string, body: string, action: HTMLElement): HTMLElement {
   return el(
@@ -95,10 +96,48 @@ export function renderSettings(ctx: AppContext): HTMLElement {
     ctx.toast("Calendar file saved - open it to add every date");
   };
 
+  const chosen = themeChoice();
+  const themePicker = el(
+    "div",
+    { class: "segmented", role: "group", "aria-label": "Theme" },
+    ...(
+      [
+        ["system", "Auto"],
+        ["dark", "Dark"],
+        ["light", "Light"],
+      ] as const
+    ).map(([value, label]) =>
+      el(
+        "button",
+        {
+          type: "button",
+          class: chosen === value ? "active" : "",
+          "aria-pressed": String(chosen === value),
+          onclick: () => {
+            setThemeChoice(value);
+            ctx.redraw();
+          },
+        },
+        label,
+      ),
+    ),
+  );
+
   return popup({
     title: "Settings",
     onClose: () => ctx.back(),
     body: [
+      el(
+        "section",
+        { class: "panel" },
+        el("h2", { class: "section-title" }, "Look"),
+        el(
+          "p",
+          { class: "note" },
+          "Dark by default. The babies keep their colours either way - they are the only part that should be shouting.",
+        ),
+        themePicker,
+      ),
       el(
         "section",
         { class: "panel" },

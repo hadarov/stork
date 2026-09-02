@@ -33,6 +33,7 @@ import type { Baby } from "../src/domain/types.ts";
 import { migrate } from "../src/storage/migrate.ts";
 import { mergeRecords, type BabyRepo } from "../src/storage/repo.ts";
 import { lastChangedAt, watchRepo } from "../src/storage/watchRepo.ts";
+import { resolveTheme } from "../src/ui/theme.ts";
 import { readBackup, toBackup } from "../src/storage/backup.ts";
 
 /** Local-time constructor, matching how the app parses stored dates. */
@@ -250,6 +251,18 @@ describe("what happens next", () => {
   test("an unnamed baby is described by its parents", () => {
     assert.equal(displayName(baby({ name: undefined })), "Sarah's baby");
     assert.equal(displayName(baby({ name: "Mila" })), "Mila");
+  });
+});
+
+describe("theme", () => {
+  test("an explicit choice wins over whatever the phone prefers", () => {
+    assert.equal(resolveTheme("light", false), "light");
+    assert.equal(resolveTheme("dark", true), "dark");
+  });
+
+  test("left to itself it follows the system", () => {
+    assert.equal(resolveTheme("system", true), "light");
+    assert.equal(resolveTheme("system", false), "dark");
   });
 });
 

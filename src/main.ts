@@ -2,6 +2,12 @@ import { localRepo } from "./storage/localRepo.ts";
 import { watchRepo } from "./storage/watchRepo.ts";
 import { startApp } from "./ui/app.ts";
 import { scheduleAutoBackup } from "./ui/keeper.ts";
+import { applyTheme, watchSystemTheme } from "./ui/theme.ts";
+
+// The inline script in index.html has already done this once to stop the flash;
+// this settles the theme-colour bar and keeps it in step with the system.
+applyTheme();
+watchSystemTheme();
 
 const root = document.getElementById("app");
 

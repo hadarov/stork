@@ -1,38 +1,84 @@
 /*
- * Stork - a sticker book, not a stationery set. Everything you can touch is
- * drawn with a soft outline and a solid edge underneath, and presses down onto
- * it when tapped. Light only, on purpose.
+ * Stork - a sticker book.
+ *
+ * Dark is the default and the identity. The babies are the colourful part, so
+ * they keep their pastels in both themes and read as stickers stuck to a black
+ * surface; everything around them gets out of the way. Anything sitting on one
+ * of those pastels therefore needs its own dark ink in both themes, which is
+ * what --on-tint is for: --ink flips, --on-tint never does.
  */
 
 :root {
-  --cream: #fff6f0;
-  --paper: #ffffff;
-  --ink: #4b3340;
-  --muted: #9d8290;
-  --line: #ffe0e9;
-  /* The outline and the solid edge under everything tappable. */
-  --edge: #6d4a5a;
+  --cream: #141017;
+  --cream-fade: rgba(20, 16, 23, 0);
+  --paper: #221c28;
+  --ink: #f8f1f5;
+  --muted: #a89aa4;
+  --line: #322a3a;
 
-  --pink: #ffd3e0;
-  --pink-deep: #cf3c72;
-  --mint: #b9f0d5;
-  --lavender: #dcd0ff;
-  --butter: #ffeeb0;
-  --peach: #ffd5b8;
-  --sky: #c6e6ff;
-  --berry: #bc3f63;
+  /* The outline round everything tappable, and the solid edge it sits on. */
+  --edge: #efe2ea;
+  --shade: #000000;
+
+  /* On dark these are a shade stronger, or they go chalky. */
+  --pink: #ffb8d0;
+  --mint: #8fe8bf;
+  --lavender: #cbb6ff;
+  --butter: #ffe487;
+  --peach: #ffc098;
+  --sky: #a6d7ff;
+
+  --pink-deep: #ff6f9c;
+  --berry: #ff7d9e;
+  /* Bright fills take dark labels, which is the only way they pass contrast. */
+  --on-primary: #2a1a22;
+
+  /* Never flips: these ride on a pastel, which is the same in both themes. */
+  --on-tint: #4b3340;
+  --on-tint-soft: #6f5a64;
+
+  --alarm: #3a1520;
+  --alarm-ink: #ffb3c6;
+  --scrim: rgba(0, 0, 0, 0.66);
 
   --radius: 24px;
-  /* Soft, for things you only read. */
-  --shadow: 0 6px 18px rgba(150, 100, 120, 0.13);
-  /* Chunky, for things you can press. */
-  --pop: 0 3px 0 var(--edge);
-  --pop-deep: 0 5px 0 var(--edge);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --pop: 0 3px 0 var(--shade);
+  --pop-deep: 0 5px 0 var(--shade);
 
   --font: ui-rounded, "SF Pro Rounded", "Segoe UI Variable Display", "Segoe UI",
     Nunito, Quicksand, system-ui, -apple-system, sans-serif;
   /* Headings are the same round face, just fatter. Nothing here is a serif. */
   --font-display: var(--font);
+}
+
+:root[data-theme="light"] {
+  --cream: #fff6f0;
+  --cream-fade: rgba(255, 246, 240, 0);
+  --paper: #ffffff;
+  --ink: #4b3340;
+  --muted: #9d8290;
+  --line: #ffe0e9;
+
+  --edge: #6d4a5a;
+  --shade: #6d4a5a;
+
+  --pink: #ffd3e0;
+  --mint: #b9f0d5;
+  --lavender: #dcd0ff;
+  --butter: #ffeeb0;
+  --peach: #ffd5b8;
+  --sky: #c6e6ff;
+
+  --pink-deep: #cf3c72;
+  --berry: #bc3f63;
+  --on-primary: #ffffff;
+
+  --alarm: #ffe3ea;
+  --alarm-ink: #a83f5c;
+  --scrim: rgba(75, 51, 64, 0.45);
+
+  --shadow: 0 6px 18px rgba(150, 100, 120, 0.13);
 }
 
 * {
@@ -99,7 +145,7 @@ button {
   max-width: 640px;
   margin: 0 auto;
   padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem;
-  background: linear-gradient(var(--cream) 72%, rgba(255, 246, 240, 0));
+  background: linear-gradient(var(--cream) 72%, var(--cream-fade));
 }
 
 .logo {
@@ -152,7 +198,7 @@ button {
   border: 2px solid var(--edge);
   border-radius: 999px;
   background: var(--pink);
-  color: var(--ink);
+  color: var(--on-tint);
   font-size: 0.72rem;
   letter-spacing: 0;
 }
@@ -172,14 +218,14 @@ button {
 .primary {
   border-color: var(--edge);
   background: var(--pink-deep);
-  color: #fff;
+  color: var(--on-primary);
   box-shadow: var(--pop);
 }
 
 .secondary {
   border-color: var(--edge);
   background: var(--pink);
-  color: var(--ink);
+  color: var(--on-tint);
   box-shadow: var(--pop);
 }
 
@@ -207,7 +253,7 @@ button {
 .week-item:active,
 .gift-toggle:active {
   translate: 0 3px;
-  box-shadow: 0 0 0 var(--edge);
+  box-shadow: 0 0 0 var(--shade);
 }
 
 .icon-button {
@@ -218,6 +264,7 @@ button {
   border: 2px solid var(--edge);
   border-radius: 50%;
   background: var(--paper);
+  color: var(--ink);
   box-shadow: var(--pop);
   font-size: 1.1rem;
   line-height: 1;
@@ -271,6 +318,7 @@ button {
   border: 2px solid var(--edge);
   border-radius: 20px;
   background: linear-gradient(150deg, var(--butter), var(--peach));
+  color: var(--on-tint);
   text-align: left;
   box-shadow: var(--pop);
   transition: translate 0.08s ease, box-shadow 0.08s ease;
@@ -290,7 +338,7 @@ button {
 .week-when {
   font-size: 0.82rem;
   font-weight: 600;
-  color: #7d6570;
+  color: var(--on-tint-soft);
 }
 
 /* ------------------------------------------------------------- the grid */
@@ -309,6 +357,7 @@ button {
   padding: 0.45rem 0.45rem 0.6rem;
   border: 2px solid var(--edge);
   border-radius: 20px;
+  color: var(--on-tint);
   text-align: center;
   box-shadow: var(--pop);
   transition: translate 0.08s ease, box-shadow 0.08s ease;
@@ -326,7 +375,7 @@ button {
 .tile:active {
   rotate: 0deg;
   translate: 0 3px;
-  box-shadow: 0 0 0 var(--edge);
+  box-shadow: 0 0 0 var(--shade);
 }
 
 .tile-art {
@@ -365,7 +414,7 @@ button {
 .tile-sub {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #7d6570;
+  color: var(--on-tint-soft);
 }
 
 .tile-badge {
@@ -390,6 +439,7 @@ button {
   border-radius: 50%;
   object-fit: cover;
   flex: 0 0 auto;
+  color: var(--on-tint);
 }
 
 .avatar-sm {
@@ -446,6 +496,7 @@ button {
   border: 2px solid var(--edge);
   border-radius: var(--radius);
   background: linear-gradient(150deg, var(--pink), var(--lavender));
+  color: var(--on-tint);
   text-align: center;
 }
 
@@ -460,7 +511,7 @@ button {
 .hero-sub {
   font-size: 0.92rem;
   font-weight: 600;
-  color: #6f5a64;
+  color: var(--on-tint-soft);
 }
 
 .chip {
@@ -469,6 +520,7 @@ button {
   border: 2px solid var(--edge);
   border-radius: 999px;
   background: var(--mint);
+  color: var(--on-tint);
   font-size: 0.8rem;
   font-weight: 800;
 }
@@ -477,7 +529,7 @@ button {
   width: min(100%, 20rem);
   height: 0.7rem;
   margin-top: 0.5rem;
-  border: 2px solid var(--edge);
+  border: 2px solid var(--on-tint);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.7);
   overflow: hidden;
@@ -486,7 +538,7 @@ button {
 .progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: var(--pink-deep);
+  background: var(--on-tint);
 }
 
 /* ---------------------------------------------------------------- panels */
@@ -533,7 +585,7 @@ button {
 .sign-trait {
   margin-top: 0.7rem;
   font-size: 0.92rem;
-  color: #6f5a64;
+  color: var(--muted);
 }
 
 .facts {
@@ -570,7 +622,7 @@ button {
 .rhyme {
   margin-top: 0.8rem;
   font-weight: 700;
-  color: #6f5a64;
+  color: var(--muted);
 }
 
 .note {
@@ -653,7 +705,7 @@ button {
 
 .album-item:active img {
   translate: 0 3px;
-  box-shadow: 0 0 0 var(--edge);
+  box-shadow: 0 0 0 var(--shade);
 }
 
 .album-when {
@@ -772,7 +824,8 @@ textarea.input {
 
 .segmented {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 0.3rem;
   padding: 0.3rem;
   border: 2px solid var(--edge);
@@ -792,7 +845,7 @@ textarea.input {
 .segmented button.active {
   background: var(--paper);
   color: var(--ink);
-  box-shadow: 0 2px 0 rgba(109, 74, 90, 0.35);
+  box-shadow: 0 2px 0 var(--shade);
 }
 
 .photo-row {
@@ -823,8 +876,8 @@ textarea.input {
   padding: 0.7rem 1rem;
   border: 2px solid var(--berry);
   border-radius: 16px;
-  background: #ffe3ea;
-  color: #a83f5c;
+  background: var(--alarm);
+  color: var(--alarm-ink);
   font-size: 0.9rem;
   font-weight: 700;
 }
@@ -864,6 +917,7 @@ textarea.input {
   border: 2px solid var(--edge);
   border-radius: 14px;
   background: var(--mint);
+  color: var(--on-tint);
   font-size: 0.88rem;
   font-weight: 800;
 }
@@ -887,7 +941,7 @@ textarea.input {
 .gift-toggle.done {
   border-style: solid;
   background: var(--mint);
-  color: var(--ink);
+  color: var(--on-tint);
   box-shadow: var(--pop);
 }
 
@@ -906,7 +960,7 @@ textarea.input {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(75, 51, 64, 0.45);
+  background: var(--scrim);
   overscroll-behavior: contain;
   animation: fade-in 0.18s ease;
 }
@@ -1030,8 +1084,8 @@ textarea.input {
   padding: 0.75rem 1rem;
   border: 2px solid var(--berry);
   border-radius: 16px;
-  background: #ffe3ea;
-  color: #a83f5c;
+  background: var(--alarm);
+  color: var(--alarm-ink);
   font-size: 0.88rem;
   font-weight: 700;
 }

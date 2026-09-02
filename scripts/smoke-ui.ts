@@ -751,6 +751,25 @@ describe("settings screen", () => {
     assert.match(textOf(renderSettings(makeRig([]).ctx)), /Nothing to back up yet/);
   });
 
+  test("the theme can be chosen, and dark is where it starts", () => {
+    const screen = renderSettings(rig.ctx);
+    const picker = byClass(screen, "segmented")[0]!;
+    const labels = picker.querySelectorAll("button").map((node: any) => textOf(node));
+    assert.deepEqual(labels, ["Auto", "Dark", "Light"]);
+
+    // Nothing stored, so it follows the system rather than forcing either.
+    assert.equal(picker.querySelectorAll("button")[0]!.getAttribute("aria-pressed"), "true");
+  });
+
+  test("choosing a theme redraws, so the buttons agree with the screen", () => {
+    const local = makeRig([baby()]);
+    const screen = renderSettings(local.ctx);
+    byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!.click();
+
+    assert.equal(document.documentElement.dataset.theme, "dark");
+    assert.equal(local.redraws, 1);
+  });
+
   test("exporting a calendar with nothing in it says so instead of downloading", () => {
     const screen = renderSettings(rig.ctx);
     byClass(screen, "secondary")[0]!.click();
