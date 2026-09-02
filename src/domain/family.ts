@@ -33,6 +33,69 @@ export function siblingsOf(baby: Baby, all: Baby[]): Baby[] {
     .sort((a, b) => arrival(a).localeCompare(arrival(b)));
 }
 
+export type Family = {
+  /** Every parent named across the household, in the order you first typed them. */
+  parents: string[];
+  /** Oldest first, anyone still on the way last. */
+  babies: Baby[];
+};
+
+function parentNames(babies: Baby[]): string[] {
+  const seen = new Map<string, string>();
+  for (const baby of babies) {
+    for (const name of baby.parents) {
+      const id = key(name);
+      if (id && !seen.has(id)) seen.set(id, name.trim());
+    }
+  }
+  return [...seen.values()];
+}
+
+/**
+ * Whole households, found by following shared parent names from baby to baby.
+ * Transitive on purpose: a baby naming two parents is what joins those two
+ * people's lists together, which is usually exactly right and occasionally
+ * merges a family it should not have. The fix for that is a fuller name.
+ *
+ * Babies with nobody named are left out, since a household with no name to it
+ * is not something you can be about to go and see.
+ */
+export function families(all: Baby[]): Family[] {
+  const groups: { keys: Set<string>; babies: Baby[] }[] = [];
+
+  for (const baby of all) {
+    const keys = baby.parents.map(key).filter(Boolean);
+    if (keys.length === 0) continue;
+
+    const touching = groups.filter((group) => keys.some((id) => group.keys.has(id)));
+    const target = touching[0] ?? { keys: new Set<string>(), babies: [] };
+    if (touching.length === 0) groups.push(target);
+
+    // This baby is the evidence that those separate groups are one household.
+    for (const other of touching.slice(1)) {
+      for (const id of other.keys) target.keys.add(id);
+      target.babies.push(...other.babies);
+      groups.splice(groups.indexOf(other), 1);
+    }
+
+    for (const id of keys) target.keys.add(id);
+    target.babies.push(baby);
+  }
+
+  return groups.map((group) => ({
+    parents: parentNames(group.babies),
+    babies: [...group.babies].sort((a, b) => arrival(a).localeCompare(arrival(b))),
+  }));
+}
+
+/** The household this baby belongs to, themselves included. */
+export function familyOf(baby: Baby, all: Baby[]): Family {
+  const found = families(all).find((family) =>
+    family.babies.some((candidate) => candidate.id === baby.id),
+  );
+  return found ?? { parents: baby.parents, babies: [baby] };
+}
+
 /** How the sibling stands to this baby: "big sister", "little brother". */
 export function relation(baby: Baby, sibling: Baby): string {
   const older = arrival(sibling) < arrival(baby);

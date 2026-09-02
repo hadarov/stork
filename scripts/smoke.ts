@@ -27,7 +27,7 @@ import {
   ordinal,
   sortByNextEvent,
 } from "../src/domain/derive.ts";
-import { areSiblings, relation, siblingsOf } from "../src/domain/family.ts";
+import { areSiblings, families, familyOf, relation, siblingsOf } from "../src/domain/family.ts";
 import { toICalendar } from "../src/domain/ics.ts";
 import type { Baby } from "../src/domain/types.ts";
 import { migrate } from "../src/storage/migrate.ts";
@@ -432,6 +432,36 @@ describe("families", () => {
       siblingsOf(of("me", ["Sarah"], { birthDate: "2021-01-01" }), all).map((baby) => baby.id),
       ["eldest", "younger", "bump"],
     );
+  });
+
+  test("a household gathers everyone who shares a parent, oldest first", () => {
+    const all = [
+      of("bump", ["Tom"], { status: "expecting", birthDate: undefined, dueDate: "2026-11-01" }),
+      of("nina", ["Dana"]),
+      of("mila", ["Sarah", "Tom"], { birthDate: "2019-07-02" }),
+    ];
+    const found = families(all);
+
+    assert.equal(found.length, 2, "two households, not three");
+    const sarahs = found.find((family) => family.parents.includes("Sarah"));
+    assert.deepEqual(sarahs?.babies.map((baby) => baby.id), ["mila", "bump"]);
+    assert.deepEqual(sarahs?.parents, ["Tom", "Sarah"], "in the order they were first typed");
+  });
+
+  test("one baby naming two parents is what joins their two lists together", () => {
+    // Nothing links these until the middle baby says both names.
+    const all = [of("a", ["Sarah"]), of("b", ["Dana"]), of("both", ["Sarah", "Dana"])];
+    assert.equal(families(all).length, 1);
+    assert.equal(families(all)[0]?.babies.length, 3);
+  });
+
+  test("a baby with nobody named is not a household you can go and see", () => {
+    assert.deepEqual(families([of("lonely", [])]), []);
+  });
+
+  test("a baby's own household includes them, even with no parents named", () => {
+    const lonely = of("lonely", []);
+    assert.deepEqual(familyOf(lonely, [lonely]).babies, [lonely]);
   });
 
   test("an older girl is a big sister and a younger boy a little brother", () => {

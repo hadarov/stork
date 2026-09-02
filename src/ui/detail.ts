@@ -279,7 +279,18 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
         { class: "hero" },
         avatar(baby, "lg"),
         el("h2", { class: "hero-name" }, displayName(baby)),
-        parents ? el("p", { class: "hero-parents" }, parents) : null,
+        // The way through to the household, from the one line that names it.
+        parents
+          ? el(
+              "button",
+              {
+                class: "hero-parents",
+                type: "button",
+                onclick: () => ctx.navigate(`#/brief/${encodeURIComponent(baby.id)}`),
+              },
+              parents,
+            )
+          : null,
         baby.sex && baby.sex !== "surprise"
           ? chip(baby.sex === "girl" ? "Girl" : "Boy")
           : null,

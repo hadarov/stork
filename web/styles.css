@@ -483,8 +483,90 @@ button {
 }
 
 .hero-parents {
+  padding: 0.15rem 0;
+  border: none;
+  background: none;
   font-weight: 600;
   color: var(--muted);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 0.25rem;
+}
+
+/* ----------------------------------------------------------- the brief */
+
+.who-row,
+.brief-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.7rem 0;
+  border: none;
+  border-top: 2px solid var(--line);
+  background: none;
+  text-align: left;
+  color: inherit;
+}
+
+.who-row:first-of-type,
+.brief-card:first-of-type {
+  border-top: none;
+}
+
+.who-faces {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+/* Overlapped, so a household of three still fits beside its name. */
+.who-faces .avatar + .avatar {
+  margin-left: -1.1rem;
+}
+
+.who-text,
+.brief-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.who-name,
+.brief-name {
+  font-weight: 800;
+}
+
+.who-meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.brief-age {
+  font-weight: 700;
+  color: var(--pink-deep);
+}
+
+.brief-meta {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.brief-gift {
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--berry);
+}
+
+.brief-gift.done {
+  color: var(--muted);
+}
+
+.brief-note {
+  margin-top: 0.25rem;
+  font-size: 0.88rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .hero-stat {

@@ -27,6 +27,7 @@ const { renderDetail } = await import("../src/ui/detail.ts");
 const { renderEdit } = await import("../src/ui/edit.ts");
 const { renderSettings } = await import("../src/ui/settings.ts");
 const { albumOf, renderPhotoViewer } = await import("../src/ui/album.ts");
+const { renderBrief, renderWho } = await import("../src/ui/brief.ts");
 const { renderArrival, renderRemoveConfirm } = await import("../src/ui/prompts.ts");
 const { startApp } = await import("../src/ui/app.ts");
 
@@ -365,6 +366,93 @@ describe("family", () => {
     assert.equal(findField(screen, "Second parent").value, "Tom");
   });
 
+});
+
+/* --------------------------------------------------------------- brief */
+
+describe("the brief", () => {
+  const otto = baby({
+    id: "otto",
+    name: "Otto",
+    parents: ["Sarah", "Tom"],
+    status: "expecting",
+    birthDate: undefined,
+    dueDate: "2026-11-01",
+    sex: "boy",
+  });
+
+  test("it leads with the next thing, named and dated", () => {
+    const local = makeRig([baby({ birthDate: "2024-09-08" }), otto]);
+    const text = textOf(renderBrief(local.ctx, baby({ birthDate: "2024-09-08" })));
+
+    assert.match(text, /Sarah and Tom/, "titled by the people you are seeing");
+    assert.match(text, /\u{1F382} Mila/u, "the birthday a week away wins");
+    assert.match(text, /Mila/);
+    assert.match(text, /Otto/);
+  });
+
+  test("everyone in the household is there with their age", () => {
+    const local = makeRig([baby(), otto]);
+    const cards = byClass(renderBrief(local.ctx, baby()), "brief-card");
+
+    assert.equal(cards.length, 2);
+    assert.match(textOf(cards[0]), /2 years, 2 months old/);
+    assert.match(textOf(cards[1]), /due in 9 weeks/);
+  });
+
+  test("a missing gift is only pointed out once they are actually here", () => {
+    const local = makeRig([baby(), otto]);
+    const cards = byClass(renderBrief(local.ctx, baby()), "brief-card");
+
+    assert.match(textOf(cards[0]), /Nothing sent, and they are 2 years/);
+    assert.match(textOf(cards[1]), /Nothing sent yet$/, "a bump is not late");
+  });
+
+  test("a gift already sent is stated plainly and not nagged about", () => {
+    const local = makeRig([baby({ giftSent: true })]);
+    const text = textOf(renderBrief(local.ctx, baby({ giftSent: true })));
+    assert.match(text, /You sent something/);
+    assert.doesNotMatch(text, /Nothing sent/);
+  });
+
+  test("a newborn gets a month's grace before it is mentioned", () => {
+    const fresh = baby({ birthDate: "2026-08-25" });
+    const local = makeRig([fresh]);
+    assert.match(textOf(renderBrief(local.ctx, fresh)), /Nothing sent yet/);
+  });
+
+  test("notes are the whole point, so it says when there are none", () => {
+    const local = makeRig([baby()]);
+    assert.match(textOf(renderBrief(local.ctx, baby())), /written nothing down/);
+
+    const noted = baby({ notes: "Loves diggers" });
+    assert.match(textOf(renderBrief(makeRig([noted]).ctx, noted)), /Loves diggers/);
+  });
+
+  test("tapping a baby in the brief opens them", async () => {
+    const local = makeRig([baby()]);
+    await byClass(renderBrief(local.ctx, baby()), "brief-card")[0]!.click();
+    assert.deepEqual(local.routes, ["#/baby/mila"]);
+  });
+
+  test("the who list shows one row per household, soonest first", async () => {
+    const nina = baby({ id: "nina", name: "Nina", parents: ["Dana"], birthDate: "2024-12-20" });
+    const local = makeRig([baby(), otto, nina]);
+    const rows = byClass(renderWho(local.ctx), "who-row");
+
+    assert.equal(rows.length, 2, "Mila and Otto are one household");
+    // Otto is due in nine weeks; Nina's birthday is three months off.
+    assert.match(textOf(rows[0]), /Sarah and Tom/);
+    assert.match(textOf(rows[0]), /Otto \u00b7 due in 9 weeks/);
+    assert.match(textOf(rows[1]), /Dana/);
+
+    await rows[0]!.click();
+    assert.deepEqual(local.routes, ["#/brief/mila"]);
+  });
+
+  test("with nobody in the book it explains itself rather than sitting blank", () => {
+    assert.match(textOf(renderWho(makeRig([]).ctx)), /Add a baby and say whose it is/);
+  });
 });
 
 /* --------------------------------------------------------------- album */
