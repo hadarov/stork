@@ -8,28 +8,32 @@
  */
 import { deflateSync } from "node:zlib";
 
-/* ------------------------------------------------------------- the chick */
+/* --------------------------------------------------------------- the egg */
 
-const BG_TOP = [255, 219, 233];
-const BG_BOTTOM = [255, 170, 200];
-const CREAM = [255, 250, 246];
-const EDGE = [109, 74, 90];
-const INK = [75, 51, 64];
-const BEAK = [255, 168, 61];
-const CHEEK = [255, 143, 178];
-const SHINE = [255, 255, 255];
+const BG = [20, 16, 23];
+const GOLD = [255, 194, 75];
+const SHINE = [255, 246, 224];
 
-/** Half the outline width, in unit-square terms. */
-const STROKE = 0.011;
+/**
+ * An egg, which is an ellipse whose top half is longer than its bottom half and
+ * narrower with it. The taper is the entire difference; without it this is an
+ * oval, and an oval is not an egg.
+ */
+function egg(x, y, cx, cy, rx, ryTop, ryBottom) {
+  const dy = y - cy;
+  const t = dy / (dy < 0 ? ryTop : ryBottom);
+  const taper = 1 - 0.13 * Math.max(0, -t);
+  return Math.hypot((x - cx) / (rx * taper), t) <= 1;
+}
 
-const circle = (x, y, cx, cy, r) => (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
-
-/** Signed distance to a circle: negative inside, positive out. */
-const ring = (x, y, cx, cy, r) => Math.hypot(x - cx, y - cy) - r;
-
-/** Diamond beak: an L1 ball, squashed to be taller than it is wide. */
-const diamond = (x, y, cx, cy, rx, ry) =>
-  Math.abs(x - cx) / rx + Math.abs(y - cy) / ry <= 1;
+/** An ellipse at an angle, for the highlight. */
+function tilted(x, y, cx, cy, rx, ry, angle) {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const dx = x - cx;
+  const dy = y - cy;
+  return ((dx * cos + dy * sin) / rx) ** 2 + ((dy * cos - dx * sin) / ry) ** 2 <= 1;
+}
 
 function insideRoundedSquare(x, y, radius) {
   const dx = Math.max(radius - x, 0, x - (1 - radius));
@@ -47,43 +51,22 @@ function blend(base, colour, alpha = 1) {
 }
 
 /**
- * Colour at one sample point, in a unit square. `scale` shrinks the chick
- * towards the middle for the maskable icon, whose corners get cropped away.
+ * Colour at one sample point, in a unit square. `scale` shrinks the egg towards
+ * the middle for the maskable icon, whose corners get cropped away.
  */
 function sample(x, y, { maskable }) {
   const cornerRadius = maskable ? 0 : 0.22;
   if (!maskable && !insideRoundedSquare(x, y, cornerRadius)) return [0, 0, 0, 0];
 
-  const t = y;
-  let colour = [
-    BG_TOP[0] + (BG_BOTTOM[0] - BG_TOP[0]) * t,
-    BG_TOP[1] + (BG_BOTTOM[1] - BG_TOP[1]) * t,
-    BG_TOP[2] + (BG_BOTTOM[2] - BG_TOP[2]) * t,
-    1,
-  ];
+  let colour = [BG[0], BG[1], BG[2], 1];
 
-  // Everything below is drawn in the chick's own space, then scaled in place.
-  const scale = maskable ? 0.74 : 1;
+  // Everything below is drawn in the egg's own space, then scaled in place.
+  const scale = maskable ? 0.72 : 1;
   const cx = 0.5 + (x - 0.5) / scale;
   const cy = 0.5 + (y - 0.5) / scale;
 
-  // Head and the curl on top are outlined as one shape, so the seam where they
-  // meet has no line across it. Nearest edge wins, which is what min gives.
-  const body = Math.min(
-    ring(cx, cy, 0.5, 0.575, 0.3),
-    ring(cx, cy, 0.5, 0.255, 0.05),
-    ring(cx, cy, 0.56, 0.215, 0.034),
-  );
-  if (body <= STROKE) colour = blend(colour, body <= -STROKE ? CREAM : EDGE);
-
-  if (circle(cx, cy, 0.29, 0.645, 0.058)) colour = blend(colour, CHEEK, 0.8);
-  if (circle(cx, cy, 0.71, 0.645, 0.058)) colour = blend(colour, CHEEK, 0.8);
-  // Big eyes with a highlight in each, which is most of what makes it cute.
-  if (circle(cx, cy, 0.395, 0.495, 0.062)) colour = blend(colour, INK);
-  if (circle(cx, cy, 0.605, 0.495, 0.062)) colour = blend(colour, INK);
-  if (circle(cx, cy, 0.374, 0.472, 0.024)) colour = blend(colour, SHINE);
-  if (circle(cx, cy, 0.584, 0.472, 0.024)) colour = blend(colour, SHINE);
-  if (diamond(cx, cy, 0.5, 0.63, 0.046, 0.056)) colour = blend(colour, BEAK);
+  if (egg(cx, cy, 0.5, 0.515, 0.25, 0.35, 0.3)) colour = blend(colour, GOLD);
+  if (tilted(cx, cy, 0.395, 0.395, 0.055, 0.1, -0.38)) colour = blend(colour, SHINE, 0.5);
 
   return colour;
 }

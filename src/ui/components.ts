@@ -38,8 +38,8 @@ export function avatar(baby: Baby, now: Date, size: "sm" | "lg" = "sm"): HTMLEle
 
 /**
  * One square in the grid: a photo if there is one, otherwise a big glyph on the
- * baby's own colour, with the name underneath and a badge for anything
- * happening imminently.
+ * baby's own colour, with the name, whose they are and how far along underneath,
+ * plus a badge for anything happening imminently.
  */
 export function tile(
   baby: Baby,
@@ -61,6 +61,11 @@ export function tile(
         : el("span", { class: "tile-glyph", "aria-hidden": "true" }, glyphFor(baby, now)),
     ),
     el("span", { class: "tile-name" }, displayName(baby)),
+    // Ampersands rather than "and": there is only ever about one line of room,
+    // and whose baby this is matters more than the grammar of saying it.
+    baby.parents.length > 0
+      ? el("span", { class: "tile-parents" }, baby.parents.join(" & "))
+      : null,
     el("span", { class: "tile-sub" }, options.sub),
     options.badge
       ? el("span", { class: "tile-badge", "aria-hidden": "true" }, options.badge)

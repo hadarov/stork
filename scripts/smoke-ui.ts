@@ -230,6 +230,31 @@ describe("home screen", () => {
     assert.equal(tiles[1]!.querySelectorAll("img").length, 1, "a photo should be shown");
   });
 
+  test("each tile says whose baby it is", () => {
+    const local = makeRig([baby(), baby({ id: "solo", name: "Solo", parents: [] })]);
+    const tiles = byClass(renderHome(local.ctx), "tile");
+
+    assert.equal(textOf(tiles[0]!.querySelector(".tile-parents")), "Sarah & Tom");
+    assert.equal(
+      tiles[1]!.querySelector(".tile-parents"),
+      null,
+      "with nobody named there is no line to draw",
+    );
+  });
+
+  test("the picture is where they have got to, not just a baby", () => {
+    const local = makeRig([
+      baby({ id: "bump", name: "Otto", status: "expecting", birthDate: undefined, dueDate: "2026-11-01" }),
+      baby({ id: "fresh", name: "Ivy", birthDate: "2026-08-20" }),
+      baby(),
+    ]);
+    const glyphs = byClass(renderHome(local.ctx), "tile-glyph").map((node: any) => textOf(node));
+
+    assert.ok(glyphs.includes("\u{1F95A}"), "an egg on the way");
+    assert.ok(glyphs.includes("\u{1F423}"), "a hatchling in the first year");
+    assert.ok(glyphs.includes("\u{1F424}"), "a chick after that");
+  });
+
   test("only imminent events reach the this-week strip", () => {
     const soon = makeRig([baby({ id: "soon", name: "Ada", birthDate: "2024-09-04" })]);
     assert.match(textOf(renderHome(soon.ctx)), /This week/);

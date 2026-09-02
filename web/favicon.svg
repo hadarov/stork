@@ -1,25 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Stork">
-  <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffdbe9" />
-      <stop offset="1" stop-color="#ffaac8" />
-    </linearGradient>
-    <!-- Head and curl, outlined as one shape: the dark pass is drawn fattened
-         and the cream pass on top covers every seam where the two meet. -->
-    <g id="chick">
-      <circle cx="287" cy="110" r="17" />
-      <circle cx="256" cy="131" r="26" />
-      <circle cx="256" cy="294" r="154" />
-    </g>
-  </defs>
-  <rect width="512" height="512" rx="120" fill="url(#sky)" />
-  <use href="#chick" fill="#6d4a5a" stroke="#6d4a5a" stroke-width="22" />
-  <use href="#chick" fill="#fffaf6" />
-  <circle cx="148" cy="330" r="30" fill="#ff8fb2" opacity="0.8" />
-  <circle cx="364" cy="330" r="30" fill="#ff8fb2" opacity="0.8" />
-  <circle cx="202" cy="253" r="32" fill="#4b3340" />
-  <circle cx="310" cy="253" r="32" fill="#4b3340" />
-  <circle cx="191" cy="242" r="12" fill="#fff" />
-  <circle cx="299" cy="242" r="12" fill="#fff" />
-  <path d="M256 294 L280 323 L256 352 L232 323 Z" fill="#ffa83d" />
+  <!-- Transparent behind, so the same mark sits on the bar in either theme.
+       The PNGs in the manifest add the dark square; this one does not need it. -->
+  <!-- Same proportions as the rasterised one in scripts/icon.mjs. -->
+  <path
+    d="M256 85C334 85 384 202 384 292C384 361 327 417 256 417C185 417 128 361 128 292C128 202 178 85 256 85Z"
+    fill="#ffc24b"
+  />
+  <!-- One highlight, which is all it takes to stop it reading as an oval. -->
+  <ellipse
+    cx="202"
+    cy="202"
+    rx="28"
+    ry="51"
+    transform="rotate(-22 202 202)"
+    fill="#fff6e0"
+    opacity="0.5"
+  />
 </svg>

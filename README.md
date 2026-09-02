@@ -39,23 +39,30 @@ question leaves you exactly where you were.
 
 ## The look
 
-Dark, soft and quiet, with the babies as the only thing in it that has any
-colour. Nothing else competes: no outlines, no offset shadows, nothing sitting
-at an angle. Separation comes from the surfaces - page, panel, inset - and from
-space, rather than from lines drawn round everything. The tint sits on the
-square rather than the whole tile, so the grid reads as photographs and the
-names underneath stay in ordinary ink.
+Dark, soft and quiet, with one accent: the yolk gold of the app's own egg. Every
+emphasis is that colour and nothing else is - buttons, focus, the age under a
+name in the grid, a milestone reached - so the eye only has to learn it once.
+The six pastels belong to the babies and are the only other colour in the app.
+
+Definition comes from hairlines rather than outlines drawn round everything, and
+there are two of them because they sit on different things: `--edge` for neutral
+surfaces, which is light on dark and dark on light, and `--edge-tint` for
+anything on a pastel, which is dark in both because the pastel is. Ink works the
+same way - `--ink` flips with the theme, `--on-tint` never does.
+
+The tint sits on the square rather than the whole tile, so the grid reads as
+photographs, with the name, whose baby it is and how far along underneath.
 
 Dark is the default. **Settings - Look** offers Auto, Dark and Light, and an
 inline script in `index.html` settles the choice before the first paint so a
-light-mode phone does not flash black on every launch. Anything sitting on a
-pastel needs dark ink in both themes, which is what `--on-tint` is for: `--ink`
-flips and `--on-tint` never does.
+light-mode phone does not flash black on every launch.
 
 ## Eggs and chicks
 
 Whoever it is, the picture is where they have got to: an egg on the way, a
-hatchling for the first year, and a chick after that.
+hatchling for the first year, and a chick after that. The app's own icon is that
+first egg, drawn in the accent colour, so the mark and the palette are the same
+idea.
 
 Above that the ladder keeps going, which is the easter egg. Somebody will
 eventually put a grown adult in here to stop forgetting their birthday, and the
@@ -65,9 +72,11 @@ they are a chick. Nobody who is actually a baby ever sees any of it.
 
 ## Picking a date
 
-Three dropdowns rather than an `<input type="date">`. The native control is a
-different thing on every platform, none of them can be styled to match, and all
-of them will happily accept the 31st of February.
+One control split into three rather than an `<input type="date">`: a single
+bordered box with hairlines between day, month and year, so a date still reads
+as one answer. The native control is a different thing on every platform, none
+of them can be styled to match, and all of them will happily accept the 31st of
+February.
 
 The lists are narrowed instead, so an impossible date cannot be picked: only the
 days that month has, only leap years get the 29th, and a birthday cannot be set

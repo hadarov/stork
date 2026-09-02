@@ -1,14 +1,16 @@
 /*
  * Stork.
  *
- * Dark, soft and quiet. The babies are the only thing with any colour in it,
- * so nothing else competes: no outlines, no offset shadows, nothing sitting at
- * an angle. Separation comes from the surfaces themselves - page, panel, inset -
- * and from space, rather than from lines drawn round everything.
+ * Dark, soft and quiet, with one accent: the yolk gold of the app's own egg.
+ * Every emphasis in the app is that colour and nothing else is - buttons,
+ * focus, the age under a name, a milestone reached - so the eye learns it once.
  *
- * The one rule that needs stating: pastel tints are the same in both themes, so
- * anything sitting on one keeps dark ink in both. That is what --on-tint is for.
- * --ink flips; --on-tint never does.
+ * Definition comes from hairlines rather than from outlines drawn round
+ * everything. There are two, because they sit on different things: --edge for
+ * neutral surfaces, which is light on dark and dark on light, and --edge-tint
+ * for anything on a pastel, which is dark in both because the pastel is.
+ *
+ * Same reasoning for ink: --ink flips with the theme, --on-tint never does.
  */
 
 :root {
@@ -19,6 +21,13 @@
   --ink: #f4eef2;
   --muted: #9c8e9a;
   --line: #2c2534;
+  --edge: rgba(255, 255, 255, 0.09);
+  --edge-tint: rgba(43, 28, 36, 0.16);
+
+  /* The accent, and the accent when it has to be legible as text. */
+  --accent: #ffc24b;
+  --accent-ink: #ffc24b;
+  --on-accent: #2a1e08;
 
   --pink: #ffb8d0;
   --mint: #8fe8bf;
@@ -27,10 +36,8 @@
   --peach: #ffc098;
   --sky: #a6d7ff;
 
-  --pink-deep: #ff6f9c;
   --berry: #ff7d9e;
-  /* Bright fills take dark labels, which is the only way they pass contrast. */
-  --on-primary: #2a1a22;
+  --on-berry: #2a1a22;
 
   /* Never flips: these ride on a pastel, which is the same in both themes. */
   --on-tint: #4b3340;
@@ -53,10 +60,16 @@
   --cream: #fdf7f4;
   --cream-fade: rgba(253, 247, 244, 0);
   --paper: #ffffff;
-  --inset: #f6eff0;
+  --inset: #f7f0ef;
   --ink: #4b3340;
   --muted: #96808c;
   --line: #f0e2e6;
+  --edge: rgba(75, 51, 64, 0.11);
+  --edge-tint: rgba(75, 51, 64, 0.16);
+
+  --accent: #eda51f;
+  --accent-ink: #96620d;
+  --on-accent: #2a1e08;
 
   --pink: #ffd3e0;
   --mint: #b9f0d5;
@@ -65,9 +78,8 @@
   --peach: #ffd5b8;
   --sky: #c6e6ff;
 
-  --pink-deep: #d64c81;
   --berry: #c04266;
-  --on-primary: #ffffff;
+  --on-berry: #ffffff;
 
   --alarm: #ffe8ee;
   --alarm-ink: #a83f5c;
@@ -115,6 +127,12 @@ button {
   cursor: pointer;
 }
 
+/* One accent, one focus ring, everywhere. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* One gentle press, used by everything tappable. */
 .primary:active,
 .secondary:active,
@@ -152,7 +170,7 @@ button {
   z-index: 5;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   max-width: 640px;
   margin: 0 auto;
   padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem;
@@ -160,9 +178,8 @@ button {
 }
 
 .logo {
-  width: 2.1rem;
-  height: 2.1rem;
-  border-radius: 30%;
+  width: 2.2rem;
+  height: 2.2rem;
   flex: 0 0 auto;
 }
 
@@ -205,6 +222,7 @@ button {
   min-width: 1.35rem;
   height: 1.35rem;
   padding: 0 0.35rem;
+  border: 1px solid var(--edge);
   border-radius: 999px;
   background: var(--inset);
   color: var(--muted);
@@ -225,11 +243,12 @@ button {
 }
 
 .primary {
-  background: var(--pink-deep);
-  color: var(--on-primary);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .secondary {
+  border: 1px solid var(--edge);
   background: var(--inset);
   color: var(--ink);
 }
@@ -245,6 +264,7 @@ button {
 
 .primary.danger-fill {
   background: var(--berry);
+  color: var(--on-berry);
 }
 
 .block {
@@ -256,7 +276,7 @@ button {
   place-items: center;
   width: 2.4rem;
   height: 2.4rem;
-  border: none;
+  border: 1px solid var(--edge);
   border-radius: 50%;
   background: var(--paper);
   color: var(--ink);
@@ -270,7 +290,7 @@ button {
 .search {
   width: 100%;
   padding: 0.75rem 1.1rem;
-  border: none;
+  border: 1px solid var(--edge);
   border-radius: 999px;
   background: var(--paper);
   font: inherit;
@@ -279,13 +299,6 @@ button {
 
 .search::placeholder {
   color: var(--muted);
-}
-
-.search:focus-visible,
-.input:focus-visible,
-.date-select:focus-visible {
-  outline: 2px solid var(--pink-deep);
-  outline-offset: 2px;
 }
 
 /* ------------------------------------------------------------ this week */
@@ -313,7 +326,7 @@ button {
   gap: 0.15rem;
   width: 9.5rem;
   padding: 0.85rem;
-  border: none;
+  border: 1px solid var(--edge-tint);
   border-radius: var(--radius-sm);
   background: var(--butter);
   color: var(--on-tint);
@@ -322,7 +335,7 @@ button {
 }
 
 .week-emoji {
-  font-size: 1.4rem;
+  font-size: 1.6rem;
 }
 
 .week-name {
@@ -343,7 +356,7 @@ button {
   display: grid;
   /* Three across at every width, which is what a photo grid should look like. */
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
+  gap: 0.8rem;
 }
 
 /* The colour is on the square, not the whole tile, so the names underneath
@@ -364,6 +377,7 @@ button {
   display: grid;
   place-items: center;
   aspect-ratio: 1;
+  border: 1px solid var(--edge-tint);
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
@@ -376,12 +390,12 @@ button {
 }
 
 .tile-glyph {
-  font-size: 2.2rem;
+  font-size: 3.1rem;
   line-height: 1;
 }
 
 .tile-name {
-  margin-top: 0.45rem;
+  margin-top: 0.5rem;
   font-weight: 700;
   font-size: 0.85rem;
   line-height: 1.25;
@@ -390,21 +404,32 @@ button {
   white-space: nowrap;
 }
 
-.tile-sub {
-  font-size: 0.75rem;
+.tile-parents {
+  font-size: 0.72rem;
+  line-height: 1.3;
   color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tile-sub {
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--accent-ink);
 }
 
 .tile-badge {
   position: absolute;
-  top: 0.35rem;
-  right: 0.35rem;
+  top: 0.4rem;
+  right: 0.4rem;
   display: grid;
   place-items: center;
   width: 1.6rem;
   height: 1.6rem;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.88);
   font-size: 0.85rem;
 }
 
@@ -413,6 +438,7 @@ button {
 .avatar {
   display: grid;
   place-items: center;
+  border: 1px solid var(--edge-tint);
   border-radius: 50%;
   object-fit: cover;
   flex: 0 0 auto;
@@ -422,13 +448,13 @@ button {
 .avatar-sm {
   width: 3rem;
   height: 3rem;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
 }
 
 .avatar-lg {
-  width: 6.5rem;
-  height: 6.5rem;
-  font-size: 2.9rem;
+  width: 7rem;
+  height: 7rem;
+  font-size: 3.6rem;
 }
 
 .tint-0 { background: var(--pink); }
@@ -478,6 +504,7 @@ button {
   align-items: center;
   gap: 0.25rem;
   padding: 1.5rem 1rem;
+  border: 1px solid var(--edge-tint);
   border-radius: var(--radius);
   background: var(--pink);
   color: var(--on-tint);
@@ -499,6 +526,7 @@ button {
 .chip {
   display: inline-block;
   padding: 0.2rem 0.8rem;
+  border: 1px solid var(--edge);
   border-radius: 999px;
   background: var(--inset);
   color: var(--muted);
@@ -525,6 +553,7 @@ button {
 
 .panel {
   padding: 1.1rem 1.15rem 1.25rem;
+  border: 1px solid var(--edge);
   border-radius: var(--radius);
   background: var(--paper);
   box-shadow: var(--shadow);
@@ -542,13 +571,14 @@ button {
   align-items: center;
   gap: 0.1rem;
   padding: 0.9rem 0.5rem;
+  border: 1px solid var(--edge);
   border-radius: var(--radius-sm);
   background: var(--inset);
   text-align: center;
 }
 
 .sign-emoji {
-  font-size: 1.9rem;
+  font-size: 2.2rem;
   line-height: 1.1;
 }
 
@@ -577,6 +607,7 @@ button {
   display: flex;
   flex-direction: column;
   padding: 0.7rem 0.85rem;
+  border: 1px solid var(--edge);
   border-radius: var(--radius-sm);
   background: var(--inset);
 }
@@ -693,7 +724,8 @@ button {
 }
 
 .brief-age {
-  color: var(--pink-deep);
+  font-weight: 700;
+  color: var(--accent-ink);
 }
 
 .brief-meta {
@@ -753,6 +785,7 @@ button {
 .album-item img {
   width: 6rem;
   height: 6rem;
+  border: 1px solid var(--edge);
   border-radius: var(--radius-sm);
   object-fit: cover;
 }
@@ -765,6 +798,7 @@ button {
 .photo-full {
   width: 100%;
   aspect-ratio: 1;
+  border: 1px solid var(--edge);
   border-radius: var(--radius);
   object-fit: cover;
 }
@@ -798,7 +832,7 @@ button {
 }
 
 .timeline-item.done .timeline-dot {
-  background: var(--pink-deep);
+  background: var(--accent);
 }
 
 .timeline-label {
@@ -856,7 +890,7 @@ button {
 .input {
   width: 100%;
   padding: 0.75rem 0.9rem;
-  border: none;
+  border: 1px solid var(--edge);
   border-radius: var(--radius-sm);
   background: var(--inset);
   font: inherit;
@@ -871,43 +905,57 @@ textarea.input {
 /* ------------------------------------------------------------ the date */
 
 /*
- * Three dropdowns rather than a date input, because the native one is a
- * different control on every platform and none of them are calm. Day is narrow,
- * the month gets the room since it is the word you read, year is last.
+ * One control split into three, rather than three controls in a row: a single
+ * bordered box with hairlines between the parts, so a date reads as one answer.
+ * The month gets the room, since it is the word you actually read.
  */
 .date-field {
   display: grid;
-  grid-template-columns: 4.6rem 1fr 5.4rem;
-  gap: 0.5rem;
+  grid-template-columns: 3.9rem 1fr 5rem;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-sm);
+  background: var(--inset);
+  overflow: hidden;
 }
 
 .date-part {
   position: relative;
   display: flex;
+  min-width: 0;
+}
+
+.date-part + .date-part {
+  border-left: 1px solid var(--edge);
 }
 
 .date-part::after {
   content: "\25BE";
   position: absolute;
-  right: 0.7rem;
+  right: 0.55rem;
   top: 50%;
   translate: 0 -50%;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   pointer-events: none;
 }
 
 .date-select {
   width: 100%;
-  padding: 0.75rem 1.6rem 0.75rem 0.85rem;
+  padding: 0.8rem 1.4rem 0.8rem 0.8rem;
   border: none;
-  border-radius: var(--radius-sm);
-  background: var(--inset);
+  border-radius: 0;
+  background: transparent;
   font: inherit;
+  font-weight: 700;
   color: inherit;
   appearance: none;
   cursor: pointer;
   text-overflow: ellipsis;
+}
+
+/* Keeps the ring inside the box, so the three parts stay one control. */
+.date-select:focus-visible {
+  outline-offset: -2px;
 }
 
 /* Chromium draws the open list in the page's colours, not the control's. */
@@ -917,6 +965,7 @@ textarea.input {
 }
 
 .date-select.empty {
+  font-weight: 400;
   color: var(--muted);
 }
 
@@ -926,6 +975,7 @@ textarea.input {
   grid-auto-columns: 1fr;
   gap: 0.25rem;
   padding: 0.25rem;
+  border: 1px solid var(--edge);
   border-radius: 999px;
   background: var(--inset);
 }
@@ -941,8 +991,8 @@ textarea.input {
 }
 
 .segmented button.active {
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .photo-row {
@@ -1010,6 +1060,7 @@ textarea.input {
 .backup-line {
   padding: 0.65rem 0.9rem;
   margin-bottom: 0.7rem;
+  border: 1px solid var(--edge);
   border-radius: var(--radius-sm);
   background: var(--inset);
   color: var(--ink);
@@ -1017,6 +1068,7 @@ textarea.input {
 }
 
 .backup-line.stale {
+  border-color: transparent;
   background: var(--alarm);
   color: var(--alarm-ink);
 }
@@ -1025,7 +1077,7 @@ textarea.input {
   width: 100%;
   padding: 0.8rem;
   margin-bottom: 0.7rem;
-  border: none;
+  border: 1px solid var(--edge);
   border-radius: var(--radius-sm);
   background: var(--inset);
   font-weight: 700;
@@ -1034,6 +1086,7 @@ textarea.input {
 }
 
 .gift-toggle.done {
+  border-color: var(--edge-tint);
   background: var(--mint);
   color: var(--on-tint);
 }
@@ -1065,6 +1118,8 @@ textarea.input {
   max-width: 40rem;
   max-height: 92dvh;
   /* Rises from the bottom edge on a phone, so it reads as a sheet. */
+  border: 1px solid var(--edge);
+  border-bottom: none;
   border-radius: 26px 26px 0 0;
   background: var(--cream);
   box-shadow: var(--shadow-lift);
@@ -1079,6 +1134,7 @@ textarea.input {
 
   .sheet {
     max-height: 86dvh;
+    border-bottom: 1px solid var(--edge);
     border-radius: 26px;
   }
 }
@@ -1157,7 +1213,7 @@ textarea.input {
 }
 
 .empty-glyph {
-  font-size: 3.4rem;
+  font-size: 4rem;
 }
 
 .empty h2 {
