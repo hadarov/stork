@@ -59,8 +59,21 @@ export function addMonths(date: Date, months: number): Date {
   return target;
 }
 
+/*
+ * Every date is written the same way wherever it is read, rather than in each
+ * phone's own locale. The app draws dates into a shareable picture, so leaving
+ * it to the device would mean a card saying "June 15" when one friend makes it
+ * and "15 June" when another does, from the same baby and the same button.
+ *
+ * It also makes the tests mean something. They were written on a machine that
+ * reports en-IL and asserted "15 June 2024"; the same suite on a runner that
+ * defaults to en-US read "June 15, 2024" and failed, having found nothing
+ * wrong with the app at all.
+ */
+const DATE_LOCALE = "en-GB";
+
 export function formatDate(date: Date): string {
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(DATE_LOCALE, {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -68,7 +81,7 @@ export function formatDate(date: Date): string {
 }
 
 export function formatShortDate(date: Date): string {
-  return date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return date.toLocaleDateString(DATE_LOCALE, { day: "numeric", month: "short" });
 }
 
 function plural(count: number, word: string): string {

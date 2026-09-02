@@ -137,7 +137,9 @@ you can actually say congratulations. Where there is no share sheet it saves
 the file instead.
 
 It is drawn rather than screenshotted, so it looks the same from any phone and
-carries none of the app's furniture.
+carries none of the app's furniture. Dates are written one way everywhere for
+the same reason - `15 June 2024`, never `June 15, 2024` - rather than in each
+device's own locale, so the same baby makes the same card on anyone's phone.
 
 ## The brief
 

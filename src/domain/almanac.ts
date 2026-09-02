@@ -70,14 +70,16 @@ const BIRTH_FLOWERS = [
 ];
 
 /** The old nursery rhyme, kept word for word. */
+// The day is named here rather than asked of the date, because the rhyme only
+// exists in English and a localised weekday beside an English line reads oddly.
 const DAY_RHYME = [
-  "Sunday's child is bonny and blithe and good and gay",
-  "Monday's child is fair of face",
-  "Tuesday's child is full of grace",
-  "Wednesday's child is full of woe",
-  "Thursday's child has far to go",
-  "Friday's child is loving and giving",
-  "Saturday's child works hard for a living",
+  { day: "Sunday", line: "Sunday's child is bonny and blithe and good and gay" },
+  { day: "Monday", line: "Monday's child is fair of face" },
+  { day: "Tuesday", line: "Tuesday's child is full of grace" },
+  { day: "Wednesday", line: "Wednesday's child is full of woe" },
+  { day: "Thursday", line: "Thursday's child has far to go" },
+  { day: "Friday", line: "Friday's child is loving and giving" },
+  { day: "Saturday", line: "Saturday's child works hard for a living" },
 ];
 
 function mmdd(date: Date): number {
@@ -139,8 +141,5 @@ export function birthFlower(date: Date): string {
 }
 
 export function dayOfWeekRhyme(date: Date): { day: string; line: string } {
-  return {
-    day: date.toLocaleDateString(undefined, { weekday: "long" }),
-    line: DAY_RHYME[date.getDay()],
-  };
+  return DAY_RHYME[date.getDay()];
 }

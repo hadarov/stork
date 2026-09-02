@@ -21,6 +21,8 @@ import {
   describeWeight,
   displayName,
   dueCountdown,
+  formatDate,
+  formatShortDate,
   milestones,
   monthsBetween,
   nextBirthday,
@@ -263,6 +265,29 @@ describe("what happens next", () => {
   test("an unnamed baby is described by its parents", () => {
     assert.equal(displayName(baby({ name: undefined })), "Sarah's baby");
     assert.equal(displayName(baby({ name: "Mila" })), "Mila");
+  });
+});
+
+describe("dates read the same everywhere", () => {
+  /*
+   * These two caught nothing for weeks, because the machine writing them
+   * reported en-IL and quietly agreed with itself. The first runner that
+   * defaulted to en-US disagreed with all of it.
+   */
+  test("a date is written the same way wherever it is read", () => {
+    assert.equal(formatDate(new Date(2024, 5, 15)), "15 June 2024");
+    assert.equal(formatShortDate(new Date(2024, 5, 15)), "15 Jun");
+  });
+
+  test("nothing in the app leaves the format to the device", () => {
+    for (const file of ["derive.ts", "almanac.ts", "ics.ts", "card.ts", "stage.ts"]) {
+      const source = readFileSync(new URL(`../src/domain/${file}`, import.meta.url), "utf8");
+      assert.doesNotMatch(
+        source,
+        /toLocale\w*\(\s*undefined/,
+        `${file} asks the device how to write a date, so a shared card would not match`,
+      );
+    }
   });
 });
 
