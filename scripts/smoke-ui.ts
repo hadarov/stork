@@ -27,7 +27,7 @@ const { renderDetail } = await import("../src/ui/detail.ts");
 const { renderEdit } = await import("../src/ui/edit.ts");
 const { renderSettings } = await import("../src/ui/settings.ts");
 const { albumOf, renderPhotoViewer } = await import("../src/ui/album.ts");
-const { renderBrief, renderWho } = await import("../src/ui/brief.ts");
+const { renderBrief } = await import("../src/ui/brief.ts");
 const { dateField } = await import("../src/ui/dateField.ts");
 const { renderArrival, renderRemoveConfirm } = await import("../src/ui/prompts.ts");
 const { startApp } = await import("../src/ui/app.ts");
@@ -590,23 +590,13 @@ describe("the brief", () => {
     assert.deepEqual(local.routes, ["#/baby/mila"]);
   });
 
-  test("the who list shows one row per household, soonest first", async () => {
+  test("another household's baby is not in this one's brief", () => {
     const nina = baby({ id: "nina", name: "Nina", parents: ["Dana"], birthDate: "2024-12-20" });
     const local = makeRig([baby(), otto, nina]);
-    const rows = byClass(renderWho(local.ctx), "who-row");
+    const text = textOf(renderBrief(local.ctx, baby()));
 
-    assert.equal(rows.length, 2, "Mila and Otto are one household");
-    // Otto is due in nine weeks; Nina's birthday is three months off.
-    assert.match(textOf(rows[0]), /Sarah and Tom/);
-    assert.match(textOf(rows[0]), /Otto \u00b7 due in 9 weeks/);
-    assert.match(textOf(rows[1]), /Dana/);
-
-    await rows[0]!.click();
-    assert.deepEqual(local.routes, ["#/brief/mila"]);
-  });
-
-  test("with nobody in the book it explains itself rather than sitting blank", () => {
-    assert.match(textOf(renderWho(makeRig([]).ctx)), /Add a baby and say whose it is/);
+    assert.match(text, /Otto/, "Mila and Otto share parents");
+    assert.doesNotMatch(text, /Nina/, "Dana's baby is nothing to do with this visit");
   });
 });
 

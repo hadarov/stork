@@ -1,19 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Stork">
   <!-- Transparent behind, so the same mark sits on the bar in either theme.
-       The PNGs in the manifest add the dark square; this one does not need it. -->
-  <!-- Same proportions as the rasterised one in scripts/icon.mjs. -->
+       The PNGs in the manifest add the dark square; this one does not need it.
+       Same proportions as the rasterised version in scripts/icon.mjs. -->
+  <circle cx="256" cy="256" r="192" fill="none" stroke="#5f9c74" stroke-width="29" />
   <path
-    d="M256 85C334 85 384 202 384 292C384 361 327 417 256 417C185 417 128 361 128 292C128 202 178 85 256 85Z"
-    fill="#ffc24b"
+    d="M256 131C314 131 351 218 351 286C351 337 309 379 256 379C203 379 161 337 161 286C161 218 198 131 256 131Z"
+    fill="#86c69c"
   />
   <!-- One highlight, which is all it takes to stop it reading as an oval. -->
   <ellipse
-    cx="202"
-    cy="202"
-    rx="28"
-    ry="51"
-    transform="rotate(-22 202 202)"
-    fill="#fff6e0"
-    opacity="0.5"
+    cx="220"
+    cy="215"
+    rx="21"
+    ry="38"
+    transform="rotate(-22 220 215)"
+    fill="#e8f6ec"
+    opacity="0.45"
   />
 </svg>

@@ -22,8 +22,6 @@ export type AppContext = {
 export type Route =
   | { name: "home" }
   | { name: "add" }
-  /** Everyone you might be about to see. */
-  | { name: "who" }
   /** The thirty seconds before you walk in: one household, everything that matters. */
   | { name: "brief"; id: string }
   /** A new baby for the same parents as an existing one. */
@@ -42,7 +40,6 @@ export function parseRoute(hash: string): Route {
   const [head, param, extra] = hash.replace(/^#\/?/, "").split("/");
 
   if (head === "add") return { name: "add" };
-  if (head === "who") return { name: "who" };
   if (head === "settings") return { name: "settings" };
   if (head === "brief" && param) return { name: "brief", id: decodeURIComponent(param) };
   if (head === "sibling" && param) return { name: "sibling", id: decodeURIComponent(param) };

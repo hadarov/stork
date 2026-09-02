@@ -150,7 +150,6 @@ button {
 .week-item:active,
 .gift-toggle:active,
 .album-item:active,
-.who-row:active,
 .brief-card:active,
 .sibling:active {
   scale: 0.97;
@@ -687,7 +686,6 @@ button {
 
 /* ----------------------------------------------------------- the brief */
 
-.who-row,
 .brief-card {
   display: flex;
   align-items: center;
@@ -702,36 +700,18 @@ button {
   transition: scale 0.12s ease, opacity 0.12s ease;
 }
 
-.who-row:first-of-type,
 .brief-card:first-of-type {
   border-top: none;
 }
 
-.who-faces {
-  display: flex;
-  flex: 0 0 auto;
-}
-
-/* Overlapped, so a household of three still fits beside its name. */
-.who-faces .avatar + .avatar {
-  margin-left: -1.1rem;
-}
-
-.who-text,
 .brief-text {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.who-name,
 .brief-name {
   font-weight: 700;
-}
-
-.who-meta {
-  font-size: 0.85rem;
-  color: var(--muted);
 }
 
 .brief-age {

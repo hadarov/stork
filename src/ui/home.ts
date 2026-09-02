@@ -91,7 +91,6 @@ export function renderHome(ctx: AppContext): HTMLElement {
   const header = screenHeader("Stork", {
     mark: true,
     actions: [
-      iconButton("Who am I seeing?", "\u{1F44B}", () => ctx.navigate("#/who")),
       iconButton("Settings", "\u2699", () => ctx.navigate("#/settings")),
       iconButton("Add a baby", "\uFF0B", () => ctx.navigate("#/add")),
     ],

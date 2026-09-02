@@ -39,7 +39,7 @@ question leaves you exactly where you were.
 
 ## The look
 
-Dark, soft and quiet, with one accent: the yolk gold of the app's own egg. Every
+Dark, soft and quiet, with one accent: the sage of the app's own egg. Every
 emphasis is that colour and nothing else is - buttons, focus, the age under a
 name in the grid, a milestone reached - so the eye only has to learn it once.
 The six pastels belong to the babies and are the only other colour in the app.
@@ -60,9 +60,11 @@ light-mode phone does not flash black on every launch.
 ## Eggs and chicks
 
 Whoever it is, the picture is where they have got to: an egg on the way, a
-hatchling for the first year, and a chick after that. The app's own icon is that
-first egg, drawn in the accent colour, so the mark and the palette are the same
-idea.
+hatchling for the first year, and a chick after that.
+
+The app's own icon is that first egg with a date circled round it, drawn in the
+accent colour, so the mark, the palette and the two things the app does are all
+one idea.
 
 Above that the ladder keeps going, which is the easter egg. Somebody will
 eventually put a grown adult in here to stop forgetting their birthday, and the
@@ -140,10 +142,13 @@ carries none of the app's furniture.
 ## The brief
 
 The thirty seconds before you walk in, which is what the rest of the app is for.
-The wave in the top bar lists every household by the people in it, soonest thing
-first; tapping one, or tapping the parents' names on any baby's page, gives you
-the household on a single screen: what is coming, every baby in it with their
-age, and whether you have sent anything.
+Tapping the parents' names on any baby's page gives you their whole household on
+a single screen: what is coming, every baby in it with their age, and whether
+you have sent anything.
+
+There used to be a separate screen listing every household as a way in. It went,
+because the grid names the parents on every tile now, which made it a second
+door into the same room.
 
 The gift line is the part worth having. A tick told you nothing, so it says
 either that you sent something or that you did not and how old they are by now,

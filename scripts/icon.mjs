@@ -8,11 +8,25 @@
  */
 import { deflateSync } from "node:zlib";
 
-/* --------------------------------------------------------------- the egg */
+/* ------------------------------------------------------ the egg, circled */
+
+/*
+ * An egg with a date circled round it. The egg is the app's own first rung -
+ * egg, hatchling, chick - and the ring is the other half of what it does,
+ * which is stop you missing the day.
+ */
+
 
 const BG = [20, 16, 23];
-const GOLD = [255, 194, 75];
-const SHINE = [255, 246, 224];
+const SAGE = [134, 198, 156];
+const SAGE_DEEP = [95, 156, 116];
+const SHINE = [232, 246, 236];
+
+/** The ring the egg sits inside: a date circled. */
+const RING_RADIUS = 0.375;
+const RING_WIDTH = 0.028;
+
+const ringBand = (x, y, cx, cy, r, w) => Math.abs(Math.hypot(x - cx, y - cy) - r) <= w;
 
 /**
  * An egg, which is an ellipse whose top half is longer than its bottom half and
@@ -65,8 +79,9 @@ function sample(x, y, { maskable }) {
   const cx = 0.5 + (x - 0.5) / scale;
   const cy = 0.5 + (y - 0.5) / scale;
 
-  if (egg(cx, cy, 0.5, 0.515, 0.25, 0.35, 0.3)) colour = blend(colour, GOLD);
-  if (tilted(cx, cy, 0.395, 0.395, 0.055, 0.1, -0.38)) colour = blend(colour, SHINE, 0.5);
+  if (ringBand(cx, cy, 0.5, 0.5, RING_RADIUS, RING_WIDTH)) colour = blend(colour, SAGE_DEEP);
+  if (egg(cx, cy, 0.5, 0.515, 0.185, 0.26, 0.225)) colour = blend(colour, SAGE);
+  if (tilted(cx, cy, 0.43, 0.42, 0.042, 0.075, -0.38)) colour = blend(colour, SHINE, 0.45);
 
   return colour;
 }

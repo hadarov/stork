@@ -1,7 +1,7 @@
 import type { Baby } from "../domain/types.ts";
 import type { BabyRepo } from "../storage/repo.ts";
 import { renderPhotoViewer } from "./album.ts";
-import { renderBrief, renderWho } from "./brief.ts";
+import { renderBrief } from "./brief.ts";
 import { emptyState } from "./components.ts";
 import { parseRoute, type AppContext, type Route } from "./context.ts";
 import { renderDetail } from "./detail.ts";
@@ -58,7 +58,6 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
   function overlaysFor(route: Route, ctx: AppContext): HTMLElement[] {
     if (route.name === "home") return [];
     if (route.name === "add") return [renderEdit(ctx, null)];
-    if (route.name === "who") return [renderWho(ctx)];
     if (route.name === "settings") return [renderSettings(ctx)];
 
     const baby = babies.find((candidate) => candidate.id === route.id);

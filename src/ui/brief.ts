@@ -7,7 +7,7 @@ import {
   nextEvent,
   parseDate,
 } from "../domain/derive.ts";
-import { families, familyOf, type Family } from "../domain/family.ts";
+import { familyOf, type Family } from "../domain/family.ts";
 import type { Baby } from "../domain/types.ts";
 import { avatar } from "./components.ts";
 import type { AppContext } from "./context.ts";
@@ -19,6 +19,10 @@ import { popup } from "./modal.ts";
  * and you have thirty seconds in the car to remember who is who. Everything
  * here is something you would be embarrassed not to know, and nothing here is
  * a birthstone.
+ *
+ * Reached from the parents' names on a baby's page, and only from there. There
+ * used to be a screen listing every household as a way in, but the grid names
+ * the parents on every tile now, so that was a second door into the same room.
  */
 
 /** Days after which not having sent anything is worth saying out loud. */
@@ -116,51 +120,3 @@ export function renderBrief(ctx: AppContext, baby: Baby): HTMLElement {
   });
 }
 
-/** Everyone you might be about to see, soonest thing first. */
-export function renderWho(ctx: AppContext): HTMLElement {
-  const rows = families(ctx.babies)
-    .map((family) => ({ family, next: soonest(family, ctx.now) }))
-    .sort((a, b) => (a.next?.event?.daysUntil ?? 1e9) - (b.next?.event?.daysUntil ?? 1e9));
-
-  return popup({
-    title: "Who are you seeing?",
-    onClose: () => ctx.back(),
-    body:
-      rows.length === 0
-        ? [
-            el(
-              "p",
-              { class: "note" },
-              "Nobody yet. Add a baby and say whose it is, and they will show up here.",
-            ),
-          ]
-        : rows.map(({ family, next }) =>
-            el(
-              "button",
-              {
-                class: "who-row",
-                type: "button",
-                onclick: () =>
-                  ctx.navigate(`#/brief/${encodeURIComponent(family.babies[0]!.id)}`),
-              },
-              el(
-                "span",
-                { class: "who-faces" },
-                ...family.babies.slice(0, 3).map((one) => avatar(one, ctx.now, "sm")),
-              ),
-              el(
-                "span",
-                { class: "who-text" },
-                el("span", { class: "who-name" }, describeParents(family.parents)),
-                el(
-                  "span",
-                  { class: "who-meta" },
-                  next
-                    ? `${next.event!.emoji} ${displayName(next.baby)} \u00b7 ${next.event!.label}`
-                    : family.babies.map((one) => displayName(one)).join(", "),
-                ),
-              ),
-            ),
-          ),
-  });
-}
