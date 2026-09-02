@@ -5,7 +5,7 @@
   "type": "module",
   "description": "A little book of everyone's babies: due dates, birthdays and star signs.",
   "engines": {
-    "node": ">=22.13"
+    "node": ">=22.18"
   },
   "scripts": {
     "dev": "node scripts/serve.mjs",

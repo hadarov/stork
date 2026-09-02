@@ -253,7 +253,7 @@ for installing.
 
 ## Running it locally
 
-Requires [Node.js](https://nodejs.org/) 22.13 or newer. There are no
+Requires [Node.js](https://nodejs.org/) 22.18 or newer. There are no
 dependencies to install.
 
 ```bash

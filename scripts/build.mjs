@@ -159,7 +159,9 @@ async function verifyHtml(assets) {
 
 async function main() {
   if (typeof stripTypeScriptTypes !== "function") {
-    throw new Error("This build needs Node 22.13 or newer for its TypeScript stripper.");
+    // The stripper API landed in 22.13, but the tests run .ts files directly
+    // and that only works without a flag from 22.18, so 22.18 is the ask.
+    throw new Error("This build needs Node 22.18 or newer for its TypeScript stripper.");
   }
 
   await rm(outDir, { recursive: true, force: true });

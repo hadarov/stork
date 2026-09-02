@@ -28,8 +28,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # Type stripping, which the build leans on, needs 22.13 or newer.
-          node-version: "22.x"
+          # The tests and the build run .ts files directly. Node only strips
+          # types without a flag from 22.18, so asking for 22.x would quietly
+          # depend on which 22 the runner happened to have.
+          node-version: "24.x"
 
       # Deploying a build whose sums do not add up would be worse than not
       # deploying, so the tests gate it.
@@ -37,7 +39,11 @@ jobs:
 
       - run: npm run build
 
+      # Turns Pages on if it is not already, so the repository needs no setting
+      # up by hand beyond existing.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
