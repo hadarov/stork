@@ -37,6 +37,20 @@ into a baby, offering today's date and letting you pick another. Removing a baby
 asks first, in a popup that stacks over their page so backing out of the
 question leaves you exactly where you were.
 
+## The look
+
+Cute and cool do not average well, so they are layered instead. The babies keep
+their pastels and the surface behind them is near-black, which makes each one a
+sticker on a black lid rather than pastel on pastel. Outlines are light, the
+edge under them is true black, and everything tappable sinks onto that edge when
+pressed.
+
+Dark is the default. **Settings - Look** offers Auto, Dark and Light, and an
+inline script in `index.html` settles the choice before the first paint so a
+light-mode phone does not flash black on every launch. Anything sitting on a
+pastel needs dark ink in both themes, which is what `--on-tint` is for: `--ink`
+flips and `--on-tint` never does.
+
 ## What it works out for you
 
 Give it a name, whose baby it is, and a date. Everything else is derived:
@@ -89,13 +103,52 @@ the file instead.
 It is drawn rather than screenshotted, so it looks the same from any phone and
 carries none of the app's furniture.
 
+## The brief
+
+The thirty seconds before you walk in, which is what the rest of the app is for.
+The wave in the top bar lists every household by the people in it, soonest thing
+first; tapping one, or tapping the parents' names on any baby's page, gives you
+the household on a single screen: what is coming, every baby in it with their
+age, and whether you have sent anything.
+
+The gift line is the part worth having. A tick told you nothing, so it says
+either that you sent something or that you did not and how old they are by now,
+with a month's grace for a newborn. If you have written no notes about any of
+them it says so, because the notes are the only part it cannot work out for you.
+
+Households are found by following shared parent names from baby to baby, which
+makes one baby naming two parents the thing that joins those two people's lists
+into one. Occasionally that merges a family it should not have, and the fix is a
+fuller name.
+
 ## Reminders
 
-Web push on a home-screen app is unreliable enough not to depend on, so Stork
-hands the dates to the calendar you already use instead. **Settings - Export
-.ics** produces a file with every birthday as a yearly repeating event and every
-due date as a one-off, each nudging you two days early. There is the same button
-on an individual baby's page.
+Two per occasion: a week before, and at nine on the morning itself. **Settings -
+Turn on reminders** asks the browser, and then says plainly what that browser
+will actually do, because the answer differs a lot:
+
+| Where | What happens |
+| --- | --- |
+| Installed, on Chromium | Arrives on time, with Stork closed |
+| In a tab | It offers to be added to the home screen instead |
+| Everywhere else, Safari included | Only checked when you open Stork, so it can arrive late |
+
+A reminder that arrives while the app is closed needs the browser to wake the
+service worker on a schedule. Chromium does that through Periodic Background
+Sync, for an installed app, at a time it chooses and never promises. Safari's
+push support needs a server pushing to it and there is no server here, so it is
+not offered a promise it cannot keep.
+
+Which is why the calendar export has not gone anywhere, and is still the
+dependable route. **Settings - Export .ics** produces a file with every birthday
+as a yearly repeating event and every due date as a one-off, each nudging you
+two days early. There is the same button on an individual baby's page.
+
+Everything about *what* to say is worked out in the app and written to
+IndexedDB as a finished list of lines and timestamps. The worker wakes up much
+later, reads the clock, and has nothing to decide. Anything whose moment passed
+while nobody was watching is ticked off rather than fired late, so coming back
+after a fortnight away does not set off a fortnight of alerts.
 
 ## Your data, and surviving a new phone
 
@@ -208,17 +261,24 @@ plan is a one-time code by email rather than passwords.
 | `src/domain/derive.ts` | Age, countdowns, birthdays, milestones, what happens next |
 | `src/domain/almanac.ts` | Star signs, Chinese zodiac, birthstones, flowers, the rhyme |
 | `src/domain/lunarNewYear.ts` | The dates the zodiac animal turns over |
-| `src/domain/family.ts` | Who is whose sibling, and which of them is older |
+| `src/domain/family.ts` | Who is whose sibling, and which households that makes |
+| `src/domain/nudges.ts` | What each reminder says and the moment it says it |
+| `src/domain/nudgeStatus.ts` | The honest account of what this browser will do |
 | `src/domain/card.ts` | What goes on a shared card, apart from the drawing of it |
 | `src/domain/ics.ts` | Calendar export |
 | `src/storage/repo.ts` | The `BabyRepo` interface and the merge rule |
 | `src/storage/localRepo.ts` | The localStorage implementation of it |
 | `src/storage/migrate.ts` | Making untrusted stored or imported data safe to render |
 | `src/storage/vault.ts` | Picking a folder, remembering it, writing to it again |
+| `src/storage/idb.ts` | The one keyed box in IndexedDB that the worker also reads |
+| `src/storage/nudgeStore.ts` | Handing the reminder list over to the worker |
 | `src/storage/watchRepo.ts` | The wrapper that says when something was written |
 | `src/ui/keeper.ts` | Keeping the backup file current, and the three ways to |
 | `src/domain/backupStatus.ts` | The one line that says whether you are safe |
 | `src/ui/home.ts` | The grid, the search and the "this week" strip |
+| `src/ui/brief.ts` | The households list, and one household on one screen |
+| `src/ui/nudger.ts` | Asking for permission, and keeping the list current |
+| `src/ui/theme.ts` | Dark, light, or whatever the phone says |
 | `src/ui/modal.ts` | The popup every other screen is rendered into |
 | `src/ui/album.ts` | The photo strip and the viewer behind it |
 | `src/ui/card.ts` | Drawing the shareable card onto a canvas |

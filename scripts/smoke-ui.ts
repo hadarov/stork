@@ -839,6 +839,13 @@ describe("settings screen", () => {
     assert.match(textOf(renderSettings(makeRig([]).ctx)), /Nothing to back up yet/);
   });
 
+  test("a browser with no notifications is told so, not offered a dead button", () => {
+    const text = textOf(renderSettings(rig.ctx));
+    assert.match(text, /Reminders/);
+    assert.match(text, /will not show reminders at all/);
+    assert.doesNotMatch(text, /Turn on reminders/);
+  });
+
   test("the theme can be chosen, and dark is where it starts", () => {
     const screen = renderSettings(rig.ctx);
     const picker = byClass(screen, "segmented")[0]!;

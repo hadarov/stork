@@ -33,6 +33,8 @@ import type { Baby } from "../src/domain/types.ts";
 import { migrate } from "../src/storage/migrate.ts";
 import { mergeRecords, type BabyRepo } from "../src/storage/repo.ts";
 import { lastChangedAt, watchRepo } from "../src/storage/watchRepo.ts";
+import { describeNudges } from "../src/domain/nudgeStatus.ts";
+import { nudgesFor, pruneNudges } from "../src/domain/nudges.ts";
 import { resolveTheme } from "../src/ui/theme.ts";
 import { readBackup, toBackup } from "../src/storage/backup.ts";
 
@@ -251,6 +253,103 @@ describe("what happens next", () => {
   test("an unnamed baby is described by its parents", () => {
     assert.equal(displayName(baby({ name: undefined })), "Sarah's baby");
     assert.equal(displayName(baby({ name: "Mila" })), "Mila");
+  });
+});
+
+describe("reminders", () => {
+  // Two weeks out, so both the warning and the morning itself are still ahead.
+  const now = new Date("2026-08-25T12:00:00");
+  const mila = (over: Partial<Baby> = {}): Baby => ({
+    id: "mila",
+    name: "Mila",
+    parents: ["Sarah"],
+    status: "born",
+    birthDate: "2024-09-08",
+    updatedAt: "2024-09-08T00:00:00.000Z",
+    ...over,
+  });
+
+  test("a birthday earns a week's warning and one on the morning", () => {
+    const found = nudgesFor([mila()], now);
+
+    assert.equal(found.length, 2);
+    assert.match(found[0]!.title, /birthday is in a week/);
+    assert.match(found[1]!.title, /birthday is today/);
+    assert.ok(found[0]!.at < found[1]!.at, "the warning comes first");
+  });
+
+  test("reminders land at nine in the morning, not at midnight", () => {
+    const [warning] = nudgesFor([mila()], now);
+    const at = new Date(warning!.at);
+    assert.equal(at.getHours(), 9);
+    // Compared in local time, since nine in the morning is a local idea.
+    assert.equal(at.getMonth(), 8);
+    assert.equal(at.getDate(), 1, "seven days before the 8th");
+  });
+
+  test("a warning whose moment has already passed is not scheduled", () => {
+    // Nine in the morning on the day of the warning is already behind us.
+    const found = nudgesFor([mila()], new Date("2026-09-01T18:00:00"));
+    assert.deepEqual(
+      found.map((nudge) => nudge.title),
+      ["Mila's birthday is today"],
+    );
+  });
+
+  test("a due date gets its own wording", () => {
+    const bump = mila({ status: "expecting", birthDate: undefined, dueDate: "2026-09-20" });
+    assert.match(nudgesFor([bump], now)[1]!.title, /is due today/);
+  });
+
+  test("nothing is scheduled for a baby with no date at all", () => {
+    assert.deepEqual(nudgesFor([mila({ birthDate: undefined })], now), []);
+  });
+
+  test("ids are stable, so the same occasion is never announced twice", () => {
+    const first = nudgesFor([mila()], now).map((nudge) => nudge.id);
+    const later = nudgesFor([mila()], new Date("2026-09-02T08:00:00")).map((nudge) => nudge.id);
+    assert.ok(later.every((id) => first.includes(id)));
+  });
+
+  test("pruning drops yesterday's reminders and keeps tomorrow's", () => {
+    const nudges = nudgesFor([mila()], now);
+    assert.equal(pruneNudges(nudges, new Date("2026-09-20T09:00:00")).length, 0);
+    assert.equal(pruneNudges(nudges, now).length, 2);
+  });
+});
+
+describe("what this browser will actually do", () => {
+  const able = {
+    canNotify: true,
+    canWake: true,
+    installed: true,
+    permission: "granted" as const,
+  };
+
+  test("a browser that can wake itself is promised a real reminder", () => {
+    const status = describeNudges(able);
+    assert.match(status.line, /whether or not Stork is open/);
+    assert.equal(status.fallback, false);
+  });
+
+  test("a browser that cannot wake itself says so instead of pretending", () => {
+    const status = describeNudges({ ...able, canWake: false });
+    assert.match(status.line, /can arrive late/);
+    assert.ok(status.fallback, "so the calendar export stays on offer");
+  });
+
+  test("in a tab it suggests the home screen rather than giving up", () => {
+    assert.equal(describeNudges({ ...able, canWake: false, installed: false }).action, "install");
+  });
+
+  test("having been turned down, it does not offer the button again", () => {
+    const status = describeNudges({ ...able, permission: "denied" });
+    assert.equal(status.action, null);
+    assert.match(status.line, /your browser's settings/);
+  });
+
+  test("not yet asked, it offers to ask", () => {
+    assert.equal(describeNudges({ ...able, permission: "default" }).action, "ask");
   });
 });
 

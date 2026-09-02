@@ -8,6 +8,8 @@
  * hides the difference from the settings screen.
  */
 
+import { idbDelete, idbGet, idbSet } from "./idb.ts";
+
 export type VaultKind =
   /** A folder the browser will let us write to again without asking. */
   | "file"
@@ -32,8 +34,6 @@ export function vaultKind(): VaultKind {
 
 /* ------------------------------------------------- remembering the place */
 
-const DB_NAME = "stork";
-const STORE = "vault";
 const HANDLE_KEY = "backup";
 
 /**
@@ -41,54 +41,16 @@ const HANDLE_KEY = "backup";
  * live object rather than a string. IndexedDB will structured-clone it, which is
  * the only reason this app touches IndexedDB at all.
  */
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = () => request.result.createObjectStore(STORE);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("No IndexedDB."));
-  });
+export function rememberedHandle(): Promise<FileSystemFileHandle | null> {
+  return idbGet<FileSystemFileHandle>(HANDLE_KEY);
 }
 
-async function inStore<T>(
-  mode: IDBTransactionMode,
-  work: (store: IDBObjectStore) => IDBRequest<T>,
-): Promise<T> {
-  const db = await openDb();
-  try {
-    return await new Promise<T>((resolve, reject) => {
-      const request = work(db.transaction(STORE, mode).objectStore(STORE));
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error ?? new Error("IndexedDB refused."));
-    });
-  } finally {
-    db.close();
-  }
+export function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
+  return idbSet(HANDLE_KEY, handle);
 }
 
-export async function rememberedHandle(): Promise<FileSystemFileHandle | null> {
-  try {
-    return (await inStore("readonly", (store) => store.get(HANDLE_KEY))) ?? null;
-  } catch {
-    // Private browsing turns IndexedDB off. Backing up by hand still works.
-    return null;
-  }
-}
-
-export async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
-  try {
-    await inStore("readwrite", (store) => store.put(handle, HANDLE_KEY));
-  } catch {
-    // Then the place is only remembered until the tab closes.
-  }
-}
-
-export async function forgetHandle(): Promise<void> {
-  try {
-    await inStore("readwrite", (store) => store.delete(HANDLE_KEY));
-  } catch {
-    // Nothing to forget.
-  }
+export function forgetHandle(): Promise<void> {
+  return idbDelete(HANDLE_KEY);
 }
 
 /* --------------------------------------------------------------- writing */

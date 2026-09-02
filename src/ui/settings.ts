@@ -12,6 +12,7 @@ import {
   setAutoBackup,
 } from "./keeper.ts";
 import { popup } from "./modal.ts";
+import { askToNudge, nudgeStatus } from "./nudger.ts";
 import { setThemeChoice, themeChoice } from "./theme.ts";
 
 function row(title: string, body: string, action: HTMLElement): HTMLElement {
@@ -96,6 +97,7 @@ export function renderSettings(ctx: AppContext): HTMLElement {
     ctx.toast("Calendar file saved - open it to add every date");
   };
 
+  const nudges = nudgeStatus();
   const chosen = themeChoice();
   const themePicker = el(
     "div",
@@ -137,6 +139,37 @@ export function renderSettings(ctx: AppContext): HTMLElement {
           "Dark by default. The babies keep their colours either way - they are the only part that should be shouting.",
         ),
         themePicker,
+      ),
+      el(
+        "section",
+        { class: "panel" },
+        el("h2", { class: "section-title" }, "Reminders"),
+        el(
+          "p",
+          { class: nudges.fallback ? "backup-line stale" : "backup-line" },
+          nudges.line,
+        ),
+        nudges.action === "ask"
+          ? el(
+              "button",
+              {
+                class: "primary block",
+                type: "button",
+                onclick: async () => {
+                  ctx.toast(await askToNudge());
+                  ctx.redraw();
+                },
+              },
+              "Turn on reminders",
+            )
+          : null,
+        nudges.action === "install"
+          ? el(
+              "p",
+              { class: "note" },
+              "Share, then Add to Home Screen.",
+            )
+          : null,
       ),
       el(
         "section",

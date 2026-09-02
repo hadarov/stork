@@ -2,6 +2,7 @@ import { localRepo } from "./storage/localRepo.ts";
 import { watchRepo } from "./storage/watchRepo.ts";
 import { startApp } from "./ui/app.ts";
 import { scheduleAutoBackup } from "./ui/keeper.ts";
+import { arrange, watchForNudges } from "./ui/nudger.ts";
 import { applyTheme, watchSystemTheme } from "./ui/theme.ts";
 
 // The inline script in index.html has already done this once to stop the flash;
@@ -11,9 +12,13 @@ watchSystemTheme();
 
 const root = document.getElementById("app");
 
-// Every write goes past the keeper, so an automatic backup cannot be missed by
-// a screen that forgot to mention it had changed something.
-const repo = watchRepo(localRepo, () => scheduleAutoBackup(localRepo));
+// Every write goes past the keeper and the nudger, so neither an automatic
+// backup nor a rescheduled birthday can be missed by a screen that forgot to
+// mention it had changed something.
+const repo = watchRepo(localRepo, () => {
+  scheduleAutoBackup(localRepo);
+  void arrange(localRepo);
+});
 
 if (root) {
   void startApp(root, repo).then(() => {
@@ -33,8 +38,13 @@ if (root) {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    void navigator.serviceWorker.register("./sw.js").catch(() => {
-      // An unregistered worker only costs offline support, so this is not fatal.
-    });
+    void navigator.serviceWorker
+      .register("./sw.js")
+      // Reminders are only worked out once there is a worker to hand them to.
+      .then(() => watchForNudges(localRepo))
+      .catch(() => {
+        // An unregistered worker costs offline support and reminders, but the
+        // app itself is unaffected, so this is not fatal.
+      });
   });
 }
