@@ -7,6 +7,7 @@
  * Usage: npm run smoke
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, test } from "node:test";
 
 import { chineseSign, starSign } from "../src/domain/almanac.ts";
@@ -265,6 +266,20 @@ describe("what happens next", () => {
   });
 });
 
+describe("the stylesheet", () => {
+  const css = readFileSync(new URL("../web/styles.css", import.meta.url), "utf8");
+
+  /*
+   * This one is a scar. Half the groups in the app are display:flex, and an
+   * author rule beats the user agent's [hidden] { display: none } - so setting
+   * hidden on the due date group did nothing, and a baby who was already here
+   * was asked when they were due. The property was right and the tests passed.
+   */
+  test("hidden beats display, or hiding a flex group does nothing at all", () => {
+    assert.match(css, /\[hidden\]\s*\{[^}]*display:\s*none\s*!important/);
+  });
+});
+
 describe("the date dropdowns", () => {
   const now = new Date("2026-09-14T12:00:00");
 
@@ -292,8 +307,8 @@ describe("the date dropdowns", () => {
     assert.ok(!years.includes(2027), "nobody was born next year");
   });
 
-  test("a due date can be overdue, because bumps are", () => {
-    assert.deepEqual(yearsFor("future", now), [2025, 2026, 2027]);
+  test("a due date is this year or the next two", () => {
+    assert.deepEqual(yearsFor("future", now), [2026, 2027, 2028]);
   });
 
   test("no birthday later this year is on offer", () => {

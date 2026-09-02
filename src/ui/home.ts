@@ -35,12 +35,7 @@ function grid(title: string, babies: Baby[], ctx: AppContext): HTMLElement | nul
   return el(
     "section",
     { class: "group" },
-    el(
-      "h2",
-      { class: "section-title" },
-      title,
-      el("span", { class: "section-count" }, String(babies.length)),
-    ),
+    el("h2", { class: "section-title" }, title),
     el(
       "div",
       { class: "grid" },

@@ -21,13 +21,13 @@
   --ink: #f4eef2;
   --muted: #9c8e9a;
   --line: #2c2534;
-  --edge: rgba(255, 255, 255, 0.09);
-  --edge-tint: rgba(43, 28, 36, 0.16);
+  --edge: rgba(255, 255, 255, 0.06);
+  --edge-tint: rgba(43, 28, 36, 0.1);
 
   /* The accent, and the accent when it has to be legible as text. */
-  --accent: #ffc24b;
-  --accent-ink: #ffc24b;
-  --on-accent: #2a1e08;
+  --accent: #86c69c;
+  --accent-ink: #9ad3ad;
+  --on-accent: #0e1c13;
 
   --pink: #ffb8d0;
   --mint: #8fe8bf;
@@ -64,12 +64,12 @@
   --ink: #4b3340;
   --muted: #96808c;
   --line: #f0e2e6;
-  --edge: rgba(75, 51, 64, 0.11);
-  --edge-tint: rgba(75, 51, 64, 0.16);
+  --edge: rgba(75, 51, 64, 0.07);
+  --edge-tint: rgba(75, 51, 64, 0.1);
 
-  --accent: #eda51f;
-  --accent-ink: #96620d;
-  --on-accent: #2a1e08;
+  --accent: #3f7d59;
+  --accent-ink: #33684a;
+  --on-accent: #ffffff;
 
   --pink: #ffd3e0;
   --mint: #b9f0d5;
@@ -125,6 +125,15 @@ button {
   font: inherit;
   color: inherit;
   cursor: pointer;
+}
+
+/*
+ * The browser's own [hidden] rule is display:none, but it lives in the user
+ * agent stylesheet, so any author rule saying display:flex silently beats it.
+ * Half the groups in this app are flex, which made hiding one do nothing at all.
+ */
+[hidden] {
+  display: none !important;
 }
 
 /* One accent, one focus ring, everywhere. */
@@ -216,6 +225,8 @@ button {
   color: var(--muted);
 }
 
+/* Only where a count is a limit worth watching, which is the photo album.
+ * The grid does not get one: you can see how many babies there are. */
 .section-count {
   display: inline-grid;
   place-items: center;

@@ -46,12 +46,12 @@ export function joinISO({ year, month, day }: Parts): string {
 
 /**
  * Which years to offer. A birthday is behind us, and reaches back far enough to
- * cover somebody who is plainly not a baby. A due date is mostly ahead, but
- * bumps go overdue and get added late, so the year before stays available.
+ * cover somebody who is plainly not a baby. A due date is this year or the next
+ * two: an overdue bump is still this year, and nobody is expecting in 2031.
  */
 export function yearsFor(range: "past" | "future", now: Date): number[] {
   const year = now.getFullYear();
-  if (range === "future") return [year - 1, year, year + 1];
+  if (range === "future") return [year, year + 1, year + 2];
 
   return Array.from({ length: 61 }, (_, index) => year - index);
 }

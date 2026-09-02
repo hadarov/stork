@@ -139,7 +139,7 @@ function chunk(type, data) {
   return Buffer.concat([length, body, crc]);
 }
 
-function encodePng(width, height, rgba) {
+export function encodePng(width, height, rgba) {
   const stride = width * 4;
   // Every scanline is prefixed with its filter type; 0 means "none".
   const raw = Buffer.alloc((stride + 1) * height);
