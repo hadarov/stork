@@ -122,7 +122,7 @@ export async function drawCard(baby: Baby, now: Date): Promise<Blob> {
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillStyle = INK;
-    context.fillText(glyphFor(baby), centre, portraitY + 10);
+    context.fillText(glyphFor(baby, now), centre, portraitY + 10);
     context.textBaseline = "alphabetic";
   }
   context.restore();

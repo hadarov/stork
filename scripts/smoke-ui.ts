@@ -28,6 +28,7 @@ const { renderEdit } = await import("../src/ui/edit.ts");
 const { renderSettings } = await import("../src/ui/settings.ts");
 const { albumOf, renderPhotoViewer } = await import("../src/ui/album.ts");
 const { renderBrief, renderWho } = await import("../src/ui/brief.ts");
+const { dateField } = await import("../src/ui/dateField.ts");
 const { renderArrival, renderRemoveConfirm } = await import("../src/ui/prompts.ts");
 const { startApp } = await import("../src/ui/app.ts");
 
@@ -132,6 +133,39 @@ function fill(screen: any, label: string, value: string): any {
   return input;
 }
 
+/** The three dropdowns behind a date, set the way a person would set them. */
+function pickDate(screen: any, label: string, iso: string): void {
+  const field = byClass(screen, "field").find(
+    (candidate: any) => textOf(candidate.querySelector(".field-label")) === label,
+  );
+  assert.ok(field, `no date field labelled "${label}"`);
+
+  const [day, month, year] = field.querySelectorAll("select");
+  const [y, m, d] = iso.split("-").map(Number);
+
+  // Year first, since it decides which months and then which days are offered.
+  for (const [control, value] of [
+    [year, y],
+    [month, m],
+    [day, d],
+  ] as const) {
+    control.value = String(value);
+    control.dispatch("change");
+  }
+}
+
+/** What the three dropdowns currently add up to, or "" if any is blank. */
+function readDate(screen: any, label: string): string {
+  const field = byClass(screen, "field").find(
+    (candidate: any) => textOf(candidate.querySelector(".field-label")) === label,
+  );
+  assert.ok(field, `no date field labelled "${label}"`);
+
+  const [day, month, year] = field.querySelectorAll("select").map((one: any) => one.value);
+  if (!day || !month || !year) return "";
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
 /** True when the field's whole group is hidden, as the two date fields are. */
 function fieldHidden(screen: any, label: string): boolean {
   const field = byClass(screen, "field").find(
@@ -182,8 +216,13 @@ describe("home screen", () => {
     ]);
     const tiles = byClass(renderHome(local.ctx), "tile");
 
-    const tints = tiles.map(
-      (node: any) => node.className.split(" ").find((name: string) => name.startsWith("tint-")),
+    // The colour is on the square, not the whole tile, so the name underneath
+    // stays in ordinary ink.
+    const tints = tiles.map((node: any) =>
+      node
+        .querySelector(".tile-art")
+        .className.split(" ")
+        .find((name: string) => name.startsWith("tint-")),
     );
     assert.ok(tints.every(Boolean), "every tile should carry a tint class");
 
@@ -368,6 +407,97 @@ describe("family", () => {
 
 });
 
+/* ----------------------------------------------------------- the date */
+
+describe("the date field", () => {
+  const now = new Date("2026-09-14T12:00:00");
+  const build = (over: any = {}) => {
+    const picked: string[] = [];
+    const field = dateField({
+      label: "Birthday",
+      range: "past",
+      value: "",
+      now,
+      onChange: (value: string) => picked.push(value),
+      ...over,
+    });
+    const [day, month, year] = field.querySelectorAll("select");
+    return { field, day, month, year, picked };
+  };
+
+  const set = (control: any, value: string) => {
+    control.value = value;
+    control.dispatch("change");
+  };
+
+  test("it starts blank, with each part naming itself", () => {
+    const { day, month, year } = build();
+    assert.deepEqual([day.value, month.value, year.value], ["", "", ""]);
+    assert.equal(textOf(day.children[0]), "Day");
+    assert.equal(textOf(month.children[0]), "Month");
+    assert.equal(textOf(year.children[0]), "Year");
+  });
+
+  test("an existing date arrives already selected", () => {
+    const { day, month, year } = build({ value: "2024-06-15" });
+    assert.deepEqual([day.value, month.value, year.value], ["15", "6", "2024"]);
+  });
+
+  test("months are named, not numbered", () => {
+    const { month } = build();
+    assert.equal(textOf(month.children[1]), "January");
+    assert.equal(textOf(month.children[12]), "December");
+  });
+
+  test("nothing is reported until all three are answered", () => {
+    const { day, month, year, picked } = build();
+    set(year, "2024");
+    set(month, "6");
+    assert.deepEqual(picked, ["", ""], "a half-filled date is not a date");
+
+    set(day, "15");
+    assert.equal(picked.at(-1), "2024-06-15");
+  });
+
+  test("choosing a short month drops a day that no longer exists", () => {
+    const { day, month, year, picked } = build();
+    set(year, "2026");
+    set(month, "1");
+    set(day, "31");
+    assert.equal(picked.at(-1), "2026-01-31");
+
+    set(month, "2");
+    assert.equal(day.value, "", "the 31st of February cannot survive");
+    assert.equal(picked.at(-1), "", "and the date goes back to unanswered");
+    assert.equal(day.children.length, 29, "28 days plus the placeholder");
+  });
+
+  test("leaving a leap year drops the 29th", () => {
+    const { day, month, year } = build({ value: "2024-02-29" });
+    set(year, "2023");
+    assert.equal(day.value, "");
+  });
+
+  test("a birthday cannot be set later this year", () => {
+    const { month, year } = build();
+    set(year, "2026");
+    // September is the ninth, plus the placeholder.
+    assert.equal(month.children.length, 10);
+  });
+
+  test("a due date may be, because bumps go overdue", () => {
+    const { month, year } = build({ range: "future", label: "Due date" });
+    set(year, "2026");
+    assert.equal(month.children.length, 13);
+  });
+
+  test("each dropdown says which date it belongs to", () => {
+    const { day, year } = build();
+    assert.equal(day.getAttribute("aria-label"), "Day of Birthday");
+    assert.equal(year.getAttribute("aria-label"), "Year of Birthday");
+  });
+});
+
 /* --------------------------------------------------------------- brief */
 
 describe("the brief", () => {
@@ -515,9 +645,7 @@ describe("the album", () => {
     const local = makeRig([withPhotos()]);
     const screen = renderPhotoViewer(local.ctx, withPhotos(), shot("first", "2024-06-16"));
 
-    const taken = findField(screen, "Taken");
-    taken.value = "2026-01-01";
-    await taken.dispatch("change");
+    pickDate(screen, "Taken", "2026-01-01");
 
     assert.deepEqual(
       albumOf(local.repo.babies[0]!).map((photo) => photo.id),
@@ -587,7 +715,7 @@ describe("confirmations", () => {
 
   test("the arrival popup offers today, and says so in words", () => {
     const screen = renderArrival(rig.ctx, bump());
-    assert.equal(findField(screen, "Birthday").value, "2026-09-01");
+    assert.equal(readDate(screen, "Birthday"), "2026-09-01");
     assert.match(textOf(screen), /Born 1 September 2026/);
   });
 
@@ -609,7 +737,7 @@ describe("confirmations", () => {
     const local = makeRig([bump()]);
     const screen = renderArrival(local.ctx, bump());
 
-    fill(screen, "Birthday", "2026-08-27");
+    pickDate(screen, "Birthday", "2026-08-27");
     await byClass(screen, "primary")[0]!.click();
 
     assert.equal((await local.repo.list())[0]?.birthDate, "2026-08-27");
@@ -662,7 +790,7 @@ describe("add and edit", () => {
 
   test("a baby with neither a name nor a parent is refused", async () => {
     const screen = renderEdit(rig.ctx, null);
-    fill(screen, "Due date", "2026-11-01");
+    pickDate(screen, "Due date", "2026-11-01");
 
     await screen.querySelector(".form")!.dispatch("submit");
     assert.match(textOf(byClass(screen, "form-error")[0]!), /whose baby this is/);
@@ -673,7 +801,7 @@ describe("add and edit", () => {
     fill(screen, "Name", "Poppy");
     fill(screen, "Parent", "Dana");
     fill(screen, "Second parent", "Alex");
-    fill(screen, "Due date", "2026-11-01");
+    pickDate(screen, "Due date", "2026-11-01");
 
     await screen.querySelector(".form")!.dispatch("submit");
 
@@ -689,7 +817,7 @@ describe("add and edit", () => {
   test("the second parent really is optional", async () => {
     const screen = renderEdit(rig.ctx, null);
     fill(screen, "Parent", "Dana");
-    fill(screen, "Due date", "2026-11-01");
+    pickDate(screen, "Due date", "2026-11-01");
 
     await screen.querySelector(".form")!.dispatch("submit");
     assert.deepEqual(rig.repo.babies[0]?.parents, ["Dana"]);
@@ -699,10 +827,10 @@ describe("add and edit", () => {
     const screen = renderEdit(rig.ctx, null);
     fill(screen, "Name", "Poppy");
     fill(screen, "Parent", "Dana");
-    fill(screen, "Due date", "2026-11-01");
+    pickDate(screen, "Due date", "2026-11-01");
 
     byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!.click();
-    fill(screen, "Birthday", "2026-08-28");
+    pickDate(screen, "Birthday", "2026-08-28");
     await screen.querySelector(".form")!.dispatch("submit");
 
     const saved = rig.repo.babies[0]!;
@@ -715,7 +843,7 @@ describe("add and edit", () => {
     const screen = renderEdit(rig.ctx, null);
     byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!.click();
     fill(screen, "Name", "Poppy");
-    fill(screen, "Birthday", "2026-08-28");
+    pickDate(screen, "Birthday", "2026-08-28");
     fill(screen, "Weight", "3.42");
     fill(screen, "Length", "51.5");
     await screen.querySelector(".form")!.dispatch("submit");
@@ -728,7 +856,7 @@ describe("add and edit", () => {
     const screen = renderEdit(rig.ctx, null);
     byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!.click();
     fill(screen, "Name", "Poppy");
-    fill(screen, "Birthday", "2026-08-28");
+    pickDate(screen, "Birthday", "2026-08-28");
     fill(screen, "Weight", "34");
     await screen.querySelector(".form")!.dispatch("submit");
 
@@ -740,7 +868,7 @@ describe("add and edit", () => {
     const screen = renderEdit(rig.ctx, null);
     byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!.click();
     fill(screen, "Name", "Poppy");
-    fill(screen, "Birthday", "2026-08-28");
+    pickDate(screen, "Birthday", "2026-08-28");
     await screen.querySelector(".form")!.dispatch("submit");
 
     assert.equal(rig.repo.babies[0]?.birthWeightGrams, undefined);
@@ -1038,7 +1166,7 @@ describe("the app shell", () => {
     await withApp([baby()], async (root, repo) => {
       location.hash = "#/sibling/mila";
       fill(root, "Name", "Otto");
-      fill(root, "Due date", "2026-12-01");
+      pickDate(root, "Due date", "2026-12-01");
       await root.querySelector(".form")!.dispatch("submit");
 
       const otto = (await repo.list()).find((candidate: any) => candidate.name === "Otto");

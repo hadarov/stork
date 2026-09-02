@@ -57,7 +57,7 @@ function card(baby: Baby, ctx: AppContext): HTMLElement {
       type: "button",
       onclick: () => ctx.navigate(`#/baby/${encodeURIComponent(baby.id)}`),
     },
-    avatar(baby, "sm"),
+    avatar(baby, ctx.now, "sm"),
     el(
       "span",
       { class: "brief-text" },
@@ -146,7 +146,7 @@ export function renderWho(ctx: AppContext): HTMLElement {
               el(
                 "span",
                 { class: "who-faces" },
-                ...family.babies.slice(0, 3).map((one) => avatar(one, "sm")),
+                ...family.babies.slice(0, 3).map((one) => avatar(one, ctx.now, "sm")),
               ),
               el(
                 "span",

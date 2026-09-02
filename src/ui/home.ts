@@ -46,7 +46,7 @@ function grid(title: string, babies: Baby[], ctx: AppContext): HTMLElement | nul
       { class: "grid" },
       ...babies.map((baby) => {
         const event = nextEvent(baby, ctx.now);
-        return tile(baby, {
+        return tile(baby, ctx.now, {
           sub: shortStatus(baby, ctx.now),
           badge: event && event.daysUntil <= HORIZON_DAYS ? event.emoji : undefined,
           onOpen: () => ctx.navigate(`#/baby/${encodeURIComponent(baby.id)}`),

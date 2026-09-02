@@ -66,6 +66,8 @@ class StubText extends StubBaseNode {
 }
 
 class StubNode extends StubBaseNode {
+  #value = "";
+
   constructor(tagName) {
     super();
     this.nodeType = 1;
@@ -78,6 +80,48 @@ class StubNode extends StubBaseNode {
     this.style = {};
     this.className = "";
     this.classList = new ClassList(this);
+  }
+
+  /* --------------------------------------------------------------- value */
+
+  /*
+   * A select's value is not its own: it belongs to whichever option is
+   * selected, and setting it moves the selection. Everything else just keeps
+   * the string it was given.
+   */
+
+  #options() {
+    return this.children.filter((child) => child.tagName === "OPTION");
+  }
+
+  get value() {
+    // An option's value falls back to its text, the way a browser's does.
+    if (this.tagName === "OPTION") return this.getAttribute("value") ?? this.textContent;
+
+    if (this.tagName === "SELECT") {
+      const options = this.#options();
+      const chosen = options.find((option) => option.hasAttribute("selected")) ?? options[0];
+      return chosen ? chosen.value : "";
+    }
+
+    return this.#value;
+  }
+
+  set value(next) {
+    if (this.tagName === "OPTION") {
+      this.setAttribute("value", String(next));
+      return;
+    }
+
+    if (this.tagName === "SELECT") {
+      for (const option of this.#options()) {
+        if (option.value === String(next)) option.setAttribute("selected", "");
+        else option.removeAttribute("selected");
+      }
+      return;
+    }
+
+    this.#value = String(next);
   }
 
   /* ------------------------------------------------------------ children */

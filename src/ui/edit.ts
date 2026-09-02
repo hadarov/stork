@@ -1,7 +1,7 @@
-import { toISODate } from "../domain/derive.ts";
 import type { Baby, BabySex, BabyStatus } from "../domain/types.ts";
 import { newId } from "../storage/repo.ts";
 import type { AppContext } from "./context.ts";
+import { dateField } from "./dateField.ts";
 import { el } from "./dom.ts";
 import { popup } from "./modal.ts";
 import { readPhoto } from "./photo.ts";
@@ -96,14 +96,20 @@ export function renderEdit(
       },
     });
 
-  const dateInput = (key: "dueDate" | "birthDate", props: Record<string, unknown> = {}) =>
-    el("input", {
-      class: "input",
-      type: "date",
+  const datePicker = (
+    key: "dueDate" | "birthDate",
+    label: string,
+    range: "past" | "future",
+    hint?: string,
+  ) =>
+    dateField({
+      label,
+      range,
+      hint,
       value: draft[key],
-      ...props,
-      oninput: (event: Event) => {
-        draft[key] = (event.target as HTMLInputElement).value;
+      now: ctx.now,
+      onChange: (value) => {
+        draft[key] = value;
       },
     });
 
@@ -169,11 +175,15 @@ export function renderEdit(
 
   // A bump has a due date and a baby has a birthday. Never both: the two are
   // answers to the same question, and showing both invites contradictions.
-  const expectingOnly = el("div", { class: "field-group" }, field("Due date", dateInput("dueDate")));
+  const expectingOnly = el(
+    "div",
+    { class: "field-group" },
+    datePicker("dueDate", "Due date", "future"),
+  );
   const bornOnly = el(
     "div",
     { class: "field-group" },
-    field("Birthday", dateInput("birthDate", { max: toISODate(ctx.now) })),
+    datePicker("birthDate", "Birthday", "past"),
     field(
       "Time of birth",
       el("input", {
@@ -210,8 +220,8 @@ export function renderEdit(
     { class: "segmented", role: "group", "aria-label": "Has the baby arrived?" },
     ...(
       [
-        ["expecting", "\u{1F423} On the way"],
-        ["born", "\u{1F476} Here"],
+        ["expecting", "\u{1F95A} On the way"],
+        ["born", "\u{1F423} Here"],
       ] as const
     ).map(([status, label]) =>
       el("button", { type: "button", dataset: { status }, onclick: () => setStatus(status) }, label),

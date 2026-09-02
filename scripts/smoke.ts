@@ -33,6 +33,15 @@ import type { Baby } from "../src/domain/types.ts";
 import { migrate } from "../src/storage/migrate.ts";
 import { mergeRecords, type BabyRepo } from "../src/storage/repo.ts";
 import { lastChangedAt, watchRepo } from "../src/storage/watchRepo.ts";
+import {
+  daysFor,
+  daysInMonth,
+  joinISO,
+  monthsFor,
+  splitISO,
+  yearsFor,
+} from "../src/domain/calendar.ts";
+import { lifeStage } from "../src/domain/stage.ts";
 import { describeNudges } from "../src/domain/nudgeStatus.ts";
 import { nudgesFor, pruneNudges } from "../src/domain/nudges.ts";
 import { resolveTheme } from "../src/ui/theme.ts";
@@ -253,6 +262,99 @@ describe("what happens next", () => {
   test("an unnamed baby is described by its parents", () => {
     assert.equal(displayName(baby({ name: undefined })), "Sarah's baby");
     assert.equal(displayName(baby({ name: "Mila" })), "Mila");
+  });
+});
+
+describe("the date dropdowns", () => {
+  const now = new Date("2026-09-14T12:00:00");
+
+  test("February knows about leap years", () => {
+    assert.equal(daysInMonth(2024, 2), 29);
+    assert.equal(daysInMonth(2026, 2), 28);
+    assert.equal(daysInMonth(2026, 12), 31);
+  });
+
+  test("a date splits and rejoins unchanged", () => {
+    assert.deepEqual(splitISO("2024-06-15"), { year: 2024, month: 6, day: 15 });
+    assert.equal(joinISO({ year: 2024, month: 6, day: 5 }), "2024-06-05");
+  });
+
+  test("an impossible date does not split at all", () => {
+    assert.equal(splitISO("2026-02-30"), null);
+    assert.equal(splitISO("2026-13-01"), null);
+    assert.equal(splitISO(""), null);
+  });
+
+  test("a birthday reaches back far enough to cover the turkey", () => {
+    const years = yearsFor("past", now);
+    assert.equal(years[0], 2026, "this year first, since most babies are recent");
+    assert.ok(years.includes(1970));
+    assert.ok(!years.includes(2027), "nobody was born next year");
+  });
+
+  test("a due date can be overdue, because bumps are", () => {
+    assert.deepEqual(yearsFor("future", now), [2025, 2026, 2027]);
+  });
+
+  test("no birthday later this year is on offer", () => {
+    assert.deepEqual(monthsFor("past", now, 2026), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    assert.equal(monthsFor("past", now, 2025).length, 12, "a past year is unrestricted");
+    assert.equal(daysFor("past", now, 2026, 9).length, 14, "and not later this month");
+  });
+
+  test("a due date is not narrowed, since it is allowed to be either side of today", () => {
+    assert.equal(monthsFor("future", now, 2026).length, 12);
+    assert.equal(daysFor("future", now, 2026, 9).length, 30);
+  });
+
+  test("the 29th of February is offered in a leap year and not otherwise", () => {
+    assert.equal(daysFor("past", now, 2024, 2).length, 29);
+    assert.equal(daysFor("past", now, 2023, 2).length, 28);
+  });
+});
+
+describe("egg, hatchling, chick", () => {
+  const now = new Date("2026-09-01T12:00:00");
+  const at = (birthDate: string | undefined, status: "born" | "expecting" = "born"): Baby => ({
+    id: "x",
+    name: "x",
+    parents: [],
+    status,
+    birthDate,
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  });
+
+  test("a bump is an egg, whether or not a due date is typed", () => {
+    assert.equal(lifeStage(at(undefined, "expecting"), now).glyph, "\u{1F95A}");
+    assert.equal(lifeStage(at(undefined), now).glyph, "\u{1F95A}");
+  });
+
+  test("under a year they have just hatched", () => {
+    assert.equal(lifeStage(at("2026-08-30"), now).glyph, "\u{1F423}");
+    assert.equal(lifeStage(at("2025-09-02"), now).glyph, "\u{1F423}", "a day short of one");
+  });
+
+  test("the first birthday turns them into a chick, on the day", () => {
+    assert.equal(lifeStage(at("2025-09-01"), now).glyph, "\u{1F424}");
+    assert.equal(lifeStage(at("2020-01-01"), now).glyph, "\u{1F424}");
+  });
+
+  test("a birthday typed in the future is an egg, not a turkey", () => {
+    assert.equal(lifeStage(at("2027-01-01"), now).glyph, "\u{1F95A}");
+  });
+
+  test("nobody who is actually a baby is ever told they are not one", () => {
+    for (const year of [2026, 2025, 2020, 2015]) {
+      assert.equal(lifeStage(at(`${year}-03-04`), now).aside, undefined);
+    }
+  });
+
+  test("putting a grown adult in a baby app is noticed", () => {
+    assert.equal(lifeStage(at("2012-01-01"), now).glyph, "\u{1F414}", "a teenager");
+    assert.equal(lifeStage(at("2000-01-01"), now).glyph, "\u{1F413}", "a rooster");
+    assert.equal(lifeStage(at("1970-01-01"), now).glyph, "\u{1F983}", "a turkey");
+
+    assert.match(lifeStage(at("2000-01-01"), now).aside!, /grown adult/);
   });
 });
 

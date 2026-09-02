@@ -2,6 +2,7 @@ import { displayName, formatDate, formatShortDate, parseDate, toISODate } from "
 import type { Baby, Photo } from "../domain/types.ts";
 import { MAX_PHOTOS, newId } from "../storage/repo.ts";
 import type { AppContext } from "./context.ts";
+import { dateField } from "./dateField.ts";
 import { el } from "./dom.ts";
 import { popup } from "./modal.ts";
 import { readPhoto } from "./photo.ts";
@@ -122,21 +123,15 @@ export function renderPhotoViewer(ctx: AppContext, baby: Baby, photo: Photo): HT
           },
         }),
       ),
-      el(
-        "label",
-        { class: "field" },
-        el("span", { class: "field-label" }, "Taken"),
-        el("input", {
-          class: "input",
-          type: "date",
-          value: photo.date,
-          max: toISODate(ctx.now),
-          onchange: (event: Event) => {
-            const date = (event.target as HTMLInputElement).value;
-            return date ? replace({ date }) : undefined;
-          },
-        }),
-      ),
+      dateField({
+        label: "Taken",
+        range: "past",
+        value: photo.date,
+        now: ctx.now,
+        onChange: (date) => {
+          if (date) void replace({ date });
+        },
+      }),
       el(
         "div",
         { class: "prompt-actions" },

@@ -18,6 +18,7 @@ import {
 } from "../domain/derive.ts";
 import { relation, siblingsOf } from "../domain/family.ts";
 import { toICalendar } from "../domain/ics.ts";
+import { lifeStage } from "../domain/stage.ts";
 import type { Baby } from "../domain/types.ts";
 import { albumSection } from "./album.ts";
 import { shareCard } from "./card.ts";
@@ -221,7 +222,7 @@ function familySection(baby: Baby, ctx: AppContext): HTMLElement {
           type: "button",
           onclick: () => ctx.navigate(`#/baby/${encodeURIComponent(sibling.id)}`),
         },
-        avatar(sibling, "sm"),
+        avatar(sibling, ctx.now, "sm"),
         el(
           "span",
           { class: "sibling-text" },
@@ -248,6 +249,7 @@ function familySection(baby: Baby, ctx: AppContext): HTMLElement {
 
 export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
   const parents = describeParents(baby.parents);
+  const stage = lifeStage(baby, ctx.now);
 
   const giftToggle = el(
     "button",
@@ -277,7 +279,7 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
       el(
         "div",
         { class: "hero" },
-        avatar(baby, "lg"),
+        avatar(baby, ctx.now, "lg"),
         el("h2", { class: "hero-name" }, displayName(baby)),
         // The way through to the household, from the one line that names it.
         parents
@@ -294,6 +296,8 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
         baby.sex && baby.sex !== "surprise"
           ? chip(baby.sex === "girl" ? "Girl" : "Boy")
           : null,
+        // Only appears once somebody has clearly repurposed a baby app.
+        stage.aside ? el("p", { class: "aside" }, stage.aside) : null,
       ),
       baby.status === "born" && baby.birthDate
         ? bornBody(baby, ctx)

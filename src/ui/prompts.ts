@@ -1,6 +1,7 @@
 import { displayName, formatDate, parseDate, toISODate } from "../domain/derive.ts";
 import type { Baby } from "../domain/types.ts";
 import type { AppContext } from "./context.ts";
+import { dateField } from "./dateField.ts";
 import { el } from "./dom.ts";
 import { popup } from "./modal.ts";
 
@@ -76,21 +77,16 @@ export function renderArrival(ctx: AppContext, baby: Baby): HTMLElement {
     onClose: () => ctx.back(),
     body: [
       el("p", {}, `When did ${displayName(baby)} arrive?`),
-      el(
-        "label",
-        { class: "field" },
-        el("span", { class: "field-label" }, "Birthday"),
-        el("input", {
-          class: "input",
-          type: "date",
-          value: today,
-          max: today,
-          oninput: (event: Event) => {
-            birthDate = (event.target as HTMLInputElement).value;
-            paintChosen();
-          },
-        }),
-      ),
+      dateField({
+        label: "Birthday",
+        range: "past",
+        value: today,
+        now: ctx.now,
+        onChange: (value) => {
+          birthDate = value;
+          paintChosen();
+        },
+      }),
       chosen,
       el(
         "div",

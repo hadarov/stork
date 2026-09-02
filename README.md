@@ -39,17 +39,42 @@ question leaves you exactly where you were.
 
 ## The look
 
-Cute and cool do not average well, so they are layered instead. The babies keep
-their pastels and the surface behind them is near-black, which makes each one a
-sticker on a black lid rather than pastel on pastel. Outlines are light, the
-edge under them is true black, and everything tappable sinks onto that edge when
-pressed.
+Dark, soft and quiet, with the babies as the only thing in it that has any
+colour. Nothing else competes: no outlines, no offset shadows, nothing sitting
+at an angle. Separation comes from the surfaces - page, panel, inset - and from
+space, rather than from lines drawn round everything. The tint sits on the
+square rather than the whole tile, so the grid reads as photographs and the
+names underneath stay in ordinary ink.
 
 Dark is the default. **Settings - Look** offers Auto, Dark and Light, and an
 inline script in `index.html` settles the choice before the first paint so a
 light-mode phone does not flash black on every launch. Anything sitting on a
 pastel needs dark ink in both themes, which is what `--on-tint` is for: `--ink`
 flips and `--on-tint` never does.
+
+## Eggs and chicks
+
+Whoever it is, the picture is where they have got to: an egg on the way, a
+hatchling for the first year, and a chick after that.
+
+Above that the ladder keeps going, which is the easter egg. Somebody will
+eventually put a grown adult in here to stop forgetting their birthday, and the
+app noticing - a chicken at thirteen, a rooster at eighteen, a turkey at forty,
+with a dry line on their page - is funnier and kinder than the app insisting
+they are a chick. Nobody who is actually a baby ever sees any of it.
+
+## Picking a date
+
+Three dropdowns rather than an `<input type="date">`. The native control is a
+different thing on every platform, none of them can be styled to match, and all
+of them will happily accept the 31st of February.
+
+The lists are narrowed instead, so an impossible date cannot be picked: only the
+days that month has, only leap years get the 29th, and a birthday cannot be set
+later than today. A due date is deliberately left alone in both directions,
+because bumps go overdue and get added late. Changing January to February drops
+a 31st rather than quietly keeping it, and a part left blank means no date
+rather than an error.
 
 ## What it works out for you
 
@@ -262,6 +287,8 @@ plan is a one-time code by email rather than passwords.
 | `src/domain/almanac.ts` | Star signs, Chinese zodiac, birthstones, flowers, the rhyme |
 | `src/domain/lunarNewYear.ts` | The dates the zodiac animal turns over |
 | `src/domain/family.ts` | Who is whose sibling, and which households that makes |
+| `src/domain/stage.ts` | Egg, hatchling, chick, and the rungs above that |
+| `src/domain/calendar.ts` | Which days a month has, and which to offer at all |
 | `src/domain/nudges.ts` | What each reminder says and the moment it says it |
 | `src/domain/nudgeStatus.ts` | The honest account of what this browser will do |
 | `src/domain/card.ts` | What goes on a shared card, apart from the drawing of it |
@@ -277,6 +304,7 @@ plan is a one-time code by email rather than passwords.
 | `src/domain/backupStatus.ts` | The one line that says whether you are safe |
 | `src/ui/home.ts` | The grid, the search and the "this week" strip |
 | `src/ui/brief.ts` | The households list, and one household on one screen |
+| `src/ui/dateField.ts` | The three dropdowns that stand in for a date input |
 | `src/ui/nudger.ts` | Asking for permission, and keeping the list current |
 | `src/ui/theme.ts` | Dark, light, or whatever the phone says |
 | `src/ui/modal.ts` | The popup every other screen is rendered into |

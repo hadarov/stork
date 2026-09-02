@@ -1,4 +1,5 @@
 import { displayName } from "../domain/derive.ts";
+import { lifeStage } from "../domain/stage.ts";
 import type { Baby } from "../domain/types.ts";
 import { el } from "./dom.ts";
 
@@ -15,11 +16,11 @@ export function tintFor(id: string): string {
   return `tint-${tintIndex(id)}`;
 }
 
-export function glyphFor(baby: Baby): string {
-  return baby.status === "expecting" ? "\u{1F423}" : "\u{1F476}";
+export function glyphFor(baby: Baby, now: Date): string {
+  return lifeStage(baby, now).glyph;
 }
 
-export function avatar(baby: Baby, size: "sm" | "lg" = "sm"): HTMLElement {
+export function avatar(baby: Baby, now: Date, size: "sm" | "lg" = "sm"): HTMLElement {
   if (baby.photo) {
     return el("img", {
       class: `avatar avatar-${size}`,
@@ -31,7 +32,7 @@ export function avatar(baby: Baby, size: "sm" | "lg" = "sm"): HTMLElement {
   return el(
     "div",
     { class: `avatar avatar-${size} ${tintFor(baby.id)}`, "aria-hidden": "true" },
-    glyphFor(baby),
+    glyphFor(baby, now),
   );
 }
 
@@ -42,21 +43,22 @@ export function avatar(baby: Baby, size: "sm" | "lg" = "sm"): HTMLElement {
  */
 export function tile(
   baby: Baby,
+  now: Date,
   options: { sub: string; badge?: string; onOpen: () => void },
 ): HTMLElement {
   return el(
     "button",
     {
-      class: `tile ${tintFor(baby.id)}`,
+      class: "tile",
       type: "button",
       onclick: options.onOpen,
     },
     el(
       "span",
-      { class: "tile-art" },
+      { class: `tile-art ${tintFor(baby.id)}` },
       baby.photo
         ? el("img", { src: baby.photo, alt: displayName(baby), loading: "lazy" })
-        : el("span", { class: "tile-glyph", "aria-hidden": "true" }, glyphFor(baby)),
+        : el("span", { class: "tile-glyph", "aria-hidden": "true" }, glyphFor(baby, now)),
     ),
     el("span", { class: "tile-name" }, displayName(baby)),
     el("span", { class: "tile-sub" }, options.sub),
@@ -117,7 +119,7 @@ export function emptyState(heading: string, body: string, action?: HTMLElement):
   return el(
     "div",
     { class: "empty" },
-    el("div", { class: "empty-glyph", "aria-hidden": "true" }, "\u{1F423}"),
+    el("div", { class: "empty-glyph", "aria-hidden": "true" }, "\u{1F95A}"),
     el("h2", {}, heading),
     el("p", {}, body),
     action ?? null,
