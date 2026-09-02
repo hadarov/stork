@@ -228,10 +228,16 @@ The build is static and needs nothing installed, so any host will do. Two are
 already set up.
 
 **GitHub Pages.** [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
-runs the tests, builds and publishes `dist/` on every push to `main`. Create the
-repository, then set **Settings - Pages - Source** to **GitHub Actions** and
-push. `dist/` is not committed, so the workflow is the only thing that ever
-produces the deployed copy.
+runs the tests, builds and publishes `dist/` on every push to `main`. `dist/` is
+not committed, so the workflow is the only thing that ever produces the deployed
+copy.
+
+Setting **Settings - Pages - Source** to **GitHub Actions** is not optional and
+has to happen before the first run. Without it the build and the tests pass and
+`configure-pages` fails on its own, saying `Resource not accessible by
+integration` - which reads like a permissions bug and is really just Pages
+being switched off. The workflow token can deploy to a Pages site but cannot
+create one, so no amount of `permissions:` will do it for you.
 
 Pages serves from a subpath, `https://you.github.io/stork/`. Every path in the
 app is relative for exactly this reason - the manifest, the icons, the service
