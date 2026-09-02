@@ -222,18 +222,34 @@ and deletions stay deleted.
 
 ## Deploying it
 
-The build is static and needs nothing installed, so any host will do. For
-Vercel, [`vercel.json`](vercel.json) already sets the build command, the output
-directory and the cache headers:
+The build is static and needs nothing installed, so any host will do. Two are
+already set up.
+
+**GitHub Pages.** [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
+runs the tests, builds and publishes `dist/` on every push to `main`. Create the
+repository, then set **Settings - Pages - Source** to **GitHub Actions** and
+push. `dist/` is not committed, so the workflow is the only thing that ever
+produces the deployed copy.
+
+Pages serves from a subpath, `https://you.github.io/stork/`. Every path in the
+app is relative for exactly this reason - the manifest, the icons, the service
+worker registration and its precache list - so nothing needs changing. Pages
+also fixes its own cache headers at ten minutes, which the service worker
+cannot override, so a new version can take that long to reach a phone that
+already has the app installed.
+
+**Vercel.** [`vercel.json`](vercel.json) sets the build command, the output
+directory and better cache headers than Pages allows, including a `sw.js` that
+is never cached:
 
 ```bash
 npx vercel        # preview
 npx vercel --prod # the link you send people
 ```
 
-iOS only offers **Add to Home Screen** as a real app over https, which a Vercel
-URL gives you. `npm run dev` over Wi-Fi is plain http, so it is for quick checks
-rather than for installing.
+Either way, iOS only offers **Add to Home Screen** as a real app over https.
+`npm run dev` over Wi-Fi is plain http, so it is for quick checks rather than
+for installing.
 
 ## Running it locally
 
@@ -317,7 +333,7 @@ plan is a one-time code by email rather than passwords.
 | `src/ui/keeper.ts` | Keeping the backup file current, and the three ways to |
 | `src/domain/backupStatus.ts` | The one line that says whether you are safe |
 | `src/ui/home.ts` | The grid, the search and the "this week" strip |
-| `src/ui/brief.ts` | The households list, and one household on one screen |
+| `src/ui/brief.ts` | One household on one screen, for the walk from the car |
 | `src/ui/dateField.ts` | The three dropdowns that stand in for a date input |
 | `src/ui/nudger.ts` | Asking for permission, and keeping the list current |
 | `src/ui/theme.ts` | Dark, light, or whatever the phone says |

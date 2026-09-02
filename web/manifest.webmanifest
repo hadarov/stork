@@ -2,7 +2,6 @@
   "name": "Stork - a little book of everyone's babies",
   "short_name": "Stork",
   "description": "Keep up with your friends' babies: due dates, birthdays, star signs and the milestones in between.",
-  "id": "/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
