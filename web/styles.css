@@ -240,6 +240,70 @@ button {
   letter-spacing: 0;
 }
 
+/* --------------------------------------------------------------- install */
+
+.install {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background: var(--inset);
+}
+
+.install-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.install-glyph {
+  flex: 0 0 auto;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.install-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.install-title {
+  font-weight: 700;
+}
+
+.install-line {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+/* Pulled up and out so the cross sits in the corner rather than beside the
+   text, where it would read as part of the sentence. */
+.install-close {
+  flex: 0 0 auto;
+  margin: -0.35rem -0.35rem 0 auto;
+  font-size: 1.1rem;
+}
+
+.install-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding-left: 1.15rem;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.install-steps li::marker {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
 /* --------------------------------------------------------------- buttons */
 
 .primary,

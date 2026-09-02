@@ -45,6 +45,7 @@ import {
   yearsFor,
 } from "../src/domain/calendar.ts";
 import { lifeStage } from "../src/domain/stage.ts";
+import { describeInstall, offerOnHome } from "../src/domain/install.ts";
 import { describeNudges } from "../src/domain/nudgeStatus.ts";
 import { nudgesFor, pruneNudges } from "../src/domain/nudges.ts";
 import { resolveTheme } from "../src/ui/theme.ts";
@@ -492,6 +493,41 @@ describe("what this browser will actually do", () => {
 
   test("not yet asked, it offers to ask", () => {
     assert.equal(describeNudges({ ...able, permission: "default" }).action, "ask");
+  });
+});
+
+describe("what this browser will let you install", () => {
+  const able = { installed: false, canPrompt: true, byHand: false, dismissed: false };
+
+  test("a browser with a real prompt gets a real button", () => {
+    const offer = describeInstall(able);
+    assert.equal(offer.kind, "button");
+    assert.match(offer.kind === "button" ? offer.label : "", /Install/);
+  });
+
+  test("an iPhone gets the share sheet spelled out, since it has no button", () => {
+    const offer = describeInstall({ ...able, canPrompt: false, byHand: true });
+    assert.equal(offer.kind, "steps");
+    assert.deepEqual(
+      offer.kind === "steps" ? offer.steps.length : 0,
+      3,
+      "share, scroll, add",
+    );
+  });
+
+  test("a browser that can do neither is not sent hunting for a button", () => {
+    assert.equal(describeInstall({ ...able, canPrompt: false }).kind, "none");
+  });
+
+  test("an app already on the home screen is not asked to install itself", () => {
+    assert.equal(describeInstall({ ...able, installed: true }).kind, "none");
+    assert.equal(describeInstall({ ...able, installed: true, byHand: true }).kind, "none");
+  });
+
+  test("waving the strip away silences the home screen but not Settings", () => {
+    const waved = { ...able, dismissed: true };
+    assert.equal(offerOnHome(waved).kind, "none");
+    assert.equal(describeInstall(waved).kind, "button", "Settings keeps offering");
   });
 });
 

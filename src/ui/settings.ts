@@ -1,4 +1,5 @@
 import { describeBackup } from "../domain/backupStatus.ts";
+import { describeInstall } from "../domain/install.ts";
 import { toICalendar } from "../domain/ics.ts";
 import { readBackup } from "../storage/backup.ts";
 import { lastChangedAt } from "../storage/watchRepo.ts";
@@ -11,6 +12,8 @@ import {
   lastBackupAt,
   setAutoBackup,
 } from "./keeper.ts";
+import { installCard } from "./installCard.ts";
+import { ability } from "./installer.ts";
 import { popup } from "./modal.ts";
 import { askToNudge, nudgeStatus } from "./nudger.ts";
 import { setThemeChoice, themeChoice } from "./theme.ts";
@@ -163,14 +166,11 @@ export function renderSettings(ctx: AppContext): HTMLElement {
               "Turn on reminders",
             )
           : null,
-        nudges.action === "install"
-          ? el(
-              "p",
-              { class: "note" },
-              "Share, then Add to Home Screen.",
-            )
-          : null,
+        // Reminders used to spell out the iOS share sheet here, to everybody,
+        // including the people whose browser has a real install button. The
+        // panel below knows which one it is talking to.
       ),
+      installCard(ctx, describeInstall(ability()), { closeable: false }),
       el(
         "section",
         { class: "panel" },

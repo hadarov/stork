@@ -9,8 +9,16 @@ app: its own icon, no browser chrome, and it works with no signal.
 
 ## Opening it on your phone
 
-No app store and no Expo. Deploy it once (below), open the link on your phone,
-and use **Add to Home Screen**.
+No app store and no Expo. Deploy it once (below) and open the link on a phone.
+
+Stork then asks, in the way that browser can actually be asked. Chromium hands
+over a real install prompt, so there is a button that installs it properly.
+Safari on iOS never offers one and never will, so it gets the share sheet
+spelled out in three steps instead. A browser that can do neither is told
+nothing, rather than sent hunting for a button it does not have.
+
+The strip under the grid can be waved away and stays away; the same offer lives
+in **Settings** permanently, for when you change your mind.
 
 Each person who opens the link gets their own private book. Nothing is uploaded
 and nothing is shared, so your friends can use the same link without ever seeing
@@ -329,6 +337,8 @@ plan is a one-time code by email rather than passwords.
 | `src/domain/calendar.ts` | Which days a month has, and which to offer at all |
 | `src/domain/nudges.ts` | What each reminder says and the moment it says it |
 | `src/domain/nudgeStatus.ts` | The honest account of what this browser will do |
+| `src/domain/install.ts` | Which of the three install answers this browser gets |
+| `src/ui/installer.ts` | Catching the prompt, and telling an iPhone apart |
 | `src/domain/card.ts` | What goes on a shared card, apart from the drawing of it |
 | `src/domain/ics.ts` | Calendar export |
 | `src/storage/repo.ts` | The `BabyRepo` interface and the merge rule |

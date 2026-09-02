@@ -30,6 +30,8 @@ const { albumOf, renderPhotoViewer } = await import("../src/ui/album.ts");
 const { renderBrief } = await import("../src/ui/brief.ts");
 const { dateField } = await import("../src/ui/dateField.ts");
 const { renderArrival, renderRemoveConfirm } = await import("../src/ui/prompts.ts");
+const { installCard } = await import("../src/ui/installCard.ts");
+const { offerOnHome } = await import("../src/domain/install.ts");
 const { startApp } = await import("../src/ui/app.ts");
 
 /* ------------------------------------------------------------- test rig */
@@ -954,6 +956,67 @@ describe("popups", () => {
 });
 
 /* -------------------------------------------------------------- settings */
+
+describe("the install offer", () => {
+  const buttonOffer = {
+    kind: "button" as const,
+    title: "Keep Stork on your home screen",
+    line: "It gets its own icon.",
+    label: "Install Stork",
+  };
+  const stepsOffer = {
+    kind: "steps" as const,
+    title: "Keep Stork on your home screen",
+    line: "It gets its own icon.",
+    steps: ["Tap the Share button", "Scroll down to Add to Home Screen", "Tap Add"],
+  };
+
+  test("nothing on offer draws nothing at all", () => {
+    assert.equal(installCard(makeRig().ctx, { kind: "none" }, { closeable: true }), null);
+  });
+
+  test("a browser with a prompt gets a button, not instructions", () => {
+    const card = installCard(makeRig().ctx, buttonOffer, { closeable: true })!;
+    assert.match(textOf(card), /Install Stork/);
+    assert.equal(byClass(card, "install-steps").length, 0, "no share sheet on Android");
+  });
+
+  test("an iPhone gets the three steps, and no button to press", () => {
+    const card = installCard(makeRig().ctx, stepsOffer, { closeable: true })!;
+    const steps = byClass(card, "install-steps")[0]!;
+
+    assert.equal(steps.querySelectorAll("li").length, 3);
+    assert.match(textOf(steps), /Add to Home Screen/);
+    assert.equal(card.querySelectorAll("button").length, 1, "only the close cross");
+  });
+
+  test("the strip can be waved away and Settings cannot", () => {
+    const rig = makeRig();
+    const strip = installCard(rig.ctx, buttonOffer, { closeable: true })!;
+    const permanent = installCard(rig.ctx, buttonOffer, { closeable: false })!;
+
+    assert.equal(byClass(strip, "install-close").length, 1);
+    assert.equal(byClass(permanent, "install-close").length, 0);
+  });
+
+  test("waving it away is remembered, so it does not come straight back", () => {
+    const rig = makeRig();
+    const card = installCard(rig.ctx, buttonOffer, { closeable: true })!;
+
+    byClass(card, "install-close")[0]!.click();
+    assert.equal(rig.redraws, 1, "the strip goes at once rather than on next launch");
+    assert.equal(
+      offerOnHome({ installed: false, canPrompt: true, byHand: false, dismissed: true }).kind,
+      "none",
+    );
+  });
+
+  test("a home screen that cannot install anything shows no strip", () => {
+    // The stub browser has no install prompt and is not an iPhone, which is
+    // the same position a desktop Firefox is in.
+    assert.equal(byClass(renderHome(makeRig([baby()]).ctx), "install").length, 0);
+  });
+});
 
 describe("settings screen", () => {
   test("it says plainly where the data lives", () => {

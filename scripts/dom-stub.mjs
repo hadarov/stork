@@ -372,6 +372,16 @@ export function installDom() {
   set("location", location);
   set("history", history);
   set("alert", () => {});
+
+  // Enough of one to remember a choice across a redraw, which is all the
+  // screens ask of it. Fresh per install, so no test inherits another's.
+  const stored = new Map();
+  set("localStorage", {
+    getItem: (key) => (stored.has(key) ? stored.get(key) : null),
+    setItem: (key, value) => void stored.set(key, String(value)),
+    removeItem: (key) => void stored.delete(key),
+    clear: () => stored.clear(),
+  });
   set("Blob", class Blob {});
   set("URL", Object.assign(globalThis.URL, {
     createObjectURL: () => "blob:stub",

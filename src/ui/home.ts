@@ -6,9 +6,12 @@ import {
   sortByNextEvent,
 } from "../domain/derive.ts";
 import type { Baby } from "../domain/types.ts";
+import { offerOnHome } from "../domain/install.ts";
 import { emptyState, iconButton, screenHeader, tile } from "./components.ts";
 import type { AppContext } from "./context.ts";
 import { el } from "./dom.ts";
+import { installCard } from "./installCard.ts";
+import { ability } from "./installer.ts";
 
 /** How far ahead the strip at the top looks. */
 const HORIZON_DAYS = 7;
@@ -155,6 +158,14 @@ export function renderHome(ctx: AppContext): HTMLElement {
     "div",
     { class: "screen" },
     header,
-    el("div", { class: "content" }, ctx.babies.length > 0 ? search : null, results),
+    el(
+      "div",
+      { class: "content" },
+      ctx.babies.length > 0 ? search : null,
+      results,
+      // Under the grid rather than over it: an app you have not been sold on
+      // yet should still show you the babies first.
+      installCard(ctx, offerOnHome(ability()), { closeable: true }),
+    ),
   );
 }

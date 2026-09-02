@@ -8,6 +8,7 @@ import { renderDetail } from "./detail.ts";
 import { clear, el } from "./dom.ts";
 import { renderEdit } from "./edit.ts";
 import { renderHome } from "./home.ts";
+import { onInstallChange } from "./installer.ts";
 import { popup } from "./modal.ts";
 import { renderArrival, renderRemoveConfirm } from "./prompts.ts";
 import { renderSettings } from "./settings.ts";
@@ -116,6 +117,12 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
     const route = parseRoute(location.hash);
     return route.name === "add" || route.name === "edit" || route.name === "sibling";
   };
+
+  // The browser decides whether the app is installable some time after the
+  // first paint, and changes its mind again once it has been installed.
+  onInstallChange(() => {
+    if (!isFilling()) render();
+  });
 
   // Another tab editing the same book should not leave this one stale.
   window.addEventListener("storage", () => {

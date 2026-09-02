@@ -1,6 +1,7 @@
 import { localRepo } from "./storage/localRepo.ts";
 import { watchRepo } from "./storage/watchRepo.ts";
 import { startApp } from "./ui/app.ts";
+import { watchForInstall } from "./ui/installer.ts";
 import { scheduleAutoBackup } from "./ui/keeper.ts";
 import { arrange, watchForNudges } from "./ui/nudger.ts";
 import { applyTheme, watchSystemTheme } from "./ui/theme.ts";
@@ -9,6 +10,10 @@ import { applyTheme, watchSystemTheme } from "./ui/theme.ts";
 // this settles the theme-colour bar and keeps it in step with the system.
 applyTheme();
 watchSystemTheme();
+
+// Chromium fires its install prompt early and exactly once, so the listener has
+// to be up before the app finishes reading the book off disk.
+watchForInstall();
 
 const root = document.getElementById("app");
 
