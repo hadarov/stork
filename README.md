@@ -47,9 +47,9 @@ question leaves you exactly where you were.
 
 ## The look
 
-Dark, soft and quiet, with one accent: the sage of the app's own egg. Every
-emphasis is that colour and nothing else is - buttons, focus, the age under a
-name in the grid, a milestone reached - so the eye only has to learn it once.
+Dark, soft and quiet, with one accent: a muted sage. Every emphasis is that
+colour and nothing else is - buttons, focus, the age under a name in the grid,
+a milestone reached - so the eye only has to learn it once.
 The six pastels belong to the babies and are the only other colour in the app.
 
 Definition comes from hairlines rather than outlines drawn round everything, and
@@ -70,9 +70,22 @@ light-mode phone does not flash black on every launch.
 Whoever it is, the picture is where they have got to: an egg on the way, a
 hatchling for the first year, and a chick after that.
 
-The app's own icon is that first egg with a date circled round it, drawn in the
-accent colour, so the mark, the palette and the two things the app does are all
-one idea.
+The app's own icon is the middle rung: a chick just out of the shell, wings over
+the rim. Of the three it is the only one that is an event rather than a state,
+which is the thing the app exists to catch. It is drawn in the colours those
+glyphs already have rather than in the interface accent, because the mark
+belongs to the babies and the accent belongs to the chrome.
+
+Nothing in it is filled flat. Every part hands back a surface normal and one
+light in the upper left decides its colour, which is what separates an object
+from a sticker. Two details do most of that work and neither is lighting: a
+catchlight in each eye, and a warm shadow in the crevice where the chick goes
+down behind the rim.
+
+`favicon.svg` is a build product like the PNGs, written by `scripts/icon.mjs`
+from the same figures it rasterises, so the vector and the bitmaps cannot drift
+apart. Its one addition is a stroke round the shell, without which a cream egg
+is invisible on a white tab bar.
 
 Above that the ladder keeps going, which is the easter egg. Somebody will
 eventually put a grown adult in here to stop forgetting their birthday, and the

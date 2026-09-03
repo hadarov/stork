@@ -13,7 +13,7 @@ import { stripTypeScriptTypes } from "node:module";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { renderIcon } from "./icon.mjs";
+import { renderFavicon, renderIcon } from "./icon.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const srcDir = join(root, "src");
@@ -122,7 +122,10 @@ async function drawIcons() {
   for (const icon of ICONS) {
     await writeFile(join(outDir, icon.file), renderIcon(icon.size, { maskable: icon.maskable }));
   }
-  return ICONS.map((icon) => icon.file);
+  // The favicon is drawn here too rather than kept in web/, so the vector and
+  // the PNGs come out of one set of figures and cannot disagree.
+  await writeFile(join(outDir, "favicon.svg"), renderFavicon());
+  return [...ICONS.map((icon) => icon.file), "favicon.svg"];
 }
 
 /** Every asset is precached, because the whole app is only a few dozen kB. */
