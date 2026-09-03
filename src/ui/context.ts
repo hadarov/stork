@@ -9,6 +9,13 @@ export type AppContext = {
   now: Date;
   navigate: (path: string) => void;
   back: () => void;
+  /**
+   * The end of a task, as opposed to a step in one. Lands on `path` without
+   * leaving the steps behind for the back button to walk into: saving an edit
+   * must not put the form back, and removing a baby must not put back a page
+   * saying they are not here any more.
+   */
+  finish: (path: string) => void;
   /** Reloads the book from storage. Does not touch the screen. */
   refresh: () => Promise<void>;
   /**

@@ -35,6 +35,28 @@ were. Escape, the backdrop and the phone's back button all close a popup.
 Confirmations stack over the page that raised them rather than replacing it, so
 backing out of a question leaves you looking at the baby you were reading.
 
+### Coming back out again
+
+Every popup is a history entry, so the phone's back button is the same gesture
+as the cross. That only holds if finishing something *unwinds* the steps it
+took rather than adding one more on top: saving an edit puts you on the baby,
+and pressing back from there must be the grid, not the form you just saved.
+Otherwise back walks into the question you have already answered, or a page for
+a baby you have just removed - and that last one is the worst, because it stays
+in the history and catches every back press afterwards.
+
+So the router has `finish` alongside `navigate`. `navigate` is a step further
+in and leaves the current screen behind to return to; `finish` is the end of a
+task and goes back to the step already showing what you want, or swaps the
+current one if there isn't one. Removing a baby unwinds two: past the question
+and past their page.
+
+How deep you are is kept in the history entry itself rather than in a counter,
+because a counter and the back button disagree the moment somebody uses both,
+and then back starts leaving the app. And because the grid is thrown away and
+drawn again on every render, how far down it you were is carried across by hand
+- otherwise closing a popup would quietly return you to the top.
+
 A baby is either on the way or here, and that decides which date you are asked
 for: a bump has a due date, a baby has a birthday, and never both. Changing one
 to the other clears the date that no longer applies. Parents are two separate

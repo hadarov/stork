@@ -299,7 +299,7 @@ export function renderEdit(
     await ctx.repo.save(baby);
     await ctx.refresh();
     ctx.toast(existing ? "Saved" : "Added");
-    ctx.navigate(`#/baby/${encodeURIComponent(baby.id)}`);
+    ctx.finish(`#/baby/${encodeURIComponent(baby.id)}`);
   };
 
   const form = el(

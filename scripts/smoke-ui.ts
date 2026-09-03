@@ -97,6 +97,7 @@ function makeRig(babies: Baby[] = []): Rig {
     now: NOW,
     navigate: (path) => routes.push(path),
     back: () => routes.push("back"),
+    finish: (path) => routes.push(`finish ${path}`),
     refresh: async () => {
       ctx.babies = await repo.list();
     },
@@ -717,7 +718,9 @@ describe("confirmations", () => {
     await byClass(screen, "danger-fill")[0]!.click();
     assert.equal((await local.repo.list()).length, 0);
     assert.ok((await local.repo.listAll())[0]?.deletedAt, "should be a tombstone, not a hole");
-    assert.deepEqual(local.routes, ["#/"]);
+    // Finished, not navigated: their own page must not be left behind for the
+    // back button, because there is nothing left on it to show.
+    assert.deepEqual(local.routes, ["finish #/"]);
     assert.deepEqual(local.toasts, ["Mila removed"]);
   });
 
@@ -747,7 +750,7 @@ describe("confirmations", () => {
     assert.equal(saved.birthDate, "2026-09-01");
     assert.equal(saved.dueDate, undefined);
     assert.deepEqual(local.toasts, ["\u{1F389} Welcome, Poppy!"]);
-    assert.deepEqual(local.routes, ["#/baby/bump"]);
+    assert.deepEqual(local.routes, ["finish #/baby/bump"]);
   });
 
   test("an earlier arrival date can be picked instead", async () => {
@@ -828,7 +831,7 @@ describe("add and edit", () => {
     assert.equal(saved.dueDate, "2026-11-01");
     assert.equal(saved.status, "expecting");
     assert.deepEqual(rig.toasts, ["Added"]);
-    assert.equal(rig.routes[0], `#/baby/${saved.id}`);
+    assert.equal(rig.routes[0], `finish #/baby/${saved.id}`);
   });
 
   test("the second parent really is optional", async () => {
@@ -1327,6 +1330,122 @@ describe("the app shell", () => {
       // Defaulted to today, whenever the test happens to run.
       assert.equal(saved.birthDate, toISODate(new Date()));
       assert.equal(byClass(root, "overlay").length, 1, "back on the baby's own page");
+    });
+  });
+});
+
+/* --------------------------------------------------- coming back out again */
+
+/**
+ * Finishing something used to push a fresh entry rather than unwind the steps
+ * it took, so the back button walked straight into the form you had just
+ * saved, the question you had just answered, or a page for a baby you had just
+ * removed. Worse, that last one stayed in the history and caught every back
+ * press afterwards.
+ */
+describe("pressing back after finishing something", () => {
+  async function withApp(
+    babies: Baby[],
+    run: (root: any, repo: MemoryRepo) => Promise<void> | void,
+  ): Promise<void> {
+    const restore = installDom();
+    try {
+      const repo = new MemoryRepo();
+      repo.babies = babies;
+      const root = document.createElement("div");
+      await startApp(root as never, repo);
+      await run(root, repo);
+    } finally {
+      restore();
+    }
+  }
+
+  /** The cross on the topmost sheet: not the first icon button in its bar. */
+  const shut = (root: any): unknown => {
+    const crosses = byClass(root, "icon-button").filter(
+      (node: any) => textOf(node).trim() === "\u00D7",
+    );
+    return crosses[crosses.length - 1]!.click();
+  };
+
+  const tapTile = async (root: any, name: string): Promise<void> => {
+    const tile = byClass(root, "tile").find((node: any) => textOf(node).includes(name));
+    assert.ok(tile, `no tile for ${name}`);
+    await tile.click();
+  };
+
+  test("a saved edit does not put the form back", async () => {
+    await withApp([baby()], async (root) => {
+      await tapTile(root, "Mila");
+      const edit = byClass(root, "icon-button").find((node: any) => textOf(node).includes("\u270E"));
+      await edit!.click();
+      await root.querySelector(".form")!.dispatch("submit");
+
+      assert.match(textOf(root), /Written in the stars/, "lands on the baby");
+      history.back();
+      assert.equal(byClass(root, "overlay").length, 0, "and back from there is the book");
+      assert.doesNotMatch(textOf(root), /Second parent/, "not the form again");
+    });
+  });
+
+  test("an answered arrival does not ask again", async () => {
+    const bump = baby({ id: "bump", name: "Poppy", status: "expecting", dueDate: "2026-10-01" });
+    delete bump.birthDate;
+
+    await withApp([bump], async (root) => {
+      await tapTile(root, "Poppy");
+      const justBorn = byClass(root, "primary").find((node: any) =>
+        textOf(node).includes("Just born"),
+      );
+      await justBorn!.click();
+      const yes = byClass(root, "primary").find((node: any) => textOf(node).includes("Yes"));
+      await yes!.click();
+
+      history.back();
+      assert.equal(byClass(root, "overlay").length, 0, "the book, not the question again");
+      assert.doesNotMatch(textOf(root), /They're here/);
+    });
+  });
+
+  test("a removed baby does not come back as a page saying they are gone", async () => {
+    await withApp([baby(), baby({ id: "otto", name: "Otto" })], async (root) => {
+      await tapTile(root, "Mila");
+      await byClass(root, "danger")[0]!.click();
+      await byClass(root, "danger-fill")[0]!.click();
+
+      assert.equal(byClass(root, "overlay").length, 0, "back at the book");
+      history.back();
+      assert.doesNotMatch(textOf(root), /Not here any more/);
+    });
+  });
+
+  test("and that dead page does not lie in wait for every later back press", async () => {
+    await withApp([baby(), baby({ id: "otto", name: "Otto" })], async (root) => {
+      await tapTile(root, "Mila");
+      await byClass(root, "danger")[0]!.click();
+      await byClass(root, "danger-fill")[0]!.click();
+
+      // Something else entirely, some time later.
+      await tapTile(root, "Otto");
+      shut(root);
+
+      assert.equal(byClass(root, "overlay").length, 0);
+      assert.doesNotMatch(textOf(root), /Not here any more/);
+    });
+  });
+
+  test("a link straight to a popup closes without stacking up an entry", async () => {
+    await withApp([baby()], (root) => {
+      location.hash = "#/settings";
+      const before = history.length;
+
+      shut(root);
+      assert.equal(byClass(root, "overlay").length, 0, "the book");
+      assert.equal(history.length, before, "closing should not be a step forward");
+
+      // Whatever was open before the app, not the popup we just closed.
+      history.back();
+      assert.doesNotMatch(textOf(root), /Reminders/);
     });
   });
 });

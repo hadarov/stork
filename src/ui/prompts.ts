@@ -15,7 +15,8 @@ export function renderRemoveConfirm(ctx: AppContext, baby: Baby): HTMLElement {
     await ctx.repo.remove(baby.id);
     await ctx.refresh();
     ctx.toast(`${displayName(baby)} removed`);
-    ctx.navigate("#/");
+    // Back to the grid, past their own page: it has nothing left to show.
+    ctx.finish("#/");
   };
 
   return popup({
@@ -69,7 +70,7 @@ export function renderArrival(ctx: AppContext, baby: Baby): HTMLElement {
     await ctx.repo.save(arrived);
     await ctx.refresh();
     ctx.toast(`\u{1F389} Welcome, ${displayName(arrived)}!`);
-    ctx.navigate(`#/baby/${encodeURIComponent(baby.id)}`);
+    ctx.finish(`#/baby/${encodeURIComponent(baby.id)}`);
   };
 
   return popup({

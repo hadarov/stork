@@ -279,32 +279,64 @@ class StubFragment extends StubNode {
 }
 
 /**
- * A hash-only history, so the router can be driven the way a person drives it:
- * assign to location.hash to go somewhere, call history.back() to come back.
+ * A history the router can be driven through the way a person drives it: tap
+ * to go deeper, press back to come out, and forward to change your mind. It
+ * carries per-entry state, because that is where the router keeps its depth,
+ * and a stack that forgot it would let the tests pass over a real bug.
  */
 function makeHistory(emit) {
-  const stack = ["#/"];
+  const stack = [{ hash: "#/", state: null }];
+  let index = 0;
+
+  const move = (target) => {
+    const before = stack[index].hash;
+    const clamped = Math.min(Math.max(target, 0), stack.length - 1);
+    if (clamped === index) return;
+    index = clamped;
+    // The same pair, in the same order, as a browser fires.
+    emit("popstate");
+    if (stack[index].hash !== before) emit("hashchange");
+  };
 
   return {
     location: {
       get hash() {
-        return stack[stack.length - 1];
+        return stack[index].hash;
       },
       set hash(value) {
-        if (stack[stack.length - 1] === value) return;
-        stack.push(value);
+        if (stack[index].hash === value) return;
+        stack.length = index + 1;
+        stack.push({ hash: value, state: null });
+        index += 1;
         emit("hashchange");
       },
     },
     history: {
+      get length() {
+        return stack.length;
+      },
+      get state() {
+        return stack[index].state;
+      },
+      pushState(state, _title, url) {
+        stack.length = index + 1;
+        stack.push({ hash: url ?? stack[index].hash, state });
+        index += 1;
+      },
+      replaceState(state, _title, url) {
+        stack[index] = { hash: url ?? stack[index].hash, state };
+      },
+      go(delta) {
+        move(index + delta);
+      },
       back() {
-        if (stack.length > 1) {
-          stack.pop();
-          emit("hashchange");
-        }
+        move(index - 1);
+      },
+      forward() {
+        move(index + 1);
       },
     },
-    depth: () => stack.length,
+    depth: () => index + 1,
   };
 }
 

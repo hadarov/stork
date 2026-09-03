@@ -16,8 +16,27 @@ import { renderSettings } from "./settings.ts";
 
 export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void> {
   let babies: Baby[] = await repo.list();
-  /** Depth of navigation done inside the app, so Back never leaves the site. */
-  let pushes = 0;
+
+  const HOME = "#/";
+  const here = (): string => location.hash || HOME;
+
+  /**
+   * The steps taken inside the app, shallowest first. How deep we currently
+   * are is kept in the history entry itself rather than in a counter here,
+   * because a counter and the phone's own back button disagree the moment
+   * somebody uses both, and then Back starts leaving the app altogether.
+   */
+  let trail: string[] = [];
+  const depth = (): number => {
+    const mark = (history.state as { stork?: number } | null | undefined)?.stork;
+    return typeof mark === "number" && mark > 0 ? mark : 0;
+  };
+
+  /** What is on screen, so one move through history does not draw twice. */
+  let shown: string | null = null;
+
+  /** Where the book was left, so shutting a popup does not lose your place. */
+  let place = 0;
 
   const toastNode = el("div", { class: "toast", role: "status", "aria-live": "polite" });
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -29,19 +48,50 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
     toastTimer = setTimeout(() => toastNode.classList.remove("visible"), 2600);
   };
 
+  /**
+   * Writes a step into the trail at its own depth, so the two can never drift
+   * apart however oddly the back and forward buttons have been used. Anything
+   * beyond is dropped, and any gap left behind reads as a step we never took.
+   */
+  const record = (step: number, path: string): void => {
+    trail.length = step;
+    trail[step] = path;
+  };
+
+  /** A step further in: leaves the current screen behind to come back to. */
   const navigate = (path: string): void => {
-    if (location.hash === path) return render();
-    pushes += 1;
-    location.hash = path;
+    if (here() === path) return render();
+    const step = depth() + 1;
+    record(step, path);
+    history.pushState({ stork: step }, "", path);
+    render();
+  };
+
+  /** Swaps the current step for another, leaving nothing behind. */
+  const replace = (path: string): void => {
+    const step = depth();
+    record(step, path);
+    history.replaceState({ stork: step }, "", path);
+    render();
   };
 
   const back = (): void => {
-    if (pushes > 0) {
-      pushes -= 1;
-      history.back();
-    } else {
-      location.hash = "#/";
+    // At the shallowest step there is nothing of ours behind us, and calling
+    // back would walk out of the app, so the book is drawn in place instead.
+    if (depth() > 0) history.back();
+    else replace(HOME);
+  };
+
+  const finish = (path: string): void => {
+    const step = depth();
+    // Unwind to the step that is already showing what we want, so the ones the
+    // task used are gone rather than sitting there waiting for a back press.
+    for (let index = step - 1; index >= 0; index -= 1) {
+      // Not truncated: the entries are still real to the browser, and going
+      // forward into one has to find its place in the trail.
+      if (trail[index] === path) return history.go(index - step);
     }
+    replace(path);
   };
 
   const refresh = async (): Promise<void> => {
@@ -49,7 +99,7 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
   };
 
   function context(): AppContext {
-    return { repo, babies, now: new Date(), navigate, back, refresh, redraw: render, toast };
+    return { repo, babies, now: new Date(), navigate, back, finish, refresh, redraw: render, toast };
   }
 
   /**
@@ -91,18 +141,39 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
 
   function render(): void {
     const ctx = context();
-    const route = parseRoute(location.hash);
+    const route = parseRoute(here());
     const overlays = overlaysFor(route, ctx);
+
+    // The grid is thrown away and drawn again every time, so how far down it
+    // you were has to be carried across by hand. Only worth reading while the
+    // book is the thing on screen; behind a popup it is whatever it was.
+    if (!root.querySelector(".overlay")) place = window.scrollY;
 
     // The book is always underneath, so closing a popup reveals it already
     // drawn rather than rebuilding a screen behind the animation.
     clear(root);
     root.append(renderHome(ctx), ...overlays, toastNode);
+    shown = here();
 
-    if (overlays.length === 0) window.scrollTo(0, 0);
+    if (overlays.length === 0) window.scrollTo(0, place);
   }
 
-  window.addEventListener("hashchange", render);
+  // A reload keeps the entry's depth but not the trail behind it, so the steps
+  // we cannot see are left as gaps. Back still works, since the browser kept
+  // the entries themselves; finishing a task there just swaps this step for
+  // the next rather than unwinding, which is the safe half of the job.
+  record(depth(), here());
+
+  // Going back or forward through the app's own steps.
+  window.addEventListener("popstate", render);
+
+  // A hash set from outside the app: a typed address, or an old link. The
+  // guard is because moving through history fires this as well as popstate.
+  window.addEventListener("hashchange", () => {
+    if (here() === shown) return;
+    record(depth(), here());
+    render();
+  });
 
   // Escape closes the popup, the same as tapping the backdrop.
   document.addEventListener("keydown", (event) => {
