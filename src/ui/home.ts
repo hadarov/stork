@@ -7,6 +7,7 @@ import {
 } from "../domain/derive.ts";
 import type { Baby } from "../domain/types.ts";
 import { offerOnHome } from "../domain/install.ts";
+import { backupCard } from "./backupCard.ts";
 import { emptyState, iconButton, screenHeader, tile } from "./components.ts";
 import type { AppContext } from "./context.ts";
 import { el } from "./dom.ts";
@@ -164,8 +165,9 @@ export function renderHome(ctx: AppContext): HTMLElement {
       ctx.babies.length > 0 ? search : null,
       results,
       // Under the grid rather than over it: an app you have not been sold on
-      // yet should still show you the babies first.
-      installCard(ctx, offerOnHome(ability()), { closeable: true }),
+      // yet should still show you the babies first. One thing asked at a time,
+      // and a book nobody has a copy of is the worse of the two problems.
+      backupCard(ctx) ?? installCard(ctx, offerOnHome(ability()), { closeable: true }),
     ),
   );
 }

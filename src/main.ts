@@ -1,6 +1,7 @@
 import { localRepo } from "./storage/localRepo.ts";
 import { watchRepo } from "./storage/watchRepo.ts";
 import { startApp } from "./ui/app.ts";
+import { readPersistence } from "./ui/durable.ts";
 import { watchForInstall } from "./ui/installer.ts";
 import { scheduleAutoBackup } from "./ui/keeper.ts";
 import { arrange, watchForNudges } from "./ui/nudger.ts";
@@ -14,6 +15,10 @@ watchSystemTheme();
 // Chromium fires its install prompt early and exactly once, so the listener has
 // to be up before the app finishes reading the book off disk.
 watchForInstall();
+
+// Only reads the answer, never asks for it: requesting persistence is a
+// permission prompt in some browsers and belongs behind the button in Settings.
+void readPersistence();
 
 const root = document.getElementById("app");
 

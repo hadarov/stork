@@ -1,10 +1,12 @@
 import { describeBackup } from "../domain/backupStatus.ts";
+import { describeStorage } from "../domain/durability.ts";
 import { describeInstall } from "../domain/install.ts";
 import { toICalendar } from "../domain/ics.ts";
 import { readBackup } from "../storage/backup.ts";
 import { lastChangedAt } from "../storage/watchRepo.ts";
 import type { AppContext } from "./context.ts";
 import { downloadFile, el } from "./dom.ts";
+import { askToPersist, storageAbility } from "./durable.ts";
 import {
   autoBackupOn,
   backUpNow,
@@ -38,6 +40,7 @@ function button(label: string, onClick: () => void, variant = "secondary"): HTML
 
 export function renderSettings(ctx: AppContext): HTMLElement {
   const keeping = autoBackupOn();
+  const durability = describeStorage(storageAbility());
   const status = describeBackup({
     lastAt: lastBackupAt(),
     changedAt: lastChangedAt(ctx.babies),
@@ -195,6 +198,17 @@ export function renderSettings(ctx: AppContext): HTMLElement {
           { class: "note" },
           "Put the backup somewhere your phone already syncs - iCloud Drive, Google Drive, Dropbox - and it will follow you to a new phone without anyone running a server for you.",
         ),
+        el("p", { class: durability.warn ? "backup-line stale" : "backup-line" }, durability.line),
+        durability.ask
+          ? row(
+              "Ask your browser to keep it",
+              "Takes Stork off the list of things cleared to make room. It cannot stop you clearing your browsing data by hand, and nothing can.",
+              button("Ask", async () => {
+                ctx.toast(await askToPersist());
+                ctx.redraw();
+              }),
+            )
+          : null,
         el("p", { class: status.stale ? "backup-line stale" : "backup-line" }, status.line),
         row(
           "Back up now",

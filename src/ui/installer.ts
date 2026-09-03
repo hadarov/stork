@@ -6,6 +6,7 @@
  * questions about the browser it happens to be running in.
  */
 import type { InstallAbility } from "../domain/install.ts";
+import { iPhoneish, standalone } from "./platform.ts";
 
 /** Chromium's prompt, which arrives unannounced and can only be fired once. */
 type InstallPrompt = Event & {
@@ -17,24 +18,6 @@ const DISMISSED = "stork.install.dismissed";
 
 let waiting: InstallPrompt | null = null;
 let changed: (() => void) | null = null;
-
-function standalone(): boolean {
-  if (typeof matchMedia === "function" && matchMedia("(display-mode: standalone)").matches) {
-    return true;
-  }
-  // iOS does not report the media query and has its own flag instead.
-  return (
-    typeof navigator !== "undefined" &&
-    (navigator as Navigator & { standalone?: boolean }).standalone === true
-  );
-}
-
-function iPhoneish(): boolean {
-  if (typeof navigator === "undefined") return false;
-  if (/iPhone|iPad|iPod/i.test(navigator.userAgent ?? "")) return true;
-  // A recent iPad calls itself a Mac, and only the touch points give it away.
-  return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
-}
 
 function waved(): boolean {
   try {

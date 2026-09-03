@@ -243,6 +243,40 @@ each screen remembers, so no change can slip past the backup unrecorded.
 Restoring merges rather than overwrites: the newer version of each baby wins,
 and deletions stay deleted.
 
+### Saying so, once, without becoming a nag
+
+A backup nobody makes is not a backup, so the home screen will raise it - but
+the bar is deliberately high, and it is set in one pure function in
+`domain/backupStatus.ts` rather than scattered through the screen. There has to
+be something to lose, a backup that does not cover it, a couple of days of
+grace so that adding a baby is not answered with a telling-off on the way out
+of the form, and no recent shrug.
+
+Waving it away is recorded as a moment rather than a flag, so it silences
+everything up to then and nothing after: add another baby and the question is
+worth asking again, because the thing worth mentioning was never the backup, it
+was the new baby the backup is missing. Only one card ever asks for anything at
+a time, and a book nobody has a copy of outranks an app that is not installed.
+
+### What the browser will and will not promise
+
+Browsers treat a site's storage as disposable. Chromium clears it to make room,
+and Safari deletes it outright after seven days in which the site was not
+opened at all - though a home-screen app is counted on its own, so opening it
+now and again is enough. `navigator.storage.persist()` takes the origin off
+that list, and **Settings - Backup** says where this browser stands and offers
+to ask.
+
+It is only ever asked from that tap, never at startup, because in some browsers
+it is a permission prompt, and an unexplained dialog during the first paint is
+how apps teach people to press No. Reading whether it was *already* granted is
+free and silent, so that happens on load.
+
+What none of it does is protect you from anything deliberate: clearing your
+browsing data clears this too, persisted or not. The wording in
+`domain/durability.ts` says so in every branch, because the alternative is
+telling somebody their book is safe and being wrong.
+
 ## Deploying it
 
 The build is static and needs nothing installed, so any host will do. Two are

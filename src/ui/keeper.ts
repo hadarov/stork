@@ -19,6 +19,7 @@ import { downloadBlob } from "./dom.ts";
 
 const LAST_AT = "stork.backup.at";
 const AUTO = "stork.backup.auto";
+const HUSHED = "stork.backup.hushed";
 
 function read(key: string): string | undefined {
   try {
@@ -43,6 +44,19 @@ export function lastBackupAt(): string | undefined {
 
 export function autoBackupOn(): boolean {
   return read(AUTO) === "on";
+}
+
+export function backupHushedAt(): string | undefined {
+  return read(HUSHED);
+}
+
+/**
+ * Waving the reminder away is recorded as a moment rather than a flag, so it
+ * covers everything up to now and nothing after: add another baby and it is
+ * worth mentioning again.
+ */
+export function hushBackupNudge(now: Date): void {
+  write(HUSHED, now.toISOString());
 }
 
 /** Only where the browser will let us write to the same file again. */

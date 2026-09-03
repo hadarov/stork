@@ -978,12 +978,12 @@ describe("the install offer", () => {
   test("a browser with a prompt gets a button, not instructions", () => {
     const card = installCard(makeRig().ctx, buttonOffer, { closeable: true })!;
     assert.match(textOf(card), /Install Stork/);
-    assert.equal(byClass(card, "install-steps").length, 0, "no share sheet on Android");
+    assert.equal(byClass(card, "notice-steps").length, 0, "no share sheet on Android");
   });
 
   test("an iPhone gets the three steps, and no button to press", () => {
     const card = installCard(makeRig().ctx, stepsOffer, { closeable: true })!;
-    const steps = byClass(card, "install-steps")[0]!;
+    const steps = byClass(card, "notice-steps")[0]!;
 
     assert.equal(steps.querySelectorAll("li").length, 3);
     assert.match(textOf(steps), /Add to Home Screen/);
@@ -995,15 +995,15 @@ describe("the install offer", () => {
     const strip = installCard(rig.ctx, buttonOffer, { closeable: true })!;
     const permanent = installCard(rig.ctx, buttonOffer, { closeable: false })!;
 
-    assert.equal(byClass(strip, "install-close").length, 1);
-    assert.equal(byClass(permanent, "install-close").length, 0);
+    assert.equal(byClass(strip, "notice-close").length, 1);
+    assert.equal(byClass(permanent, "notice-close").length, 0);
   });
 
   test("waving it away is remembered, so it does not come straight back", () => {
     const rig = makeRig();
     const card = installCard(rig.ctx, buttonOffer, { closeable: true })!;
 
-    byClass(card, "install-close")[0]!.click();
+    byClass(card, "notice-close")[0]!.click();
     assert.equal(rig.redraws, 1, "the strip goes at once rather than on next launch");
     assert.equal(
       offerOnHome({ installed: false, canPrompt: true, byHand: false, dismissed: true }).kind,
@@ -1014,7 +1014,44 @@ describe("the install offer", () => {
   test("a home screen that cannot install anything shows no strip", () => {
     // The stub browser has no install prompt and is not an iPhone, which is
     // the same position a desktop Firefox is in.
-    assert.equal(byClass(renderHome(makeRig([baby()]).ctx), "install").length, 0);
+    localStorage.clear();
+    assert.doesNotMatch(textOf(renderHome(makeRig([baby()]).ctx)), /Keep Stork on your home screen/);
+  });
+});
+
+describe("the backup reminder on the home screen", () => {
+  // The rig's baby was last touched in 2024 and the clock says 2026, so every
+  // book here is well past the couple of days of grace.
+  beforeEach(() => localStorage.clear());
+
+  test("a book nobody has a copy of says so, once there is a book", () => {
+    assert.equal(byClass(renderHome(makeRig().ctx), "notice").length, 0, "nothing to lose yet");
+    assert.match(textOf(renderHome(makeRig([baby()]).ctx)), /Nothing is backed up yet/);
+  });
+
+  test("only one card asks for anything at a time", () => {
+    assert.equal(byClass(renderHome(makeRig([baby()]).ctx), "notice").length, 1);
+  });
+
+  test("a current backup is not mentioned at all", () => {
+    localStorage.setItem("stork.backup.at", "2025-01-01T00:00:00.000Z");
+    assert.equal(byClass(renderHome(makeRig([baby()]).ctx), "notice").length, 0);
+  });
+
+  test("waving it away silences it, and the silence survives a redraw", () => {
+    const rig = makeRig([baby()]);
+    const card = byClass(renderHome(rig.ctx), "notice")[0]!;
+
+    byClass(card, "notice-close")[0]!.click();
+    assert.equal(rig.redraws, 1, "it goes at once rather than on next launch");
+    assert.equal(byClass(renderHome(makeRig([baby()]).ctx), "notice").length, 0);
+    // That it comes back when something changes needs two different clocks, so
+    // it is checked against nudgeAboutBackup in smoke.ts rather than here.
+  });
+
+  test("it offers the fix rather than only the diagnosis", () => {
+    const card = byClass(renderHome(makeRig([baby()]).ctx), "notice")[0]!;
+    assert.match(textOf(byClass(card, "primary")[0]), /Back up now/);
   });
 });
 

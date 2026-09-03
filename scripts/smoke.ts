@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { describe, test } from "node:test";
 
 import { chineseSign, starSign } from "../src/domain/almanac.ts";
-import { describeBackup } from "../src/domain/backupStatus.ts";
+import { describeBackup, nudgeAboutBackup } from "../src/domain/backupStatus.ts";
 import { cardContent } from "../src/domain/card.ts";
 import {
   addMonths,
@@ -45,6 +45,7 @@ import {
   yearsFor,
 } from "../src/domain/calendar.ts";
 import { lifeStage } from "../src/domain/stage.ts";
+import { describeStorage } from "../src/domain/durability.ts";
 import { describeInstall, offerOnHome } from "../src/domain/install.ts";
 import { describeNudges } from "../src/domain/nudgeStatus.ts";
 import { nudgesFor, pruneNudges } from "../src/domain/nudges.ts";
@@ -531,6 +532,40 @@ describe("what this browser will let you install", () => {
   });
 });
 
+describe("whether this device will hold on to it", () => {
+  const able = { canAsk: true, persisted: false, installed: false, sweeps: false };
+
+  test("a browser with no answer to give is not spoken for", () => {
+    const status = describeStorage({ ...able, canAsk: false });
+    assert.equal(status.ask, false, "nothing to press when there is nothing to ask");
+    assert.equal(status.warn, true);
+  });
+
+  test("a promise given is reported, along with what it does not cover", () => {
+    const status = describeStorage({ ...able, persisted: true });
+    assert.equal(status.warn, false);
+    assert.equal(status.ask, false, "no point asking twice");
+    // The one thing that must never be implied is that this is now safe.
+    assert.match(status.line, /clearing your browsing data/i);
+  });
+
+  test("Safari is told about its own seven days, and the home screen changes it", () => {
+    const tab = describeStorage({ ...able, sweeps: true });
+    const installed = describeStorage({ ...able, sweeps: true, installed: true });
+
+    assert.match(tab.line, /seven days/);
+    assert.match(tab.line, /home screen/, "in a tab, the fix is to install it");
+    assert.match(installed.line, /opening it now and again/);
+    assert.equal(installed.warn, true, "installed is better, not solved");
+  });
+
+  test("everything else is warned about room, and offered the button", () => {
+    const status = describeStorage(able);
+    assert.match(status.line, /short of room/);
+    assert.equal(status.ask, true);
+  });
+});
+
 describe("theme", () => {
   test("an explicit choice wins over whatever the phone prefers", () => {
     assert.equal(resolveTheme("light", false), "light");
@@ -589,6 +624,77 @@ describe("keeping a backup", () => {
       describeBackup({ lastAt: "2026-08-31T09:00:00.000Z", count: 1, now: NOW }).line,
       /backed up yesterday/,
     );
+  });
+
+  /*
+   * The reminder is the only thing in the app that speaks without being spoken
+   * to, so the bar for it is set here and argued with here.
+   */
+  describe("and mentioning it unprompted", () => {
+    const old = "2026-08-01T00:00:00.000Z";
+
+    test("an empty book is never nagged, however long it has sat there", () => {
+      assert.equal(nudgeAboutBackup({ count: 0, keeping: false, now: NOW }).kind, "none");
+    });
+
+    test("a book with no copy anywhere says the plain thing", () => {
+      const nudge = nudgeAboutBackup({ count: 2, changedAt: old, keeping: false, now: NOW });
+      assert.equal(nudge.kind, "warn");
+      assert.match(nudge.kind === "warn" ? nudge.title : "", /Nothing is backed up yet/);
+    });
+
+    test("a baby added a moment ago is not answered with a warning", () => {
+      const nudge = nudgeAboutBackup({
+        count: 1,
+        changedAt: "2026-08-31T18:00:00.000Z",
+        keeping: false,
+        now: NOW,
+      });
+      assert.equal(nudge.kind, "none", "the grace is what stops it scolding on the way out");
+    });
+
+    test("a backup that covers everything is left unmentioned", () => {
+      const nudge = nudgeAboutBackup({
+        count: 2,
+        changedAt: old,
+        lastAt: "2026-08-02T00:00:00.000Z",
+        keeping: false,
+        now: NOW,
+      });
+      assert.equal(nudge.kind, "none");
+    });
+
+    test("automatic backups going quiet reads differently from never starting", () => {
+      const nudge = nudgeAboutBackup({
+        count: 2,
+        changedAt: old,
+        lastAt: "2026-07-01T00:00:00.000Z",
+        keeping: true,
+        now: NOW,
+      });
+      // Worse than never setting one up, because they think it is handled.
+      assert.match(nudge.kind === "warn" ? nudge.title : "", /Automatic backups have stopped/);
+    });
+
+    test("waving it away covers what was there, not what comes next", () => {
+      const hushed = "2026-08-15T00:00:00.000Z";
+      assert.equal(
+        nudgeAboutBackup({ count: 2, changedAt: old, hushedAt: hushed, keeping: false, now: NOW })
+          .kind,
+        "none",
+      );
+      assert.equal(
+        nudgeAboutBackup({
+          count: 3,
+          changedAt: "2026-08-20T00:00:00.000Z",
+          hushedAt: hushed,
+          keeping: false,
+          now: NOW,
+        }).kind,
+        "warn",
+        "a new baby is a new thing to lose",
+      );
+    });
   });
 
   test("the newest change in the book is the one that matters", () => {

@@ -6,6 +6,7 @@ import { emptyState } from "./components.ts";
 import { parseRoute, type AppContext, type Route } from "./context.ts";
 import { renderDetail } from "./detail.ts";
 import { clear, el } from "./dom.ts";
+import { onStorageChange } from "./durable.ts";
 import { renderEdit } from "./edit.ts";
 import { renderHome } from "./home.ts";
 import { onInstallChange } from "./installer.ts";
@@ -121,6 +122,11 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
   // The browser decides whether the app is installable some time after the
   // first paint, and changes its mind again once it has been installed.
   onInstallChange(() => {
+    if (!isFilling()) render();
+  });
+
+  // Whether storage is persisted is read asynchronously, so it lands late too.
+  onStorageChange(() => {
     if (!isFilling()) render();
   });
 
