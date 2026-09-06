@@ -5,12 +5,15 @@ import { readPersistence } from "./ui/durable.ts";
 import { watchForInstall } from "./ui/installer.ts";
 import { scheduleAutoBackup } from "./ui/keeper.ts";
 import { arrange, watchForNudges } from "./ui/nudger.ts";
+import { applyLang, currentCatalog } from "./ui/lang.ts";
 import { applyTheme, watchSystemTheme } from "./ui/theme.ts";
 
-// The inline script in index.html has already done this once to stop the flash;
-// this settles the theme-colour bar and keeps it in step with the system.
+// The inline script in index.html has already done both of these once to stop
+// the flash. This settles the theme-colour bar and keeps it in step with the
+// system, and puts the language and its direction on the document properly.
 applyTheme();
 watchSystemTheme();
+applyLang();
 
 // Chromium fires its install prompt early and exactly once, so the listener has
 // to be up before the app finishes reading the book off disk.
@@ -38,8 +41,7 @@ if (root) {
       root.prepend(
         Object.assign(document.createElement("p"), {
           className: "banner",
-          textContent:
-            "This browser will not let Stork save anything, so nothing you add here will survive closing the tab.",
+          textContent: currentCatalog().app.noStorage,
         }),
       );
     }

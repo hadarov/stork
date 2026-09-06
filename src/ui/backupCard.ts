@@ -18,14 +18,18 @@ import {
 import { noticeCard } from "./noticeCard.ts";
 
 export function backupCard(ctx: AppContext): HTMLElement | null {
-  const nudge = nudgeAboutBackup({
-    count: ctx.babies.length,
-    lastAt: lastBackupAt(),
-    changedAt: lastChangedAt(ctx.babies),
-    hushedAt: backupHushedAt(),
-    keeping: autoBackupOn(),
-    now: ctx.now,
-  });
+  const words = ctx.t.settings.backup;
+  const nudge = nudgeAboutBackup(
+    {
+      count: ctx.babies.length,
+      lastAt: lastBackupAt(),
+      changedAt: lastChangedAt(ctx.babies),
+      hushedAt: backupHushedAt(),
+      keeping: autoBackupOn(),
+      now: ctx.now,
+    },
+    ctx.t,
+  );
 
   if (nudge.kind === "none") return null;
 
@@ -40,16 +44,17 @@ export function backupCard(ctx: AppContext): HTMLElement | null {
         type: "button",
         onclick: async () => {
           try {
-            const said = await backUpNow(ctx.repo, ctx.now);
+            const said = await backUpNow(ctx.repo, ctx.now, ctx.t);
             if (said) ctx.toast(said);
             ctx.redraw();
           } catch {
-            ctx.toast("Could not write the backup");
+            ctx.toast(words.writeFailed);
           }
         },
       },
-      "Back up now",
+      words.nudgeAction,
     ),
+    dismissLabel: ctx.t.settings.settings.notNow,
     onDismiss: () => {
       hushBackupNudge(ctx.now);
       ctx.redraw();

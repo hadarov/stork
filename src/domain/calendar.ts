@@ -4,20 +4,11 @@
  * four years and then wrong again in February.
  */
 
-export const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+/*
+ * The month names used to live here as a list of English words. They are now
+ * asked of Intl in the language being read, so that the word the dropdown
+ * offers is the same word the app writes back into a date.
+ */
 
 export type Parts = { year: number; month: number; day: number };
 

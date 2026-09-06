@@ -1,3 +1,4 @@
+import type { Catalog } from "../i18n/en.ts";
 import type { Baby } from "./types.ts";
 
 /**
@@ -96,10 +97,15 @@ export function familyOf(baby: Baby, all: Baby[]): Family {
   return found ?? { parents: baby.parents, babies: [baby] };
 }
 
-/** How the sibling stands to this baby: "big sister", "little brother". */
-export function relation(baby: Baby, sibling: Baby): string {
+/**
+ * How the sibling stands to this baby: "big sister", "little brother". Both
+ * halves of it are gendered in Hebrew, so the wording is left to the
+ * catalogue rather than assembled from an order and a noun here.
+ */
+export function relation(baby: Baby, sibling: Baby, t: Catalog): string {
   const older = arrival(sibling) < arrival(baby);
-  if (sibling.sex === "girl") return older ? "big sister" : "little sister";
-  if (sibling.sex === "boy") return older ? "big brother" : "little brother";
-  return older ? "older sibling" : "younger sibling";
+  const { family } = t.book;
+  if (sibling.sex === "girl") return older ? family.bigSister : family.littleSister;
+  if (sibling.sex === "boy") return older ? family.bigBrother : family.littleBrother;
+  return older ? family.olderSibling : family.youngerSibling;
 }

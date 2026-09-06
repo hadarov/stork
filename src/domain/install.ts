@@ -14,6 +14,8 @@
  * will really do rather than what the feature is called.
  */
 
+import type { Catalog } from "../i18n/en.ts";
+
 export type InstallAbility = {
   /** Already opened from the home screen rather than in a tab. */
   installed: boolean;
@@ -30,27 +32,19 @@ export type InstallOffer =
   | { kind: "button"; title: string; line: string; label: string }
   | { kind: "steps"; title: string; line: string; steps: string[] };
 
-const TITLE = "Keep Stork on your home screen";
-
-// Worth saying rather than assumed: people install things they understand the
-// point of, and "works with no signal" is the part that is not obvious.
-const LINE =
-  "It gets its own icon, opens without the address bar, and keeps working with no signal.";
-
-export function describeInstall(ability: InstallAbility): InstallOffer {
+export function describeInstall(ability: InstallAbility, t: Catalog): InstallOffer {
   if (ability.installed) return { kind: "none" };
 
+  const words = t.settings.install;
+
   if (ability.canPrompt) {
-    return { kind: "button", title: TITLE, line: LINE, label: "Install Stork" };
+    return { kind: "button", title: words.title, line: words.line, label: words.action };
   }
 
   if (ability.byHand) {
-    return {
-      kind: "steps",
-      title: TITLE,
-      line: LINE,
-      steps: ["Tap the Share button", "Scroll down to Add to Home Screen", "Tap Add"],
-    };
+    // Copied rather than handed over, so nobody can edit the catalogue by
+    // editing the offer.
+    return { kind: "steps", title: words.title, line: words.line, steps: [...words.steps] };
   }
 
   return { kind: "none" };
@@ -60,6 +54,6 @@ export function describeInstall(ability: InstallAbility): InstallOffer {
  * The same offer, except the home screen only asks once. Settings keeps it
  * either way, so waving it away loses nothing but the asking.
  */
-export function offerOnHome(ability: InstallAbility): InstallOffer {
-  return ability.dismissed ? { kind: "none" } : describeInstall(ability);
+export function offerOnHome(ability: InstallAbility, t: Catalog): InstallOffer {
+  return ability.dismissed ? { kind: "none" } : describeInstall(ability, t);
 }

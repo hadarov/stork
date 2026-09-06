@@ -10,6 +10,7 @@
  * the first paint is how apps teach people to press No.
  */
 import type { StorageAbility } from "../domain/durability.ts";
+import type { Catalog } from "../i18n/en.ts";
 import { iPhoneish, standalone } from "./platform.ts";
 
 let persisted = false;
@@ -45,10 +46,10 @@ export async function readPersistence(): Promise<void> {
 }
 
 /** Needs a tap behind it, because in some browsers this is a permission. */
-export async function askToPersist(): Promise<string> {
+export async function askToPersist(t: Catalog): Promise<string> {
   const storage = manager();
   if (!storage || typeof storage.persist !== "function") {
-    return "This browser will not answer that.";
+    return t.settings.storage.wontAnswer;
   }
 
   try {
@@ -58,9 +59,7 @@ export async function askToPersist(): Promise<string> {
   }
   changed?.();
 
-  return persisted
-    ? "Your browser has agreed to keep it."
-    : "Your browser would not promise. The backup is the answer either way.";
+  return persisted ? t.settings.storage.agreed : t.settings.storage.refused;
 }
 
 /** The answer arrives after the first paint, so the app asks to be told. */

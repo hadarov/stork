@@ -7,6 +7,7 @@ import {
 } from "../domain/derive.ts";
 import type { Baby } from "../domain/types.ts";
 import { offerOnHome } from "../domain/install.ts";
+import type { Catalog } from "../i18n/en.ts";
 import { backupCard } from "./backupCard.ts";
 import { emptyState, iconButton, screenHeader, tile } from "./components.ts";
 import type { AppContext } from "./context.ts";
@@ -17,20 +18,22 @@ import { ability } from "./installer.ts";
 /** How far ahead the strip at the top looks. */
 const HORIZON_DAYS = 7;
 
-function matches(baby: Baby, needle: string): boolean {
+function matches(baby: Baby, needle: string, t: Catalog): boolean {
   if (!needle) return true;
-  const haystack = [displayName(baby), ...baby.parents, baby.notes ?? ""]
+  const haystack = [displayName(baby, t), ...baby.parents, baby.notes ?? ""]
     .join(" ")
     .toLowerCase();
   return haystack.includes(needle);
 }
 
 /** The two or three characters that fit under a name in the grid. */
-function shortStatus(baby: Baby, now: Date): string {
+function shortStatus(baby: Baby, now: Date, t: Catalog): string {
   if (baby.status === "expecting") {
-    return baby.dueDate ? dueCountdown(baby.dueDate, now).short : "soon";
+    return baby.dueDate ? dueCountdown(baby.dueDate, now, t).short : t.age.shortSoon;
   }
-  return baby.birthDate ? describeAge(baby.birthDate, now).short : "here";
+  return baby.birthDate
+    ? describeAge(baby.birthDate, now, t, baby.sex).short
+    : t.book.home.shortHere;
 }
 
 function grid(title: string, babies: Baby[], ctx: AppContext): HTMLElement | null {
@@ -44,9 +47,9 @@ function grid(title: string, babies: Baby[], ctx: AppContext): HTMLElement | nul
       "div",
       { class: "grid" },
       ...babies.map((baby) => {
-        const event = nextEvent(baby, ctx.now);
-        return tile(baby, ctx.now, {
-          sub: shortStatus(baby, ctx.now),
+        const event = nextEvent(baby, ctx.now, ctx.t);
+        return tile(baby, ctx.now, ctx.t, {
+          sub: shortStatus(baby, ctx.now, ctx.t),
           badge: event && event.daysUntil <= HORIZON_DAYS ? event.emoji : undefined,
           onOpen: () => ctx.navigate(`#/baby/${encodeURIComponent(baby.id)}`),
         });
@@ -61,7 +64,7 @@ function grid(title: string, babies: Baby[], ctx: AppContext): HTMLElement | nul
  */
 function thisWeek(babies: Baby[], ctx: AppContext): HTMLElement | null {
   const soon = babies
-    .map((baby) => ({ baby, event: nextEvent(baby, ctx.now) }))
+    .map((baby) => ({ baby, event: nextEvent(baby, ctx.now, ctx.t) }))
     .filter((entry) => entry.event !== null && entry.event.daysUntil <= HORIZON_DAYS)
     .sort((a, b) => a.event!.daysUntil - b.event!.daysUntil);
 
@@ -70,7 +73,7 @@ function thisWeek(babies: Baby[], ctx: AppContext): HTMLElement | null {
   return el(
     "section",
     { class: "week" },
-    el("h2", { class: "section-title" }, "This week"),
+    el("h2", { class: "section-title" }, ctx.t.book.home.thisWeek),
     el(
       "div",
       { class: "week-strip" },
@@ -83,7 +86,7 @@ function thisWeek(babies: Baby[], ctx: AppContext): HTMLElement | null {
             onclick: () => ctx.navigate(`#/baby/${encodeURIComponent(baby.id)}`),
           },
           el("span", { class: "week-emoji", "aria-hidden": "true" }, event!.emoji),
-          el("span", { class: "week-name" }, displayName(baby)),
+          el("span", { class: "week-name", dir: "auto" }, displayName(baby, ctx.t)),
           el("span", { class: "week-when" }, event!.label),
         ),
       ),
@@ -92,11 +95,13 @@ function thisWeek(babies: Baby[], ctx: AppContext): HTMLElement | null {
 }
 
 export function renderHome(ctx: AppContext): HTMLElement {
-  const header = screenHeader("Stork", {
+  const home = ctx.t.book.home;
+
+  const header = screenHeader(home.title, {
     mark: true,
     actions: [
-      iconButton("Settings", "\u2699", () => ctx.navigate("#/settings")),
-      iconButton("Add a baby", "\uFF0B", () => ctx.navigate("#/add")),
+      iconButton(home.settings, "\u2699", () => ctx.navigate("#/settings")),
+      iconButton(home.add, "\uFF0B", () => ctx.navigate("#/add")),
     ],
   });
 
@@ -108,9 +113,9 @@ export function renderHome(ctx: AppContext): HTMLElement {
   const search = el("input", {
     class: "search",
     type: "search",
-    placeholder: "Search a name or a friend",
+    placeholder: home.searchPlaceholder,
     value: query,
-    "aria-label": "Search",
+    "aria-label": home.searchLabel,
     oninput: (event: Event) => {
       query = (event.target as HTMLInputElement).value.trim().toLowerCase();
       paint();
@@ -118,20 +123,22 @@ export function renderHome(ctx: AppContext): HTMLElement {
   });
 
   function paint(): void {
-    const visible = ctx.babies.filter((baby) => matches(baby, query));
+    const visible = ctx.babies.filter((baby) => matches(baby, query, ctx.t));
     const expecting = sortByNextEvent(
       visible.filter((baby) => baby.status === "expecting"),
       ctx.now,
+      ctx.t,
     );
     const born = sortByNextEvent(
       visible.filter((baby) => baby.status === "born"),
       ctx.now,
+      ctx.t,
     );
 
     const children: (HTMLElement | null)[] = [];
     if (!query) children.push(thisWeek(ctx.babies, ctx));
-    children.push(grid("On the way", expecting, ctx));
-    children.push(grid("Little ones", born, ctx));
+    children.push(grid(home.expecting, expecting, ctx));
+    children.push(grid(home.born, born, ctx));
 
     const anything = children.some((child) => child !== null);
     results.replaceChildren(
@@ -139,14 +146,14 @@ export function renderHome(ctx: AppContext): HTMLElement {
         ? (children.filter(Boolean) as HTMLElement[])
         : [
             query
-              ? emptyState("Nobody by that name", "Try a parent's name instead.")
+              ? emptyState(home.noMatchTitle, home.noMatchBody)
               : emptyState(
-                  "No babies yet",
-                  "Add the first one and Stork will keep track of the dates for you.",
+                  home.emptyTitle,
+                  home.emptyBody,
                   el(
                     "button",
                     { class: "primary", type: "button", onclick: () => ctx.navigate("#/add") },
-                    "Add a baby",
+                    home.add,
                   ),
                 ),
           ]),
@@ -167,7 +174,7 @@ export function renderHome(ctx: AppContext): HTMLElement {
       // Under the grid rather than over it: an app you have not been sold on
       // yet should still show you the babies first. One thing asked at a time,
       // and a book nobody has a copy of is the worse of the two problems.
-      backupCard(ctx) ?? installCard(ctx, offerOnHome(ability()), { closeable: true }),
+      backupCard(ctx) ?? installCard(ctx, offerOnHome(ability(), ctx.t), { closeable: true }),
     ),
   );
 }

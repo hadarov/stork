@@ -10,6 +10,7 @@ import { onStorageChange } from "./durable.ts";
 import { renderEdit } from "./edit.ts";
 import { renderHome } from "./home.ts";
 import { onInstallChange } from "./installer.ts";
+import { currentCatalog, showJewishCalendar, watchSystemLang } from "./lang.ts";
 import { popup } from "./modal.ts";
 import { renderArrival, renderRemoveConfirm } from "./prompts.ts";
 import { renderSettings } from "./settings.ts";
@@ -99,7 +100,19 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
   };
 
   function context(): AppContext {
-    return { repo, babies, now: new Date(), navigate, back, finish, refresh, redraw: render, toast };
+    return {
+      repo,
+      babies,
+      now: new Date(),
+      t: currentCatalog(),
+      jewish: showJewishCalendar(),
+      navigate,
+      back,
+      finish,
+      refresh,
+      redraw: render,
+      toast,
+    };
   }
 
   /**
@@ -198,6 +211,11 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
 
   // Whether storage is persisted is read asynchronously, so it lands late too.
   onStorageChange(() => {
+    if (!isFilling()) render();
+  });
+
+  // A phone whose language was changed while the app was open.
+  watchSystemLang(() => {
     if (!isFilling()) render();
   });
 

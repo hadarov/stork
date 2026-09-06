@@ -1,12 +1,20 @@
 import { describeNudges, type NudgeAbility, type NudgeStatus } from "../domain/nudgeStatus.ts";
 import { nudgesFor, pruneNudges } from "../domain/nudges.ts";
+import type { Catalog } from "../i18n/en.ts";
 import { catchUp, forgetSaid, writeNudges } from "../storage/nudgeStore.ts";
 import type { BabyRepo } from "../storage/repo.ts";
+import { currentCatalog, showJewishCalendar } from "./lang.ts";
 
 /*
  * Reminders, arranged from the app's side. Everything that decides *what* to
  * say lives in domain/nudges.ts and everything that says it lives in the
  * service worker; this is the part that talks to the browser.
+ *
+ * It is also the one place the words are not handed down from a screen. A
+ * reminder is written now and read days later by a worker that cannot look
+ * anything up, and rearranging happens on a repo write with no screen involved,
+ * so the language and the calendar are read here from where they are kept.
+ * Both are still arguments, so a screen that has them can pass its own.
  */
 
 /** A day is the shortest Chrome will honour in practice, whatever we ask for. */
@@ -35,19 +43,20 @@ export function ability(): NudgeAbility {
   };
 }
 
-export function nudgeStatus(): NudgeStatus {
-  return describeNudges(ability());
+/** For a caller with no screen behind it, and so no words handed down to it. */
+export function nudgeStatus(t: Catalog = currentCatalog()): NudgeStatus {
+  return describeNudges(ability(), t);
 }
 
 /** Returns what to put in the toast, since the answer might be no. */
-export async function askToNudge(): Promise<string> {
-  if (typeof Notification !== "function") return "This browser cannot show reminders.";
+export async function askToNudge(t: Catalog = currentCatalog()): Promise<string> {
+  if (typeof Notification !== "function") return t.share.nudge.cannot;
 
   const answer = await Notification.requestPermission();
-  if (answer !== "granted") return "No reminders, then.";
+  if (answer !== "granted") return t.share.nudge.declined;
 
-  await arrange();
-  return "Reminders on.";
+  await arrange(undefined, new Date(), t);
+  return t.share.nudge.on;
 }
 
 /**
@@ -76,7 +85,12 @@ async function askToWake(registration: ServiceWorkerRegistration): Promise<void>
  * Cheap enough to run on every write and every launch, which is what keeps the
  * list honest after a birthday is corrected or a baby is removed.
  */
-export async function arrange(repo?: BabyRepo, now = new Date()): Promise<void> {
+export async function arrange(
+  repo?: BabyRepo,
+  now = new Date(),
+  t: Catalog = currentCatalog(),
+  jewish = showJewishCalendar(),
+): Promise<void> {
   if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
   if (typeof Notification !== "function" || Notification.permission !== "granted") return;
 
@@ -84,7 +98,7 @@ export async function arrange(repo?: BabyRepo, now = new Date()): Promise<void> 
   const babies = await (repo ?? current)?.list();
   if (!babies) return;
 
-  const nudges = pruneNudges(nudgesFor(babies, now), now);
+  const nudges = pruneNudges(nudgesFor(babies, now, t, jewish), now);
 
   // Whatever is already overdue was missed while we were closed; tick it off
   // rather than firing it, and only then hand the worker the new list.

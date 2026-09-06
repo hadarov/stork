@@ -1,6 +1,7 @@
 import { displayName } from "../domain/derive.ts";
 import { lifeStage } from "../domain/stage.ts";
 import type { Baby } from "../domain/types.ts";
+import type { Catalog } from "../i18n/en.ts";
 import { el } from "./dom.ts";
 
 /** Six pastels, picked from the id so a baby keeps the same colour forever. */
@@ -16,23 +17,28 @@ export function tintFor(id: string): string {
   return `tint-${tintIndex(id)}`;
 }
 
-export function glyphFor(baby: Baby, now: Date): string {
-  return lifeStage(baby, now).glyph;
+export function glyphFor(baby: Baby, now: Date, t: Catalog): string {
+  return lifeStage(baby, now, t).glyph;
 }
 
-export function avatar(baby: Baby, now: Date, size: "sm" | "lg" = "sm"): HTMLElement {
+export function avatar(
+  baby: Baby,
+  now: Date,
+  t: Catalog,
+  size: "sm" | "lg" = "sm",
+): HTMLElement {
   if (baby.photo) {
     return el("img", {
       class: `avatar avatar-${size}`,
       src: baby.photo,
-      alt: displayName(baby),
+      alt: displayName(baby, t),
       loading: "lazy",
     });
   }
   return el(
     "div",
     { class: `avatar avatar-${size} ${tintFor(baby.id)}`, "aria-hidden": "true" },
-    glyphFor(baby, now),
+    glyphFor(baby, now, t),
   );
 }
 
@@ -44,6 +50,7 @@ export function avatar(baby: Baby, now: Date, size: "sm" | "lg" = "sm"): HTMLEle
 export function tile(
   baby: Baby,
   now: Date,
+  t: Catalog,
   options: { sub: string; badge?: string; onOpen: () => void },
 ): HTMLElement {
   return el(
@@ -57,14 +64,17 @@ export function tile(
       "span",
       { class: `tile-art ${tintFor(baby.id)}` },
       baby.photo
-        ? el("img", { src: baby.photo, alt: displayName(baby), loading: "lazy" })
-        : el("span", { class: "tile-glyph", "aria-hidden": "true" }, glyphFor(baby, now)),
+        ? el("img", { src: baby.photo, alt: displayName(baby, t), loading: "lazy" })
+        : el("span", { class: "tile-glyph", "aria-hidden": "true" }, glyphFor(baby, now, t)),
     ),
-    el("span", { class: "tile-name" }, displayName(baby)),
-    // Ampersands rather than "and": there is only ever about one line of room,
-    // and whose baby this is matters more than the grammar of saying it.
+    // dir="auto" on anything somebody typed: a Hebrew name in an English book,
+    // or an English one in a Hebrew book, reads in its own direction rather
+    // than in the interface's.
+    el("span", { class: "tile-name", dir: "auto" }, displayName(baby, t)),
+    // The short join, because there is only ever about one line of room. What
+    // counts as short is the catalogue's business, not this file's.
     baby.parents.length > 0
-      ? el("span", { class: "tile-parents" }, baby.parents.join(" & "))
+      ? el("span", { class: "tile-parents", dir: "auto" }, t.label.shortList(baby.parents))
       : null,
     el("span", { class: "tile-sub" }, options.sub),
     options.badge
@@ -73,20 +83,21 @@ export function tile(
   );
 }
 
+/*
+ * No back arrow: everything that used to be a screen behind this one is a
+ * popup now, and a popup closes itself. The arrow was left over from the
+ * routed version and nothing had called for it in a while.
+ */
 export function screenHeader(
   title: string,
-  options: { onBack?: () => void; mark?: boolean; actions?: HTMLElement[] } = {},
+  options: {
+    mark?: boolean;
+    actions?: HTMLElement[];
+  } = {},
 ): HTMLElement {
   return el(
     "header",
     { class: "topbar" },
-    options.onBack
-      ? el(
-          "button",
-          { class: "icon-button", type: "button", "aria-label": "Back", onclick: options.onBack },
-          "\u2190",
-        )
-      : null,
     // Decorative: the word beside it already says Stork.
     options.mark ? el("img", { class: "logo", src: "./favicon.svg", alt: "" }) : null,
     el("h1", { class: "topbar-title" }, title),

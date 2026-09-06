@@ -52,8 +52,16 @@
   --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   --shadow-lift: 0 12px 32px rgba(0, 0, 0, 0.45);
 
+  /*
+   * The rounded faces at the front carry no Hebrew, so a Hebrew page falls
+   * through them to whatever the phone uses for Hebrew anyway. Naming those
+   * faces after them rather than leaving it to the last resort keeps the
+   * fallback a deliberate choice: Arial Hebrew and Narkisim are the rounded-ish
+   * ones already on iOS and Windows, and system-ui is right on Android.
+   */
   --font: ui-rounded, "SF Pro Rounded", "Segoe UI Variable Display", "Segoe UI",
-    Nunito, Quicksand, system-ui, -apple-system, sans-serif;
+    Nunito, Quicksand, system-ui, -apple-system, "Arial Hebrew", Narkisim,
+    sans-serif;
 }
 
 :root[data-theme="light"] {
@@ -294,7 +302,7 @@ button {
   flex-direction: column;
   gap: 0.4rem;
   margin: 0;
-  padding-left: 1.15rem;
+  padding-inline-start: 1.15rem;
   font-size: 0.9rem;
   color: var(--ink);
 }
@@ -404,7 +412,7 @@ button {
   border-radius: var(--radius-sm);
   background: var(--butter);
   color: var(--on-tint);
-  text-align: left;
+  text-align: start;
   transition: scale 0.12s ease, opacity 0.12s ease;
 }
 
@@ -497,7 +505,7 @@ button {
 .tile-badge {
   position: absolute;
   top: 0.4rem;
-  right: 0.4rem;
+  inset-inline-end: 0.4rem;
   display: grid;
   place-items: center;
   width: 1.6rem;
@@ -729,7 +737,7 @@ button {
   border: none;
   background: none;
   color: inherit;
-  text-align: left;
+  text-align: start;
   transition: scale 0.12s ease, opacity 0.12s ease;
 }
 
@@ -760,7 +768,7 @@ button {
   border-top: 1px solid var(--line);
   background: none;
   color: inherit;
-  text-align: left;
+  text-align: start;
   transition: scale 0.12s ease, opacity 0.12s ease;
 }
 
@@ -863,8 +871,9 @@ button {
 .timeline {
   list-style: none;
   margin: 0;
-  padding: 0 0 0 1.1rem;
-  border-left: 2px solid var(--line);
+  padding: 0;
+  padding-inline-start: 1.1rem;
+  border-inline-start: 2px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -878,7 +887,7 @@ button {
 
 .timeline-dot {
   position: absolute;
-  left: -1.45rem;
+  inset-inline-start: -1.45rem;
   top: 0.4rem;
   width: 0.65rem;
   height: 0.65rem;
@@ -980,13 +989,13 @@ textarea.input {
 }
 
 .date-part + .date-part {
-  border-left: 1px solid var(--edge);
+  border-inline-start: 1px solid var(--edge);
 }
 
 .date-part::after {
   content: "\25BE";
   position: absolute;
-  right: 0.55rem;
+  inset-inline-end: 0.55rem;
   top: 50%;
   translate: 0 -50%;
   color: var(--muted);

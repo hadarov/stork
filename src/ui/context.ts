@@ -1,4 +1,5 @@
 import type { Baby } from "../domain/types.ts";
+import type { Catalog } from "../i18n/en.ts";
 import type { BabyRepo } from "../storage/repo.ts";
 
 /** Everything a screen needs, handed down so no screen reaches for a global. */
@@ -7,6 +8,13 @@ export type AppContext = {
   babies: Baby[];
   /** Captured once per render so every countdown on screen agrees. */
   now: Date;
+  /**
+   * The words, in whichever language is on. Handed down the same way `now` is,
+   * so a screen cannot read one language while the one beside it reads another.
+   */
+  t: Catalog;
+  /** Whether the Hebrew calendar has anything to add on this screen. */
+  jewish: boolean;
   navigate: (path: string) => void;
   back: () => void;
   /**

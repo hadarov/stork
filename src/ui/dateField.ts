@@ -1,12 +1,12 @@
 import {
   daysFor,
   joinISO,
-  MONTHS,
   monthsFor,
   splitISO,
   yearsFor,
   type Parts,
 } from "../domain/calendar.ts";
+import type { Catalog } from "../i18n/en.ts";
 import { el } from "./dom.ts";
 
 /*
@@ -26,6 +26,7 @@ export type DateFieldOptions = {
   label: string;
   value: string;
   now: Date;
+  t: Catalog;
   /** A birthday is behind us; a due date is mostly ahead. */
   range: "past" | "future";
   hint?: string;
@@ -38,7 +39,21 @@ function option(value: string, text: string, selected: boolean): HTMLElement {
   return el("option", { value, ...(selected ? { selected: "selected" } : {}) }, text);
 }
 
+/**
+ * The twelve months, asked of the language rather than listed in the catalogue.
+ * The picker is the one place in the app where a month is chosen instead of
+ * read, and it would be a poor joke to offer a month here under one name and
+ * then show the date back under another. Any day will do to name a month, and
+ * the 1st exists in all twelve.
+ */
+function monthNames(t: Catalog): string[] {
+  const format = new Intl.DateTimeFormat(t.dateLocale, { month: "long" });
+  return Array.from({ length: 12 }, (_, index) => format.format(new Date(2000, index, 1)));
+}
+
 export function dateField(options: DateFieldOptions): HTMLElement {
+  const t = options.t;
+  const monthLabels = monthNames(t);
   const existing: Parts | null = splitISO(options.value);
   const draft: Draft = existing
     ? { ...existing }
@@ -47,13 +62,13 @@ export function dateField(options: DateFieldOptions): HTMLElement {
   const select = (what: string) =>
     el("select", {
       class: "date-select",
-      "aria-label": `${what} of ${options.label}`,
+      "aria-label": t.form.date.partLabel(what, options.label),
       onchange: () => onPick(),
     });
 
-  const day = select("Day");
-  const month = select("Month");
-  const year = select("Year");
+  const day = select(t.form.date.day);
+  const month = select(t.form.date.month);
+  const year = select(t.form.date.year);
 
   const part = (control: HTMLElement) => el("span", { class: "date-part" }, control);
 
@@ -67,7 +82,7 @@ export function dateField(options: DateFieldOptions): HTMLElement {
     const now = options.now;
 
     year.replaceChildren(
-      option("", "Year", draft.year === null),
+      option("", t.form.date.year, draft.year === null),
       ...yearsFor(options.range, now).map((value) =>
         option(String(value), String(value), draft.year === value),
       ),
@@ -78,9 +93,9 @@ export function dateField(options: DateFieldOptions): HTMLElement {
     const forYear = draft.year ?? now.getFullYear();
     const allowedMonths = draft.year ? monthsFor(options.range, now, forYear) : range12();
     month.replaceChildren(
-      option("", "Month", draft.month === null),
+      option("", t.form.date.month, draft.month === null),
       ...allowedMonths.map((value) =>
-        option(String(value), MONTHS[value - 1]!, draft.month === value),
+        option(String(value), monthLabels[value - 1]!, draft.month === value),
       ),
     );
 
@@ -89,7 +104,7 @@ export function dateField(options: DateFieldOptions): HTMLElement {
         ? daysFor(options.range, now, forYear, draft.month)
         : range31();
     day.replaceChildren(
-      option("", "Day", draft.day === null),
+      option("", t.form.date.day, draft.day === null),
       ...allowedDays.map((value) =>
         option(String(value), String(value), draft.day === value),
       ),
@@ -129,6 +144,10 @@ export function dateField(options: DateFieldOptions): HTMLElement {
     "div",
     { class: "field" },
     el("span", { class: "field-label" }, options.label),
+    // Day, month, year in that order in both languages, which is the order both
+    // of them say a date in. The page is dir="rtl" in Hebrew, so the browser
+    // hands the day back to the right-hand side on its own; reversing them here
+    // would only put the year where the day belongs.
     el("div", { class: "date-field" }, part(day), part(month), part(year)),
     options.hint ? el("span", { class: "field-hint" }, options.hint) : null,
   );
@@ -141,4 +160,3 @@ function range12(): number[] {
 function range31(): number[] {
   return Array.from({ length: 31 }, (_, index) => index + 1);
 }
-

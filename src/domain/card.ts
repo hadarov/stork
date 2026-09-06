@@ -1,3 +1,4 @@
+import type { Catalog } from "../i18n/en.ts";
 import { chineseSign, starSign } from "./almanac.ts";
 import {
   describeAge,
@@ -25,42 +26,48 @@ export type CardContent = {
   footer: string;
 };
 
-export function cardContent(baby: Baby, now: Date): CardContent {
-  const name = displayName(baby);
-  const parents = describeParents(baby.parents);
+export function cardContent(baby: Baby, now: Date, t: Catalog): CardContent {
+  const words = t.share.card;
+  const name = displayName(baby, t);
+  const parents = describeParents(baby.parents, t);
 
   if (baby.status === "born" && baby.birthDate) {
     const birth = parseDate(baby.birthDate);
-    const sun = starSign(birth);
-    const chinese = chineseSign(birth);
-    const weight = baby.birthWeightGrams ? describeWeight(baby.birthWeightGrams) : null;
+    const sun = starSign(birth, t);
+    const chinese = chineseSign(birth, t);
+    const weight = baby.birthWeightGrams ? describeWeight(baby.birthWeightGrams, t) : null;
 
     return {
       name,
       parents,
-      headline: describeAge(baby.birthDate, now).label,
+      // Sex goes in because Hebrew says an age as "בן שנתיים" or "בת שנתיים",
+      // and the card is the one place there is no room to hedge.
+      headline: describeAge(baby.birthDate, now, t, baby.sex).label,
       chips: [
-        `${sun.emoji} ${sun.name}`,
-        `${chinese.emoji} ${chinese.animal}`,
-        ...(weight ? [`\u2696\uFE0F ${weight.metric}`] : []),
+        words.chip(sun.emoji, sun.name),
+        words.chip(chinese.emoji, chinese.animal),
+        ...(weight ? [words.chip("\u2696\uFE0F", weight.metric)] : []),
       ],
-      footer: `Born ${formatDate(birth)}`,
+      footer: words.bornOn(formatDate(birth, t), baby.sex),
     };
   }
 
   if (!baby.dueDate) {
-    return { name, parents, headline: "On the way", chips: [], footer: "Watch this space" };
+    return { name, parents, headline: words.onTheWay, chips: [], footer: words.watchThisSpace };
   }
 
-  const due = dueCountdown(baby.dueDate, now);
-  const sun = starSign(due.date);
+  const due = dueCountdown(baby.dueDate, now, t);
+  const sun = starSign(due.date, t);
 
   return {
     name,
     parents,
     headline: due.label,
     // Only if they are punctual, which is why the sign is hedged here.
-    chips: [`${sun.emoji} ${sun.name}?`, `\u{1F423} Week ${due.week}`],
-    footer: `Due ${formatDate(due.date)}`,
+    chips: [
+      words.chip(sun.emoji, words.perhaps(sun.name)),
+      words.chip("\u{1F423}", t.due.week(due.week)),
+    ],
+    footer: words.dueOn(formatDate(due.date, t)),
   };
 }

@@ -1,3 +1,4 @@
+import type { Catalog } from "../i18n/en.ts";
 import { backupFilename, toBackup } from "../storage/backup.ts";
 import type { BabyRepo } from "../storage/repo.ts";
 import {
@@ -75,7 +76,8 @@ async function backupText(repo: BabyRepo, now: Date): Promise<string> {
  * the line to show, or "" when the person backed out of the share sheet, which
  * is a choice rather than a failure.
  */
-export async function backUpNow(repo: BabyRepo, now: Date): Promise<string> {
+export async function backUpNow(repo: BabyRepo, now: Date, t: Catalog): Promise<string> {
+  const words = t.settings.backup;
   const text = await backupText(repo, now);
   const name = backupFilename(now);
   const kind: VaultKind = vaultKind();
@@ -86,34 +88,41 @@ export async function backUpNow(repo: BabyRepo, now: Date): Promise<string> {
       remembered && (await writable(remembered)) ? remembered : await chooseFile(name);
     await writeTo(handle, text);
     write(LAST_AT, now.toISOString());
-    return `Saved to ${handle.name}`;
+    return words.savedTo(handle.name);
   }
 
   if (kind === "share") {
     const file = new File([text], name, { type: "application/json" });
     if (navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: "Stork backup" });
+        await navigator.share({ files: [file], title: words.shareTitle });
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return "";
         throw error;
       }
       write(LAST_AT, now.toISOString());
-      return "Choose Save to Files to keep it in iCloud Drive";
+      return words.saveToFiles;
     }
   }
 
   downloadBlob(name, new Blob([text], { type: "application/json" }));
   write(LAST_AT, now.toISOString());
-  return "Backup saved to your downloads";
+  return words.toDownloads;
 }
 
 /** Turning it on has to pick a place, so this also needs a tap behind it. */
-export async function setAutoBackup(on: boolean, repo: BabyRepo, now: Date): Promise<string> {
+export async function setAutoBackup(
+  on: boolean,
+  repo: BabyRepo,
+  now: Date,
+  t: Catalog,
+): Promise<string> {
+  const words = t.settings.backup;
+
   if (!on) {
     write(AUTO, undefined);
     await forgetHandle();
-    return "Backups are yours to make now";
+    return words.autoNowOff;
   }
 
   const remembered = await rememberedHandle();
@@ -122,7 +131,7 @@ export async function setAutoBackup(on: boolean, repo: BabyRepo, now: Date): Pro
   await writeTo(handle, await backupText(repo, now));
   write(LAST_AT, now.toISOString());
   write(AUTO, "on");
-  return `${handle.name} will be kept up to date`;
+  return words.autoNowOn(handle.name);
 }
 
 /* ------------------------------------------------------- the quiet rewrite */

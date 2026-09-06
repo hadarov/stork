@@ -11,39 +11,42 @@ import { popup } from "./modal.ts";
  */
 
 export function renderRemoveConfirm(ctx: AppContext, baby: Baby): HTMLElement {
+  const t = ctx.t;
+
   const remove = async (): Promise<void> => {
     await ctx.repo.remove(baby.id);
     await ctx.refresh();
-    ctx.toast(`${displayName(baby)} removed`);
+    ctx.toast(t.form.prompt.removed(displayName(baby, t)));
     // Back to the grid, past their own page: it has nothing left to show.
     ctx.finish("#/");
   };
 
   return popup({
-    title: "Remove?",
+    title: t.form.prompt.removeTitle,
     onClose: () => ctx.back(),
     body: [
-      el(
-        "p",
-        {},
-        `${displayName(baby)} will be taken out of your book, along with the dates and the photo.`,
-      ),
-      el("p", { class: "note" }, "There is no undo, but a backup you have already exported still has them."),
+      el("p", {}, t.form.prompt.removeBody(displayName(baby, t))),
+      el("p", { class: "note" }, t.form.prompt.removeNote),
       el(
         "div",
         { class: "prompt-actions" },
         el(
           "button",
           { class: "primary danger-fill", type: "button", onclick: () => remove() },
-          "Remove",
+          t.form.prompt.removeConfirm,
         ),
-        el("button", { class: "quiet", type: "button", onclick: () => ctx.back() }, "Keep"),
+        el(
+          "button",
+          { class: "quiet", type: "button", onclick: () => ctx.back() },
+          t.form.prompt.removeCancel,
+        ),
       ),
     ],
   });
 }
 
 export function renderArrival(ctx: AppContext, baby: Baby): HTMLElement {
+  const t = ctx.t;
   const today = toISODate(ctx.now);
   // Almost always today, since this gets tapped the moment the news lands.
   let birthDate = today;
@@ -51,8 +54,8 @@ export function renderArrival(ctx: AppContext, baby: Baby): HTMLElement {
   const chosen = el("p", { class: "note" });
   const paintChosen = (): void => {
     chosen.textContent = birthDate
-      ? `Born ${formatDate(parseDate(birthDate))}.`
-      : "Pick the day they arrived.";
+      ? t.form.prompt.born(formatDate(parseDate(birthDate), t))
+      : t.form.prompt.pickDay;
   };
   paintChosen();
 
@@ -69,20 +72,21 @@ export function renderArrival(ctx: AppContext, baby: Baby): HTMLElement {
 
     await ctx.repo.save(arrived);
     await ctx.refresh();
-    ctx.toast(`\u{1F389} Welcome, ${displayName(arrived)}!`);
+    ctx.toast(t.form.prompt.welcome(displayName(arrived, t), arrived.sex));
     ctx.finish(`#/baby/${encodeURIComponent(baby.id)}`);
   };
 
   return popup({
-    title: "They're here!",
+    title: t.form.prompt.arrivedTitle,
     onClose: () => ctx.back(),
     body: [
-      el("p", {}, `When did ${displayName(baby)} arrive?`),
+      el("p", {}, t.form.prompt.arrivedAsk(displayName(baby, t), baby.sex)),
       dateField({
-        label: "Birthday",
+        label: t.form.edit.birthday,
         range: "past",
         value: today,
         now: ctx.now,
+        t,
         onChange: (value) => {
           birthDate = value;
           paintChosen();
@@ -92,8 +96,16 @@ export function renderArrival(ctx: AppContext, baby: Baby): HTMLElement {
       el(
         "div",
         { class: "prompt-actions" },
-        el("button", { class: "primary", type: "button", onclick: () => arrive() }, "Yes, they're here"),
-        el("button", { class: "quiet", type: "button", onclick: () => ctx.back() }, "Not yet"),
+        el(
+          "button",
+          { class: "primary", type: "button", onclick: () => arrive() },
+          t.form.prompt.arrivedConfirm,
+        ),
+        el(
+          "button",
+          { class: "quiet", type: "button", onclick: () => ctx.back() },
+          t.form.prompt.arrivedCancel,
+        ),
       ),
     ],
   });

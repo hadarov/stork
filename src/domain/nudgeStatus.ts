@@ -9,6 +9,8 @@
  * plainly is better than promising a nudge that never comes.
  */
 
+import type { Catalog } from "../i18n/en.ts";
+
 export type NudgeAbility = {
   /** Whether the browser has the Notification API at all. */
   canNotify: boolean;
@@ -27,50 +29,28 @@ export type NudgeStatus = {
   fallback: boolean;
 };
 
-export function describeNudges(ability: NudgeAbility): NudgeStatus {
+export function describeNudges(ability: NudgeAbility, t: Catalog): NudgeStatus {
+  const words = t.settings.nudges;
+
   if (!ability.canNotify) {
-    return {
-      line: "This browser will not show reminders at all.",
-      action: null,
-      fallback: true,
-    };
+    return { line: words.cannot, action: null, fallback: true };
   }
 
   if (ability.permission === "denied") {
-    return {
-      line: "You turned reminders down. Undoing that has to happen in your browser's settings for this site.",
-      action: null,
-      fallback: true,
-    };
+    return { line: words.refused, action: null, fallback: true };
   }
 
   if (ability.permission === "default") {
-    return {
-      line: "A nudge a week before, and one on the morning itself.",
-      action: "ask",
-      fallback: false,
-    };
+    return { line: words.offer, action: "ask", fallback: false };
   }
 
   if (ability.canWake) {
-    return {
-      line: "On. A week before and on the morning, whether or not Stork is open.",
-      action: null,
-      fallback: false,
-    };
+    return { line: words.onProperly, action: null, fallback: false };
   }
 
   if (!ability.installed) {
-    return {
-      line: "On, but only while Stork is open. Add it to your home screen and it can reach you properly.",
-      action: "install",
-      fallback: true,
-    };
+    return { line: words.onlyOpen, action: "install", fallback: true };
   }
 
-  return {
-    line: "On, but this browser only checks when you open Stork, so a reminder can arrive late. The calendar export is the dependable one.",
-    action: null,
-    fallback: true,
-  };
+  return { line: words.onlyOnLaunch, action: null, fallback: true };
 }

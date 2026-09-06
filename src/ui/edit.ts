@@ -4,7 +4,7 @@ import type { AppContext } from "./context.ts";
 import { dateField } from "./dateField.ts";
 import { el } from "./dom.ts";
 import { popup } from "./modal.ts";
-import { readPhoto } from "./photo.ts";
+import { photoProblem, readPhoto } from "./photo.ts";
 
 type Draft = {
   status: BabyStatus;
@@ -67,6 +67,7 @@ export function renderEdit(
   existing: Baby | null,
   parents: string[] = [],
 ): HTMLElement {
+  const t = ctx.t;
   const draft = toDraft(existing, parents);
   const errors = el("p", { class: "form-error", role: "alert", hidden: true });
 
@@ -76,6 +77,10 @@ export function renderEdit(
   ): HTMLElement =>
     el(key === "notes" ? "textarea" : "input", {
       class: "input",
+      // Everything here is typed by hand, and a Hebrew name in an English book
+      // or an English one in a Hebrew book has to read in its own direction
+      // from the first letter rather than in the interface's.
+      dir: "auto",
       value: draft[key],
       oninput: (event: Event) => {
         draft[key] = (event.target as HTMLInputElement).value;
@@ -108,6 +113,7 @@ export function renderEdit(
       hint,
       value: draft[key],
       now: ctx.now,
+      t,
       onChange: (value) => {
         draft[key] = value;
       },
@@ -128,7 +134,7 @@ export function renderEdit(
       el(
         "button",
         { class: "secondary", type: "button", onclick: () => photoInput.click() },
-        draft.photo ? "Change photo" : "Add a photo",
+        draft.photo ? t.form.edit.changePhoto : t.form.edit.addPhoto,
       ),
       ...(draft.photo
         ? [
@@ -142,7 +148,7 @@ export function renderEdit(
                   paintPhoto();
                 },
               },
-              "Remove",
+              t.form.edit.removePhoto,
             ),
           ]
         : []),
@@ -161,7 +167,10 @@ export function renderEdit(
         draft.photo = await readPhoto(file);
         paintPhoto();
       } catch (error) {
-        ctx.toast(error instanceof Error ? error.message : "Could not read that image.");
+        // Which of the two went wrong is worth saying: picking the wrong sort
+        // of file is a thing you can put right, and a picture that will not
+        // open is not.
+        ctx.toast(t.app[photoProblem(error)]);
       } finally {
         // Lets the same file be picked again after a failure.
         input.value = "";
@@ -178,14 +187,14 @@ export function renderEdit(
   const expectingOnly = el(
     "div",
     { class: "field-group" },
-    datePicker("dueDate", "Due date", "future"),
+    datePicker("dueDate", t.form.edit.dueDate, "future"),
   );
   const bornOnly = el(
     "div",
     { class: "field-group" },
-    datePicker("birthDate", "Birthday", "past"),
+    datePicker("birthDate", t.form.edit.birthday, "past"),
     field(
-      "Time of birth",
+      t.form.edit.birthTime,
       el("input", {
         class: "input",
         type: "time",
@@ -194,13 +203,21 @@ export function renderEdit(
           draft.birthTime = (event.target as HTMLInputElement).value;
         },
       }),
-      "Optional, but it settles a star sign born on a cusp.",
+      t.form.edit.birthTimeHint,
     ),
     el(
       "div",
       { class: "field-pair" },
-      field("Weight", numberInput("birthWeight", { step: "0.01", placeholder: "3.4" }), "kg"),
-      field("Length", numberInput("birthLength", { step: "0.5", placeholder: "51" }), "cm"),
+      field(
+        t.form.edit.weight,
+        numberInput("birthWeight", { step: "0.01", placeholder: "3.4" }),
+        t.form.edit.kg,
+      ),
+      field(
+        t.form.edit.length,
+        numberInput("birthLength", { step: "0.5", placeholder: "51" }),
+        t.form.edit.cm,
+      ),
     ),
   );
 
@@ -217,11 +234,11 @@ export function renderEdit(
 
   const segmented = el(
     "div",
-    { class: "segmented", role: "group", "aria-label": "Has the baby arrived?" },
+    { class: "segmented", role: "group", "aria-label": t.form.edit.statusLabel },
     ...(
       [
-        ["expecting", "\u{1F95A} On the way"],
-        ["born", "\u{1F423} Here"],
+        ["expecting", `\u{1F95A} ${t.form.edit.statusExpecting}`],
+        ["born", `\u{1F423} ${t.form.edit.statusBorn}`],
       ] as const
     ).map(([status, label]) =>
       el("button", { type: "button", dataset: { status }, onclick: () => setStatus(status) }, label),
@@ -238,10 +255,10 @@ export function renderEdit(
     },
     ...(
       [
-        ["", "Rather not say"],
-        ["girl", "Girl"],
-        ["boy", "Boy"],
-        ["surprise", "A surprise"],
+        ["", t.form.edit.sexUnsaid],
+        ["girl", t.form.edit.sexGirl],
+        ["boy", t.form.edit.sexBoy],
+        ["surprise", t.form.edit.sexSurprise],
       ] as const
     ).map(([value, label]) => el("option", { value, selected: draft.sex === value }, label)),
   );
@@ -263,15 +280,15 @@ export function renderEdit(
     const length = measure(draft.birthLength, 20, 70);
 
     if (draft.status === "born" && !draft.birthDate) {
-      return fail("A birthday is needed once the baby is here.");
+      return fail(t.form.edit.needBirthday);
     }
-    if (weight === null) return fail("A birth weight between 0.2 and 8 kg, please.");
-    if (length === null) return fail("A birth length between 20 and 70 cm, please.");
+    if (weight === null) return fail(t.form.edit.badWeight(0.2, 8));
+    if (length === null) return fail(t.form.edit.badLength(20, 70));
     if (draft.status === "expecting" && !draft.dueDate && !draft.name) {
-      return fail("Add a due date, or at least a name to remember them by.");
+      return fail(t.form.edit.needDueOrName);
     }
     if (!draft.name && parents.length === 0) {
-      return fail("Add a name, or whose baby this is.");
+      return fail(t.form.edit.needNameOrParent);
     }
 
     const baby: Baby = {
@@ -298,7 +315,7 @@ export function renderEdit(
 
     await ctx.repo.save(baby);
     await ctx.refresh();
-    ctx.toast(existing ? "Saved" : "Added");
+    ctx.toast(existing ? t.form.edit.savedToast : t.form.edit.addedToast);
     ctx.finish(`#/baby/${encodeURIComponent(baby.id)}`);
   };
 
@@ -316,25 +333,39 @@ export function renderEdit(
     errors,
     segmented,
     el("div", { class: "photo-row" }, preview, photoButtons, photoInput),
-    field("Name", textInput("name", { placeholder: "Still deciding?" })),
-    field("Parent", textInput("parent", { placeholder: "Sarah" })),
-    field("Second parent", textInput("secondParent", { placeholder: "Optional" })),
+    field(t.form.edit.name, textInput("name", { placeholder: t.form.edit.namePlaceholder })),
+    field(t.form.edit.parent, textInput("parent", { placeholder: t.form.edit.parentPlaceholder })),
+    field(
+      t.form.edit.secondParent,
+      textInput("secondParent", { placeholder: t.form.edit.optional }),
+    ),
     expectingOnly,
     bornOnly,
-    field("Girl or boy", sexSelect),
-    field("Notes", textInput("notes", { rows: 3, placeholder: "Gift ideas, hospital, anything" })),
+    field(t.form.edit.sex, sexSelect),
+    field(
+      t.form.edit.notes,
+      textInput("notes", { rows: 3, placeholder: t.form.edit.notesPlaceholder }),
+    ),
     el(
       "div",
       { class: "form-actions" },
-      el("button", { class: "primary", type: "submit" }, existing ? "Save" : "Add baby"),
-      el("button", { class: "quiet", type: "button", onclick: () => ctx.back() }, "Cancel"),
+      el(
+        "button",
+        { class: "primary", type: "submit" },
+        existing ? t.form.edit.save : t.form.edit.add,
+      ),
+      el(
+        "button",
+        { class: "quiet", type: "button", onclick: () => ctx.back() },
+        t.form.edit.cancel,
+      ),
     ),
   );
 
   setStatus(draft.status);
 
   return popup({
-    title: existing ? "Edit" : "New baby",
+    title: existing ? t.form.edit.title : t.form.edit.titleNew,
     onClose: () => ctx.back(),
     body: [form],
   });

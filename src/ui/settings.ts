@@ -2,6 +2,8 @@ import { describeBackup } from "../domain/backupStatus.ts";
 import { describeStorage } from "../domain/durability.ts";
 import { describeInstall } from "../domain/install.ts";
 import { toICalendar } from "../domain/ics.ts";
+import { describeNudges } from "../domain/nudgeStatus.ts";
+import { CATALOGS, LANGS } from "../i18n/index.ts";
 import { readBackup } from "../storage/backup.ts";
 import { lastChangedAt } from "../storage/watchRepo.ts";
 import type { AppContext } from "./context.ts";
@@ -16,8 +18,15 @@ import {
 } from "./keeper.ts";
 import { installCard } from "./installCard.ts";
 import { ability } from "./installer.ts";
+import {
+  jewishChoice,
+  langChoice,
+  setJewishCalendar,
+  setLangChoice,
+  type LangChoice,
+} from "./lang.ts";
 import { popup } from "./modal.ts";
-import { askToNudge, nudgeStatus } from "./nudger.ts";
+import { arrange, askToNudge, ability as nudgeAbility } from "./nudger.ts";
 import { setThemeChoice, themeChoice } from "./theme.ts";
 
 function row(title: string, body: string, action: HTMLElement): HTMLElement {
@@ -38,15 +47,51 @@ function button(label: string, onClick: () => void, variant = "secondary"): HTML
   return el("button", { class: variant, type: "button", onclick: onClick }, label);
 }
 
+/**
+ * The control this screen uses for a choice between a handful of things. Every
+ * one of them has a default worth leaving alone, so the first option is always
+ * "whatever the phone, or the language, already says".
+ */
+function segmented<T>(
+  label: string,
+  options: readonly (readonly [T, string])[],
+  chosen: T,
+  choose: (value: T) => void,
+): HTMLElement {
+  return el(
+    "div",
+    { class: "segmented", role: "group", "aria-label": label },
+    ...options.map(([value, text]) =>
+      el(
+        "button",
+        {
+          type: "button",
+          class: chosen === value ? "active" : "",
+          "aria-pressed": String(chosen === value),
+          onclick: () => choose(value),
+        },
+        text,
+      ),
+    ),
+  );
+}
+
 export function renderSettings(ctx: AppContext): HTMLElement {
+  const words = ctx.t.settings.settings;
+  const backup = ctx.t.settings.backup;
+  const storage = ctx.t.settings.storage;
+
   const keeping = autoBackupOn();
-  const durability = describeStorage(storageAbility());
-  const status = describeBackup({
-    lastAt: lastBackupAt(),
-    changedAt: lastChangedAt(ctx.babies),
-    count: ctx.babies.length,
-    now: ctx.now,
-  });
+  const durability = describeStorage(storageAbility(), ctx.t);
+  const status = describeBackup(
+    {
+      lastAt: lastBackupAt(),
+      changedAt: lastChangedAt(ctx.babies),
+      count: ctx.babies.length,
+      now: ctx.now,
+    },
+    ctx.t,
+  );
 
   const importInput = el("input", {
     type: "file",
@@ -61,33 +106,31 @@ export function renderSettings(ctx: AppContext): HTMLElement {
       try {
         const incoming = readBackup(await file.text());
         if (incoming.length === 0) {
-          ctx.toast("Nothing readable in that file");
+          ctx.toast(backup.nothingReadable);
           return;
         }
         const result = await ctx.repo.merge(incoming);
         await ctx.refresh();
-        ctx.toast(
-          `${result.added} added, ${result.updated} updated, ${result.skipped} already current`,
-        );
+        ctx.toast(backup.merged(result.added, result.updated, result.skipped));
       } catch {
-        ctx.toast("Could not read that file");
+        ctx.toast(backup.unreadable);
       }
     },
   });
 
   const backUp = async (): Promise<void> => {
     try {
-      const said = await backUpNow(ctx.repo, ctx.now);
+      const said = await backUpNow(ctx.repo, ctx.now, ctx.t);
       if (said) ctx.toast(said);
       ctx.redraw();
     } catch {
-      ctx.toast("Could not write the backup");
+      ctx.toast(backup.writeFailed);
     }
   };
 
   const toggleAuto = async (): Promise<void> => {
     try {
-      ctx.toast(await setAutoBackup(!autoBackupOn(), ctx.repo, ctx.now));
+      ctx.toast(await setAutoBackup(!autoBackupOn(), ctx.repo, ctx.now, ctx.t));
       ctx.redraw();
     } catch {
       // Backing out of the folder picker lands here, and needs no telling off.
@@ -96,60 +139,95 @@ export function renderSettings(ctx: AppContext): HTMLElement {
 
   const exportIcs = (): void => {
     if (ctx.babies.length === 0) {
-      ctx.toast("No dates to export yet");
+      ctx.toast(words.nothingToExport);
       return;
     }
-    downloadFile("stork-babies.ics", "text/calendar", toICalendar(ctx.babies, ctx.now));
-    ctx.toast("Calendar file saved - open it to add every date");
+    downloadFile(
+      "stork-babies.ics",
+      "text/calendar",
+      toICalendar(ctx.babies, ctx.now, ctx.t, ctx.jewish),
+    );
+    ctx.toast(words.exported);
   };
 
-  const nudges = nudgeStatus();
-  const chosen = themeChoice();
-  const themePicker = el(
-    "div",
-    { class: "segmented", role: "group", "aria-label": "Theme" },
-    ...(
-      [
-        ["system", "Auto"],
-        ["dark", "Dark"],
-        ["light", "Light"],
-      ] as const
-    ).map(([value, label]) =>
-      el(
-        "button",
-        {
-          type: "button",
-          class: chosen === value ? "active" : "",
-          "aria-pressed": String(chosen === value),
-          onclick: () => {
-            setThemeChoice(value);
-            ctx.redraw();
-          },
-        },
-        label,
-      ),
-    ),
-  );
+  const nudges = describeNudges(nudgeAbility(), ctx.t);
+
+  /*
+   * Each language is offered in its own words rather than in the one currently
+   * on, because the person most likely to need this control is the one who
+   * cannot read the screen it is drawn on.
+   */
+  const langOptions: [LangChoice, string][] = [
+    ["system", words.langSystem],
+    ...LANGS.map((lang): [LangChoice, string] => [lang, CATALOGS[lang].name]),
+  ];
 
   return popup({
-    title: "Settings",
+    title: words.title,
     onClose: () => ctx.back(),
     body: [
       el(
         "section",
         { class: "panel" },
-        el("h2", { class: "section-title" }, "Look"),
-        el(
-          "p",
-          { class: "note" },
-          "Dark by default. The babies keep their colours either way - they are the only part that should be shouting.",
-        ),
-        themePicker,
+        el("h2", { class: "section-title" }, words.langSection),
+        el("p", { class: "note" }, words.langNote),
+        segmented(words.langLabel, langOptions, langChoice(), (choice) => {
+          setLangChoice(choice);
+          // Reminders are worded when they are worked out and read days later
+          // by a worker that cannot look anything up, so the pending ones have
+          // to be rewritten now or they arrive in the language just left.
+          void arrange(ctx.repo);
+          ctx.redraw();
+        }),
       ),
       el(
         "section",
         { class: "panel" },
-        el("h2", { class: "section-title" }, "Reminders"),
+        el("h2", { class: "section-title" }, words.jewishSection),
+        el("p", { class: "note" }, words.jewishNote),
+        // Three ways rather than two, because following the language is a real
+        // answer and a switch that is only on or off cannot be put back to it.
+        segmented(
+          words.jewishLabel,
+          [
+            [undefined, words.jewishAuto],
+            [true, words.jewishOn],
+            [false, words.jewishOff],
+          ] as const,
+          jewishChoice(),
+          (choice) => {
+            setJewishCalendar(choice);
+            // Same reason as the language: turning the Hebrew calendar on adds
+            // brit and Hebrew-birthday reminders that are not in the stored
+            // list yet, and turning it off leaves them there.
+            void arrange(ctx.repo);
+            ctx.redraw();
+          },
+        ),
+      ),
+      el(
+        "section",
+        { class: "panel" },
+        el("h2", { class: "section-title" }, words.lookSection),
+        el("p", { class: "note" }, words.lookNote),
+        segmented(
+          words.themeLabel,
+          [
+            ["system", words.themeAuto],
+            ["dark", words.themeDark],
+            ["light", words.themeLight],
+          ] as const,
+          themeChoice(),
+          (choice) => {
+            setThemeChoice(choice);
+            ctx.redraw();
+          },
+        ),
+      ),
+      el(
+        "section",
+        { class: "panel" },
+        el("h2", { class: "section-title" }, words.remindersSection),
         el(
           "p",
           { class: nudges.fallback ? "backup-line stale" : "backup-line" },
@@ -162,91 +240,67 @@ export function renderSettings(ctx: AppContext): HTMLElement {
                 class: "primary block",
                 type: "button",
                 onclick: async () => {
-                  ctx.toast(await askToNudge());
+                  ctx.toast(await askToNudge(ctx.t));
                   ctx.redraw();
                 },
               },
-              "Turn on reminders",
+              words.turnOnNudges,
             )
           : null,
         // Reminders used to spell out the iOS share sheet here, to everybody,
         // including the people whose browser has a real install button. The
         // panel below knows which one it is talking to.
       ),
-      installCard(ctx, describeInstall(ability()), { closeable: false }),
+      installCard(ctx, describeInstall(ability(), ctx.t), { closeable: false }),
       el(
         "section",
         { class: "panel" },
-        el("h2", { class: "section-title" }, "Your dates, elsewhere"),
-        row(
-          "Add every date to your calendar",
-          "Birthdays repeat every year, due dates land once, and both nudge you two days early.",
-          button("Export .ics", exportIcs),
-        ),
+        el("h2", { class: "section-title" }, words.calendarSection),
+        row(words.calendarTitle, words.calendarBody, button(words.exportIcs, exportIcs)),
       ),
       el(
         "section",
         { class: "panel" },
-        el("h2", { class: "section-title" }, "Backup"),
-        el(
-          "p",
-          { class: "note" },
-          "Everything you add lives on this device only. Nothing is uploaded and nobody else can see it, which also means clearing your browser data would take it with it.",
-        ),
-        el(
-          "p",
-          { class: "note" },
-          "Put the backup somewhere your phone already syncs - iCloud Drive, Google Drive, Dropbox - and it will follow you to a new phone without anyone running a server for you.",
-        ),
+        el("h2", { class: "section-title" }, backup.section),
+        el("p", { class: "note" }, backup.onDevice),
+        el("p", { class: "note" }, backup.syncFolder),
         el("p", { class: durability.warn ? "backup-line stale" : "backup-line" }, durability.line),
         durability.ask
           ? row(
-              "Ask your browser to keep it",
-              "Takes Stork off the list of things cleared to make room. It cannot stop you clearing your browsing data by hand, and nothing can.",
-              button("Ask", async () => {
-                ctx.toast(await askToPersist());
+              storage.askTitle,
+              storage.askBody,
+              button(storage.askAction, async () => {
+                ctx.toast(await askToPersist(ctx.t));
                 ctx.redraw();
               }),
             )
           : null,
         el("p", { class: status.stale ? "backup-line stale" : "backup-line" }, status.line),
         row(
-          "Back up now",
-          keeping
-            ? "Written automatically whenever anything changes."
-            : "Choose the folder once; after that it is one tap.",
-          button("Back up", () => backUp(), "primary"),
+          backup.nowTitle,
+          keeping ? backup.nowBodyAuto : backup.nowBodyManual,
+          button(backup.nowAction, () => backUp(), "primary"),
         ),
         canKeepUpdated()
           ? row(
-              "Keep it updated",
-              keeping
-                ? "On. The same file is rewritten a couple of seconds after any change."
-                : "Rewrite that file by itself, so you never have to remember.",
-              button(keeping ? "Turn off" : "Turn on", () => toggleAuto()),
+              backup.autoTitle,
+              keeping ? backup.autoBodyOn : backup.autoBodyOff,
+              button(keeping ? backup.turnOff : backup.turnOn, () => toggleAuto()),
             )
           : null,
         row(
-          "Restore a backup",
-          "Merges rather than overwrites: the newer version of each baby wins.",
-          button("Import", () => importInput.click()),
+          backup.restoreTitle,
+          backup.restoreBody,
+          button(backup.restoreAction, () => importInput.click()),
         ),
         importInput,
       ),
       el(
         "section",
         { class: "panel" },
-        el("h2", { class: "section-title" }, "About"),
-        el(
-          "p",
-          { class: "note" },
-          "Stork keeps up with your friends' babies so you do not have to: who is due when, who just arrived, whose birthday is next, and whether you ever did send that gift.",
-        ),
-        el(
-          "p",
-          { class: "note" },
-          "Star sign dates shift by a day between years, so a birthday on a boundary is flagged rather than guessed. The Chinese zodiac turns over at Lunar New Year, not on 1 January.",
-        ),
+        el("h2", { class: "section-title" }, words.aboutSection),
+        el("p", { class: "note" }, words.aboutWhat),
+        el("p", { class: "note" }, words.aboutSigns),
       ),
     ],
   });

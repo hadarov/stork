@@ -6,10 +6,26 @@
 const MAX_EDGE = 480;
 const QUALITY = 0.82;
 
+/**
+ * Why a picture would not open, as something a screen can look up rather than
+ * a sentence. This file has no language: it is handed a file and gives back a
+ * data URL, and the screen that called it is the one that knows what the
+ * reader is reading.
+ */
+export type PhotoProblem = "notAPhoto" | "badPhoto";
+
+export function photoProblem(error: unknown): PhotoProblem {
+  return (error as { problem?: PhotoProblem })?.problem === "notAPhoto"
+    ? "notAPhoto"
+    : "badPhoto";
+}
+
+function refuse(problem: PhotoProblem): Error {
+  return Object.assign(new Error(problem), { problem });
+}
+
 export async function readPhoto(file: File): Promise<string> {
-  if (!file.type.startsWith("image/")) {
-    throw new Error("That does not look like an image.");
-  }
+  if (!file.type.startsWith("image/")) throw refuse("notAPhoto");
 
   const bitmap = await loadBitmap(file);
   try {
@@ -24,7 +40,7 @@ export async function readPhoto(file: File): Promise<string> {
     canvas.height = size;
 
     const context = canvas.getContext("2d");
-    if (!context) throw new Error("Could not read that image.");
+    if (!context) throw refuse("badPhoto");
     context.drawImage(bitmap, sx, sy, edge, edge, 0, 0, size, size);
 
     return canvas.toDataURL("image/jpeg", QUALITY);
@@ -44,7 +60,7 @@ async function loadBitmap(file: File): Promise<ImageBitmap> {
     const image = new Image();
     await new Promise<void>((resolve, reject) => {
       image.onload = () => resolve();
-      image.onerror = () => reject(new Error("Could not read that image."));
+      image.onerror = () => reject(refuse("badPhoto"));
       image.src = url;
     });
     return await createImageBitmap(image);

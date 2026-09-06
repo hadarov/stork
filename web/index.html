@@ -16,7 +16,8 @@
 
     <!--
       Before the first paint, or a light-mode phone flashes black on every
-      launch. The app sets this again properly once main.js has loaded.
+      launch and a Hebrew one flashes the whole layout the wrong way round.
+      The app sets both again properly once main.js has loaded.
     -->
     <script>
       try {
@@ -29,6 +30,24 @@
               : "dark";
       } catch (error) {
         document.documentElement.dataset.theme = "dark";
+      }
+
+      try {
+        var lang = localStorage.getItem("stork.lang");
+        if (lang !== "en" && lang !== "he") {
+          var asked = navigator.languages || [navigator.language || "en"];
+          lang = "en";
+          for (var i = 0; i < asked.length; i++) {
+            var base = String(asked[i]).toLowerCase().split("-")[0];
+            if (base === "he" || base === "iw") { lang = "he"; break; }
+            if (base === "en") break;
+          }
+        }
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
+      } catch (error) {
+        document.documentElement.lang = "en";
+        document.documentElement.dir = "ltr";
       }
     </script>
 
@@ -46,9 +65,14 @@
   </head>
   <body>
     <div id="app"></div>
+    <!-- Both languages, because the script that picks between them is the
+         very thing that is not running. -->
     <noscript>
-      <p style="padding: 2rem; text-align: center">
+      <p style="padding: 2rem 2rem 0; text-align: center" lang="en" dir="ltr">
         Stork needs JavaScript to work out ages and countdowns.
+      </p>
+      <p style="padding: 0 2rem 2rem; text-align: center" lang="he" dir="rtl">
+        סטורק צריך JavaScript כדי לחשב גילים וספירה לאחור.
       </p>
     </noscript>
     <script type="module" src="./main.js"></script>

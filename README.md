@@ -155,6 +155,80 @@ announced it said one and whoever reads the page is thinking in the other.
 The home screen opens on a **This week** strip: anything due, arriving or having
 a birthday in the next seven days, before anything else.
 
+## In Hebrew
+
+The whole app is in English and Hebrew, picked in Settings or taken from the
+phone, and the page lays itself out right to left when it needs to.
+
+Translating it was not a matter of swapping the strings, for three reasons.
+
+**Hebrew has grammatical gender, and the app knows the answer.** There is no
+genderless way to say how old somebody is: a boy is `בן שנתיים` and a girl is
+`בת שנתיים`. Sex is already a field, so it says it properly. When the surprise
+was kept it drops the `בן`/`בת` and gives the duration on its own, which reads
+perfectly well - better, certainly, than guessing, and better than printing
+`בן/בת` with a slash in it.
+
+**Two of anything has its own word.** `יומיים`, not "2 ימים". Using the plural
+with a 2 in front is the single clearest sign that a Hebrew interface was
+translated rather than written, so every duration in the app handles one, two
+and many separately.
+
+**Some things do not survive translation at all.** "Monday's child is fair of
+face" is an English nursery rhyme, and a literal Hebrew version is neither a
+rhyme nor anything anyone has heard of. The Hebrew catalogue leaves that field
+empty and the page omits the row, rather than printing a flat sentence
+pretending to be a rhyme.
+
+Because word order moves, anything with a value in it is a function rather than
+a sentence with a hole punched in it. `turns 4th in a week` and its Hebrew
+equivalent do not put the pieces in the same order, and a language that could
+only fill blanks could not say it.
+
+Nothing type-checks the two catalogues against each other, because the build
+strips types rather than compiling them. A test does it instead: it walks both
+and fails if Hebrew is missing a key, has one English has not got, or has left
+a string in Latin letters.
+
+### The Hebrew calendar
+
+A separate switch, which follows the language until you say otherwise, because
+plenty of people read the app in English and still want to know the baby was
+born on Chanukah.
+
+- **The Hebrew date of birth**, and the **Hebrew birthday**, which is a real
+  second date to remember: the year is lunisolar, so it walks a couple of weeks
+  around the Gregorian one and there is no arithmetic that finds it. The app
+  finds it by looking, a day at a time.
+- **A leap year has two Adars.** Somebody born in plain Adar keeps their
+  birthday in Adar II in a year that has both, and somebody born in either Adar
+  of a leap year gets the single Adar otherwise.
+- **Heshvan and Kislev are 29 days some years and 30 in others**, so a baby
+  born on the 30th has years with no such date. It keeps to the first of the
+  next month, and the page says so rather than moving quietly.
+- **Brit milah**, on the eighth day counting the birth as the first, which puts
+  it a week later on the same weekday.
+- **The chagim**, when a birth or a due date lands on one.
+
+It is built on `Intl` with the `hebrew` calendar rather than on a table of dates
+or a package, so it stays correct for as long as the browser does and adds
+nothing to the download.
+
+The dates are written out by naming the fields rather than asking for a
+`dateStyle`, which looks like the long way round and is not: Chrome has no long
+Hebrew-calendar style for a Hebrew locale and quietly falls back to `57861217
+12:00 PM`, the numbers run together with a time nobody asked for. Naming the
+fields gives the same answer in every engine. They are also written in ordinary
+numerals - `17 באלול 5786` rather than `י״ז באלול תשפ״ו` - because no engine
+offers the letter-numerals reliably, and a date that reads one way on one phone
+and another way on the next is worse than one that is merely plain.
+
+One thing it deliberately does not do is move the day at sunset. A Hebrew day
+begins in the evening, so a baby born at nine at night already belongs to the
+next one - but the app is given a date, usually second hand and often with no
+time at all. Guessing would be worse than being honest, so the page says where
+the date came from instead.
+
 ## Families
 
 Two babies who share a parent's name are siblings, worked out from what you

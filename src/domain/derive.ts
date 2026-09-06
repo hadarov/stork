@@ -1,4 +1,5 @@
-import type { Baby } from "./types.ts";
+import type { Catalog } from "../i18n/en.ts";
+import type { Baby, BabySex } from "./types.ts";
 
 export {
   birthFlower,
@@ -60,38 +61,28 @@ export function addMonths(date: Date, months: number): Date {
 }
 
 /*
- * Every date is written the same way wherever it is read, rather than in each
- * phone's own locale. The app draws dates into a shareable picture, so leaving
- * it to the device would mean a card saying "June 15" when one friend makes it
- * and "15 June" when another does, from the same baby and the same button.
+ * Every date is written in the language's own locale, but pinned to that
+ * rather than to the phone's. The app draws dates into a shareable picture, so
+ * leaving it to the device would mean a card saying "June 15" when one friend
+ * makes it and "15 June" when another does, from the same baby and the same
+ * button, both of them reading the app in English.
  *
  * It also makes the tests mean something. They were written on a machine that
  * reports en-IL and asserted "15 June 2024"; the same suite on a runner that
  * defaults to en-US read "June 15, 2024" and failed, having found nothing
  * wrong with the app at all.
  */
-const DATE_LOCALE = "en-GB";
 
-export function formatDate(date: Date): string {
-  return date.toLocaleDateString(DATE_LOCALE, {
+export function formatDate(date: Date, t: Catalog): string {
+  return date.toLocaleDateString(t.dateLocale, {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
 }
 
-export function formatShortDate(date: Date): string {
-  return date.toLocaleDateString(DATE_LOCALE, { day: "numeric", month: "short" });
-}
-
-function plural(count: number, word: string): string {
-  return `${count} ${word}${count === 1 ? "" : "s"}`;
-}
-
-export function ordinal(n: number): string {
-  const rest = n % 100;
-  if (rest >= 11 && rest <= 13) return `${n}th`;
-  return `${n}${["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
+export function formatShortDate(date: Date, t: Catalog): string {
+  return date.toLocaleDateString(t.dateLocale, { day: "numeric", month: "short" });
 }
 
 /* ------------------------------------------------------------ how big */
@@ -107,19 +98,19 @@ const GRAMS_PER_OUNCE = 28.349523125;
  * Birth weight both ways round. Whoever announced it said one of the two, and
  * whoever reads this page is probably thinking in the other.
  */
-export function describeWeight(grams: number): { metric: string; imperial: string } {
+export function describeWeight(grams: number, t: Catalog): { metric: string; imperial: string } {
   const ounces = Math.round(grams / GRAMS_PER_OUNCE);
   const pounds = Math.floor(ounces / 16);
   return {
-    metric: `${trim((grams / 1000).toFixed(2))} kg`,
-    imperial: `${pounds} lb ${ounces % 16} oz`,
+    metric: t.size.kg(trim((grams / 1000).toFixed(2))),
+    imperial: t.size.lbOz(pounds, ounces % 16),
   };
 }
 
-export function describeLength(cm: number): { metric: string; imperial: string } {
+export function describeLength(cm: number, t: Catalog): { metric: string; imperial: string } {
   return {
-    metric: `${trim(cm.toFixed(1))} cm`,
-    imperial: `${trim((cm / 2.54).toFixed(1))} in`,
+    metric: t.size.cm(trim(cm.toFixed(1))),
+    imperial: t.size.inches(trim((cm / 2.54).toFixed(1))),
   };
 }
 
@@ -137,30 +128,28 @@ export type Age = {
  * Newborns are counted in days, then weeks, then months, then years, because
  * "0 years old" is useless and nobody says "82 weeks".
  */
-export function describeAge(birthDate: string, now: Date): Age {
+export function describeAge(birthDate: string, now: Date, t: Catalog, sex?: BabySex): Age {
   const birth = parseDate(birthDate);
   const days = daysBetween(birth, now);
 
-  if (days < 0) return { days, label: "not here yet", short: "soon" };
-  if (days === 0) return { days, label: "born today", short: "new" };
-  if (days < 14) return { days, label: `${plural(days, "day")} old`, short: `${days}d` };
+  if (days < 0) return { days, label: t.age.notYet, short: t.age.shortSoon };
+  if (days === 0) return { days, label: t.age.bornToday, short: t.age.shortNew };
+  if (days < 14) return { days, label: t.age.days(days, sex), short: t.age.shortDays(days) };
 
   const months = monthsBetween(birth, now);
   if (months < 3) {
     const weeks = Math.floor(days / 7);
-    return { days, label: `${plural(weeks, "week")} old`, short: `${weeks}w` };
+    return { days, label: t.age.weeks(weeks, sex), short: t.age.shortWeeks(weeks) };
   }
   if (months < 24) {
-    return { days, label: `${plural(months, "month")} old`, short: `${months}m` };
+    return { days, label: t.age.months(months, sex), short: t.age.shortMonths(months) };
   }
 
   const years = Math.floor(months / 12);
   const extraMonths = months % 12;
   const label =
-    extraMonths === 0
-      ? `${plural(years, "year")} old`
-      : `${plural(years, "year")}, ${plural(extraMonths, "month")} old`;
-  return { days, label, short: `${years}y` };
+    extraMonths === 0 ? t.age.years(years, sex) : t.age.yearsMonths(years, extraMonths, sex);
+  return { days, label, short: t.age.shortYears(years) };
 }
 
 /* --------------------------------------------------------------- birthday */
@@ -214,7 +203,7 @@ export type DueInfo = {
   short: string;
 };
 
-export function dueCountdown(dueDate: string, now: Date): DueInfo {
+export function dueCountdown(dueDate: string, now: Date, t: Catalog): DueInfo {
   const date = parseDate(dueDate);
   const daysUntil = daysBetween(now, date);
   const week = Math.max(0, Math.min(42, Math.floor((GESTATION_DAYS - daysUntil) / 7)));
@@ -223,21 +212,21 @@ export function dueCountdown(dueDate: string, now: Date): DueInfo {
   let label: string;
   let short: string;
   if (daysUntil === 0) {
-    label = "due today";
-    short = "today";
+    label = t.due.today;
+    short = t.due.shortToday;
   } else if (daysUntil < 0) {
-    label = `${plural(-daysUntil, "day")} overdue`;
-    short = `+${-daysUntil}d`;
+    label = t.due.overdue(-daysUntil);
+    short = t.due.shortOverdue(-daysUntil);
   } else if (daysUntil === 1) {
-    label = "due tomorrow";
-    short = "1d";
+    label = t.due.tomorrow;
+    short = t.due.shortDays(1);
   } else if (daysUntil < 21) {
-    label = `due in ${plural(daysUntil, "day")}`;
-    short = `${daysUntil}d`;
+    label = t.due.inDays(daysUntil);
+    short = t.due.shortDays(daysUntil);
   } else {
     const weeks = Math.round(daysUntil / 7);
-    label = `due in ${plural(weeks, "week")}`;
-    short = `${weeks}w`;
+    label = t.due.inWeeks(weeks);
+    short = t.due.shortWeeks(weeks);
   }
 
   return { date, daysUntil, week, trimester, overdue: daysUntil < 0, label, short };
@@ -253,14 +242,14 @@ export type Milestone = {
   done: boolean;
 };
 
-export function milestones(birthDate: string, now: Date): Milestone[] {
+export function milestones(birthDate: string, now: Date, t: Catalog): Milestone[] {
   const birth = parseDate(birthDate);
   const points: { key: string; label: string; date: Date }[] = [
-    { key: "born", label: "Arrived", date: birth },
-    { key: "d100", label: "100 days", date: addDays(birth, 100) },
-    { key: "m6", label: "Half a year", date: addMonths(birth, 6) },
-    { key: "y1", label: "First birthday", date: addMonths(birth, 12) },
-    { key: "y2", label: "Second birthday", date: addMonths(birth, 24) },
+    { key: "born", label: t.milestone.born, date: birth },
+    { key: "d100", label: t.milestone.d100, date: addDays(birth, 100) },
+    { key: "m6", label: t.milestone.m6, date: addMonths(birth, 6) },
+    { key: "y1", label: t.milestone.y1, date: addMonths(birth, 12) },
+    { key: "y2", label: t.milestone.y2, date: addMonths(birth, 24) },
   ];
 
   return points.map((point) => {
@@ -285,10 +274,10 @@ export type Upcoming = {
  * The single next thing worth knowing about a baby. Drives the order of the
  * home list and the "this week" strip, which is the whole point of the app.
  */
-export function nextEvent(baby: Baby, now: Date): Upcoming | null {
+export function nextEvent(baby: Baby, now: Date, t: Catalog): Upcoming | null {
   if (baby.status === "expecting") {
     if (!baby.dueDate) return null;
-    const due = dueCountdown(baby.dueDate, now);
+    const due = dueCountdown(baby.dueDate, now, t);
     return {
       kind: "due",
       date: due.date,
@@ -300,19 +289,19 @@ export function nextEvent(baby: Baby, now: Date): Upcoming | null {
 
   if (!baby.birthDate) return null;
 
-  const age = describeAge(baby.birthDate, now);
+  const age = describeAge(baby.birthDate, now, t, baby.sex);
   if (age.days === 0) {
     return {
       kind: "arrival",
       date: parseDate(baby.birthDate),
       daysUntil: 0,
-      label: "arrived today",
+      label: t.next.arrivedToday,
       emoji: "\u{1F389}",
     };
   }
 
   const birthday = nextBirthday(baby.birthDate, now);
-  const soonestMilestone = milestones(baby.birthDate, now)
+  const soonestMilestone = milestones(baby.birthDate, now, t)
     .filter((point) => point.daysUntil > 0 && point.key !== "born")
     .sort((a, b) => a.daysUntil - b.daysUntil)[0];
 
@@ -327,32 +316,32 @@ export function nextEvent(baby: Baby, now: Date): Upcoming | null {
       kind: "milestone",
       date: soonestMilestone.date,
       daysUntil: soonestMilestone.daysUntil,
-      label: `${soonestMilestone.label} in ${plural(soonestMilestone.daysUntil, "day")}`,
+      label: t.milestone.inDays(soonestMilestone.label, soonestMilestone.daysUntil),
       emoji: "\u{2B50}",
     };
   }
 
-  const when =
+  const label =
     birthday.daysUntil === 0
-      ? "today"
+      ? t.next.birthdayToday(birthday.turning, baby.sex)
       : birthday.daysUntil === 1
-        ? "tomorrow"
-        : `in ${plural(birthday.daysUntil, "day")}`;
+        ? t.next.birthdayTomorrow(birthday.turning, baby.sex)
+        : t.next.birthdayInDays(birthday.turning, birthday.daysUntil, baby.sex);
   return {
     kind: "birthday",
     date: birthday.date,
     daysUntil: birthday.daysUntil,
-    label: `turns ${ordinal(birthday.turning)} ${when}`,
+    label,
     emoji: "\u{1F382}",
   };
 }
 
 /** Sort key: soonest first, with anything undated pushed to the end. */
-export function sortByNextEvent(babies: Baby[], now: Date): Baby[] {
+export function sortByNextEvent(babies: Baby[], now: Date, t: Catalog): Baby[] {
   return [...babies].sort((a, b) => {
-    const left = nextEvent(a, now);
-    const right = nextEvent(b, now);
-    if (!left && !right) return displayName(a).localeCompare(displayName(b));
+    const left = nextEvent(a, now, t);
+    const right = nextEvent(b, now, t);
+    if (!left && !right) return displayName(a, t).localeCompare(displayName(b, t), t.dateLocale);
     if (!left) return 1;
     if (!right) return -1;
     // Overdue and just-happened events stay pinned at the top.
@@ -362,15 +351,15 @@ export function sortByNextEvent(babies: Baby[], now: Date): Baby[] {
 
 /* -------------------------------------------------------------- labelling */
 
-export function displayName(baby: Baby): string {
+export function displayName(baby: Baby, t: Catalog): string {
   if (baby.name) return baby.name;
-  if (baby.parents.length > 0) return `${baby.parents[0]}'s baby`;
-  return "Baby on the way";
+  if (baby.parents.length > 0) return t.label.parentsBaby(baby.parents[0]);
+  return t.label.unnamed;
 }
 
-export function describeParents(parents: string[]): string {
+export function describeParents(parents: string[], t: Catalog): string {
   if (parents.length === 0) return "";
   if (parents.length === 1) return parents[0];
-  if (parents.length === 2) return `${parents[0]} and ${parents[1]}`;
-  return `${parents.slice(0, -1).join(", ")} and ${parents[parents.length - 1]}`;
+  if (parents.length === 2) return t.label.and(parents[0], parents[1]);
+  return t.label.list(parents.slice(0, -1), parents[parents.length - 1]);
 }

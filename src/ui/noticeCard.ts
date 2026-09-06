@@ -14,6 +14,12 @@ export function noticeCard(notice: {
   title: string;
   line: string;
   action: HTMLElement | null;
+  /**
+   * What the cross is called, for anyone listening to the screen rather than
+   * looking at it. Handed in with the rest of the words rather than read from
+   * the catalogue here, so this stays a card and not a screen.
+   */
+  dismissLabel: string;
   /** Given only when the card is allowed to be waved away. */
   onDismiss?: () => void;
 }): HTMLElement {
@@ -36,7 +42,7 @@ export function noticeCard(notice: {
             {
               class: "icon-button notice-close",
               type: "button",
-              "aria-label": "Not now",
+              "aria-label": notice.dismissLabel,
               onclick: notice.onDismiss,
             },
             "\u00d7",

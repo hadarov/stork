@@ -10,6 +10,6 @@
   "scripts": {
     "dev": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",
-    "smoke": "node --test scripts/smoke.ts scripts/smoke-ui.ts"
+    "smoke": "node --test scripts/smoke.ts scripts/smoke-i18n.ts scripts/smoke-hebrew.ts scripts/smoke-ui.ts"
   }
 }

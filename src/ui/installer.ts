@@ -6,6 +6,7 @@
  * questions about the browser it happens to be running in.
  */
 import type { InstallAbility } from "../domain/install.ts";
+import type { Catalog } from "../i18n/en.ts";
 import { iPhoneish, standalone } from "./platform.ts";
 
 /** Chromium's prompt, which arrives unannounced and can only be fired once. */
@@ -49,18 +50,16 @@ export function dismissInstall(): void {
  * Fires the prompt Chromium handed over. It is spent either way, so it is
  * dropped before the answer comes back rather than after.
  */
-export async function install(): Promise<string> {
+export async function install(t: Catalog): Promise<string> {
   const prompt = waiting;
-  if (!prompt) return "This browser installs from its own menu.";
+  if (!prompt) return t.settings.install.ownMenu;
 
   waiting = null;
   await prompt.prompt();
   const { outcome } = await prompt.userChoice;
   changed?.();
 
-  return outcome === "accepted"
-    ? "Installing - look for Stork on your home screen."
-    : "No bother. The button stays in Settings.";
+  return outcome === "accepted" ? t.settings.install.installing : t.settings.install.declined;
 }
 
 /**

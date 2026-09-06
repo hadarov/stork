@@ -24,7 +24,7 @@ export function installCard(
             class: "primary block",
             type: "button",
             onclick: async () => {
-              ctx.toast(await install());
+              ctx.toast(await install(ctx.t));
               ctx.redraw();
             },
           },
@@ -37,6 +37,7 @@ export function installCard(
     title: offer.title,
     line: offer.line,
     action,
+    dismissLabel: ctx.t.settings.settings.notNow,
     onDismiss: options.closeable
       ? () => {
           dismissInstall();

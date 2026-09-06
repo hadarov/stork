@@ -11,6 +11,12 @@ export function popup(options: {
   actions?: (HTMLElement | null)[];
   /** A wider sheet for reading, rather than the narrow one for forms. */
   wide?: boolean;
+  /**
+   * Only a screen reader ever meets this, which is exactly why it has to be in
+   * the right language: it is the one word in the popup that is not on screen
+   * to give itself away.
+   */
+  closeLabel?: string;
 }): HTMLElement {
   const sheet = el(
     "div",
@@ -25,7 +31,7 @@ export function popup(options: {
         {
           class: "icon-button",
           type: "button",
-          "aria-label": "Close",
+          "aria-label": options.closeLabel ?? "Close",
           onclick: options.onClose,
         },
         "\u00D7",

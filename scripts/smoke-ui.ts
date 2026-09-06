@@ -14,6 +14,7 @@ import { byClass, installDom, textOf } from "./dom-stub.mjs";
 
 import { toISODate } from "../src/domain/derive.ts";
 import type { Baby } from "../src/domain/types.ts";
+import { en } from "../src/i18n/en.ts";
 import type { BabyRepo, MergeResult } from "../src/storage/repo.ts";
 import type { AppContext } from "../src/ui/context.ts";
 
@@ -95,6 +96,11 @@ function makeRig(babies: Baby[] = []): Rig {
     repo,
     babies: babies.filter((baby) => baby.deletedAt == null),
     now: NOW,
+    // The screens are asserted in English, because that is the language the
+    // wording was written in and the one the assertions can be read in. The
+    // Hebrew side is covered by the catalogue's own suite instead.
+    t: en,
+    jewish: false,
     navigate: (path) => routes.push(path),
     back: () => routes.push("back"),
     finish: (path) => routes.push(`finish ${path}`),
@@ -446,6 +452,9 @@ describe("the date field", () => {
       range: "past",
       value: "",
       now,
+      // The picker asks the catalogue for its month names, so that the word it
+      // offers is the word the app writes back into a date.
+      t: en,
       onChange: (value: string) => picked.push(value),
       ...over,
     });
@@ -1009,7 +1018,7 @@ describe("the install offer", () => {
     byClass(card, "notice-close")[0]!.click();
     assert.equal(rig.redraws, 1, "the strip goes at once rather than on next launch");
     assert.equal(
-      offerOnHome({ installed: false, canPrompt: true, byHand: false, dismissed: true }).kind,
+      offerOnHome({ installed: false, canPrompt: true, byHand: false, dismissed: true }, en).kind,
       "none",
     );
   });
@@ -1092,9 +1101,19 @@ describe("settings screen", () => {
     assert.doesNotMatch(text, /Turn on reminders/);
   });
 
+  /*
+   * Found by the name it announces rather than by its position, because there
+   * are three of these now and Settings opens with Language rather than Look:
+   * somebody stranded in the wrong language needs the way out first.
+   */
+  const pickerFor = (screen: any, label: string) =>
+    byClass(screen, "segmented").find(
+      (node: any) => node.getAttribute("aria-label") === label,
+    )!;
+
   test("the theme can be chosen, and dark is where it starts", () => {
     const screen = renderSettings(rig.ctx);
-    const picker = byClass(screen, "segmented")[0]!;
+    const picker = pickerFor(screen, en.settings.settings.themeLabel);
     const labels = picker.querySelectorAll("button").map((node: any) => textOf(node));
     assert.deepEqual(labels, ["Auto", "Dark", "Light"]);
 
@@ -1105,10 +1124,37 @@ describe("settings screen", () => {
   test("choosing a theme redraws, so the buttons agree with the screen", () => {
     const local = makeRig([baby()]);
     const screen = renderSettings(local.ctx);
-    byClass(screen, "segmented")[0]!.querySelectorAll("button")[1]!.click();
+    pickerFor(screen, en.settings.settings.themeLabel).querySelectorAll("button")[1]!.click();
 
     assert.equal(document.documentElement.dataset.theme, "dark");
     assert.equal(local.redraws, 1);
+  });
+
+  test("the language can be chosen, and each option names itself", () => {
+    const screen = renderSettings(rig.ctx);
+    const picker = pickerFor(screen, en.settings.settings.langLabel);
+    const labels = picker.querySelectorAll("button").map((node: any) => textOf(node));
+
+    // Hebrew is offered in Hebrew: somebody who has landed in the wrong
+    // language has to be able to recognise the way out.
+    assert.deepEqual(labels, ["System", "English", "עברית"]);
+    assert.equal(picker.querySelectorAll("button")[0]!.getAttribute("aria-pressed"), "true");
+  });
+
+  test("switching language turns the app over on the spot", () => {
+    const local = makeRig([baby()]);
+    const screen = renderSettings(local.ctx);
+    pickerFor(screen, en.settings.settings.langLabel).querySelectorAll("button")[2]!.click();
+
+    assert.equal(document.documentElement.lang, "he");
+    assert.equal(document.documentElement.dir, "rtl");
+    assert.equal(local.redraws, 1);
+
+    // Put back, or the tests that follow inherit a right-to-left document.
+    pickerFor(renderSettings(local.ctx), en.settings.settings.langLabel)
+      .querySelectorAll("button")[1]!
+      .click();
+    assert.equal(document.documentElement.dir, "ltr");
   });
 
   test("exporting a calendar with nothing in it says so instead of downloading", () => {

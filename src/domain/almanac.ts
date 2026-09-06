@@ -1,9 +1,28 @@
+import type { Catalog } from "../i18n/en.ts";
 import { zodiacYearFor } from "./lunarNewYear.ts";
 
+/*
+ * The lookup tables. What is kept here is the part that is the same in every
+ * language - which days a sign covers, which emoji it has, which animal a year
+ * belongs to - and the words come from the catalogue, keyed by the same names.
+ * Splitting it that way means a translation cannot quietly move Capricorn.
+ */
+
+export type ElementKey = "fire" | "earth" | "air" | "water" | "wood" | "metal";
+
+export type StarSignKey =
+  | "aquarius" | "pisces" | "aries" | "taurus" | "gemini" | "cancer"
+  | "leo" | "virgo" | "libra" | "scorpio" | "sagittarius" | "capricorn";
+
+export type ChineseKey =
+  | "rat" | "ox" | "tiger" | "rabbit" | "dragon" | "snake"
+  | "horse" | "goat" | "monkey" | "rooster" | "dog" | "pig";
+
 export type StarSign = {
+  key: StarSignKey;
   name: string;
   emoji: string;
-  element: "Fire" | "Earth" | "Air" | "Water";
+  element: string;
   range: string;
   trait: string;
 };
@@ -14,132 +33,119 @@ export type StarSignReading = StarSign & {
 };
 
 export type ChineseSign = {
+  key: ChineseKey;
   animal: string;
   emoji: string;
-  element: "Wood" | "Fire" | "Earth" | "Metal" | "Water";
+  element: string;
   year: number;
   trait: string;
 };
 
 /** Ordered by the day the sign starts; `from` and `to` are inclusive MMDD. */
-const STAR_SIGNS: (StarSign & { from: number; to: number })[] = [
-  { from: 120, to: 218, name: "Aquarius", emoji: "\u{2652}", element: "Air", range: "20 Jan - 18 Feb", trait: "a delightfully odd original" },
-  { from: 219, to: 320, name: "Pisces", emoji: "\u{2653}", element: "Water", range: "19 Feb - 20 Mar", trait: "a dreamer with an enormous heart" },
-  { from: 321, to: 419, name: "Aries", emoji: "\u{2648}", element: "Fire", range: "21 Mar - 19 Apr", trait: "a small firecracker, first through every door" },
-  { from: 420, to: 520, name: "Taurus", emoji: "\u{2649}", element: "Earth", range: "20 Apr - 20 May", trait: "cosy, steady and gloriously stubborn" },
-  { from: 521, to: 620, name: "Gemini", emoji: "\u{264A}", element: "Air", range: "21 May - 20 Jun", trait: "a curious chatterbox with two of every idea" },
-  { from: 621, to: 722, name: "Cancer", emoji: "\u{264B}", element: "Water", range: "21 Jun - 22 Jul", trait: "a soft-hearted homebody who feels everything" },
-  { from: 723, to: 822, name: "Leo", emoji: "\u{264C}", element: "Fire", range: "23 Jul - 22 Aug", trait: "born for the spotlight and already aware of it" },
-  { from: 823, to: 922, name: "Virgo", emoji: "\u{264D}", element: "Earth", range: "23 Aug - 22 Sep", trait: "a tiny perfectionist who notices everything" },
-  { from: 923, to: 1022, name: "Libra", emoji: "\u{264E}", element: "Air", range: "23 Sep - 22 Oct", trait: "a charmer who wants everyone to get along" },
-  { from: 1023, to: 1121, name: "Scorpio", emoji: "\u{264F}", element: "Water", range: "23 Oct - 21 Nov", trait: "intense, fearless and impossible to fool" },
-  { from: 1122, to: 1221, name: "Sagittarius", emoji: "\u{2650}", element: "Fire", range: "22 Nov - 21 Dec", trait: "an adventurer already planning the escape" },
+const STAR_SIGNS: { key: StarSignKey; from: number; to: number; emoji: string; element: ElementKey }[] = [
+  { key: "aquarius", from: 120, to: 218, emoji: "\u{2652}", element: "air" },
+  { key: "pisces", from: 219, to: 320, emoji: "\u{2653}", element: "water" },
+  { key: "aries", from: 321, to: 419, emoji: "\u{2648}", element: "fire" },
+  { key: "taurus", from: 420, to: 520, emoji: "\u{2649}", element: "earth" },
+  { key: "gemini", from: 521, to: 620, emoji: "\u{264A}", element: "air" },
+  { key: "cancer", from: 621, to: 722, emoji: "\u{264B}", element: "water" },
+  { key: "leo", from: 723, to: 822, emoji: "\u{264C}", element: "fire" },
+  { key: "virgo", from: 823, to: 922, emoji: "\u{264D}", element: "earth" },
+  { key: "libra", from: 923, to: 1022, emoji: "\u{264E}", element: "air" },
+  { key: "scorpio", from: 1023, to: 1121, emoji: "\u{264F}", element: "water" },
+  { key: "sagittarius", from: 1122, to: 1221, emoji: "\u{2650}", element: "fire" },
   // Capricorn wraps the new year, so it is stored as its two halves.
-  { from: 1222, to: 1231, name: "Capricorn", emoji: "\u{2651}", element: "Earth", range: "22 Dec - 19 Jan", trait: "an old soul who arrived with a plan" },
-  { from: 101, to: 119, name: "Capricorn", emoji: "\u{2651}", element: "Earth", range: "22 Dec - 19 Jan", trait: "an old soul who arrived with a plan" },
+  { key: "capricorn", from: 1222, to: 1231, emoji: "\u{2651}", element: "earth" },
+  { key: "capricorn", from: 101, to: 119, emoji: "\u{2651}", element: "earth" },
 ];
 
-const CHINESE_ANIMALS: { animal: string; emoji: string; trait: string }[] = [
-  { animal: "Rat", emoji: "\u{1F401}", trait: "quick, charming and always one step ahead" },
-  { animal: "Ox", emoji: "\u{1F402}", trait: "patient and unshakeable once decided" },
-  { animal: "Tiger", emoji: "\u{1F405}", trait: "brave, dramatic and full of nerve" },
-  { animal: "Rabbit", emoji: "\u{1F407}", trait: "gentle, lucky and quietly clever" },
-  { animal: "Dragon", emoji: "\u{1F409}", trait: "born lucky and entirely unbothered by it" },
-  { animal: "Snake", emoji: "\u{1F40D}", trait: "wise, watchful and mysterious" },
-  { animal: "Horse", emoji: "\u{1F40E}", trait: "free-spirited and permanently in motion" },
-  { animal: "Goat", emoji: "\u{1F410}", trait: "kind, artistic and a little dreamy" },
-  { animal: "Monkey", emoji: "\u{1F412}", trait: "mischievous and far too smart" },
-  { animal: "Rooster", emoji: "\u{1F413}", trait: "confident, tidy and happy to tell you so" },
-  { animal: "Dog", emoji: "\u{1F415}", trait: "loyal, honest and endlessly fair" },
-  { animal: "Pig", emoji: "\u{1F416}", trait: "generous, cheerful and fond of a good meal" },
+const CHINESE_ANIMALS: { key: ChineseKey; emoji: string }[] = [
+  { key: "rat", emoji: "\u{1F401}" },
+  { key: "ox", emoji: "\u{1F402}" },
+  { key: "tiger", emoji: "\u{1F405}" },
+  { key: "rabbit", emoji: "\u{1F407}" },
+  { key: "dragon", emoji: "\u{1F409}" },
+  { key: "snake", emoji: "\u{1F40D}" },
+  { key: "horse", emoji: "\u{1F40E}" },
+  { key: "goat", emoji: "\u{1F410}" },
+  { key: "monkey", emoji: "\u{1F412}" },
+  { key: "rooster", emoji: "\u{1F413}" },
+  { key: "dog", emoji: "\u{1F415}" },
+  { key: "pig", emoji: "\u{1F416}" },
 ];
 
 /** Heavenly-stem elements, two years each, anchored on 1900 being Metal. */
-const CHINESE_ELEMENTS: ChineseSign["element"][] = [
-  "Metal", "Metal", "Water", "Water", "Wood", "Wood", "Fire", "Fire", "Earth", "Earth",
-];
-
-const BIRTHSTONES = [
-  "Garnet", "Amethyst", "Aquamarine", "Diamond", "Emerald", "Pearl",
-  "Ruby", "Peridot", "Sapphire", "Opal", "Topaz", "Turquoise",
-];
-
-const BIRTH_FLOWERS = [
-  "Carnation", "Violet", "Daffodil", "Daisy", "Lily of the valley", "Rose",
-  "Larkspur", "Gladiolus", "Aster", "Marigold", "Chrysanthemum", "Narcissus",
-];
-
-/** The old nursery rhyme, kept word for word. */
-// The day is named here rather than asked of the date, because the rhyme only
-// exists in English and a localised weekday beside an English line reads oddly.
-const DAY_RHYME = [
-  { day: "Sunday", line: "Sunday's child is bonny and blithe and good and gay" },
-  { day: "Monday", line: "Monday's child is fair of face" },
-  { day: "Tuesday", line: "Tuesday's child is full of grace" },
-  { day: "Wednesday", line: "Wednesday's child is full of woe" },
-  { day: "Thursday", line: "Thursday's child has far to go" },
-  { day: "Friday", line: "Friday's child is loving and giving" },
-  { day: "Saturday", line: "Saturday's child works hard for a living" },
+const CHINESE_ELEMENTS: ElementKey[] = [
+  "metal", "metal", "water", "water", "wood", "wood", "fire", "fire", "earth", "earth",
 ];
 
 function mmdd(date: Date): number {
   return (date.getMonth() + 1) * 100 + date.getDate();
 }
 
-export function starSign(date: Date): StarSignReading {
+function readStarSign(
+  entry: { key: StarSignKey; emoji: string; element: ElementKey },
+  t: Catalog,
+): StarSign {
+  const words = t.zodiac[entry.key];
+  return {
+    key: entry.key,
+    name: words.name,
+    emoji: entry.emoji,
+    element: t.element[entry.element],
+    range: words.range,
+    trait: words.trait,
+  };
+}
+
+export function starSign(date: Date, t: Catalog): StarSignReading {
   const key = mmdd(date);
   const index = STAR_SIGNS.findIndex((sign) => key >= sign.from && key <= sign.to);
-  const sign = STAR_SIGNS[index];
-  const reading: StarSignReading = {
-    name: sign.name,
-    emoji: sign.emoji,
-    element: sign.element,
-    range: sign.range,
-    trait: sign.trait,
-  };
+  const entry = STAR_SIGNS[index];
+  const reading: StarSignReading = readStarSign(entry, t);
 
   // Sun-sign boundaries drift by a day between years, so a birthday landing on
   // the very edge is worth flagging rather than stating flatly.
   const neighbour =
-    key === sign.from
+    key === entry.from
       ? STAR_SIGNS[(index - 1 + STAR_SIGNS.length) % STAR_SIGNS.length]
-      : key === sign.to
+      : key === entry.to
         ? STAR_SIGNS[(index + 1) % STAR_SIGNS.length]
         : undefined;
-  if (neighbour && neighbour.name !== sign.name) {
-    reading.cuspWith = {
-      name: neighbour.name,
-      emoji: neighbour.emoji,
-      element: neighbour.element,
-      range: neighbour.range,
-      trait: neighbour.trait,
-    };
+  if (neighbour && neighbour.key !== entry.key) {
+    reading.cuspWith = readStarSign(neighbour, t);
   }
 
   return reading;
 }
 
-export function chineseSign(date: Date): ChineseSign {
+export function chineseSign(date: Date, t: Catalog): ChineseSign {
   const year = zodiacYearFor(date);
   const offset = ((year - 1900) % 12 + 12) % 12;
   const animal = CHINESE_ANIMALS[offset];
   return {
-    animal: animal.animal,
+    key: animal.key,
+    animal: t.chinese[animal.key].name,
     emoji: animal.emoji,
-    element: CHINESE_ELEMENTS[((year - 1900) % 10 + 10) % 10],
+    element: t.element[CHINESE_ELEMENTS[((year - 1900) % 10 + 10) % 10]],
     year,
-    trait: animal.trait,
+    trait: t.chinese[animal.key].trait,
   };
 }
 
-export function birthstone(date: Date): string {
-  return BIRTHSTONES[date.getMonth()];
+export function birthstone(date: Date, t: Catalog): string {
+  return t.birthstones[date.getMonth()];
 }
 
-export function birthFlower(date: Date): string {
-  return BIRTH_FLOWERS[date.getMonth()];
+export function birthFlower(date: Date, t: Catalog): string {
+  return t.birthFlowers[date.getMonth()];
 }
 
-export function dayOfWeekRhyme(date: Date): { day: string; line: string } {
-  return DAY_RHYME[date.getDay()];
+/**
+ * The old nursery rhyme. It only exists in English, and a flat translation of
+ * a rhyme is not a rhyme, so a language that has not got one says nothing at
+ * all rather than printing a line that has lost the only thing it had.
+ */
+export function dayOfWeekRhyme(date: Date, t: Catalog): { day: string; line: string } | null {
+  return t.dayRhyme[date.getDay()] ?? null;
 }

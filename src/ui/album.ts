@@ -5,7 +5,7 @@ import type { AppContext } from "./context.ts";
 import { dateField } from "./dateField.ts";
 import { el } from "./dom.ts";
 import { popup } from "./modal.ts";
-import { readPhoto } from "./photo.ts";
+import { photoProblem, readPhoto } from "./photo.ts";
 
 /** Oldest first, so the strip reads left to right as they grow. */
 export function albumOf(baby: Baby): Photo[] {
@@ -18,6 +18,7 @@ async function persist(ctx: AppContext, baby: Baby): Promise<void> {
 }
 
 export function albumSection(baby: Baby, ctx: AppContext): HTMLElement {
+  const words = ctx.t.baby.album;
   const photos = albumOf(baby);
 
   const picker = el("input", {
@@ -30,7 +31,8 @@ export function albumSection(baby: Baby, ctx: AppContext): HTMLElement {
       if (!file) return;
       try {
         if (photos.length >= MAX_PHOTOS) {
-          throw new Error(`${MAX_PHOTOS} photos each, so there is room for everyone.`);
+          ctx.toast(words.full(MAX_PHOTOS));
+          return;
         }
         const photo: Photo = {
           id: newId(),
@@ -39,11 +41,13 @@ export function albumSection(baby: Baby, ctx: AppContext): HTMLElement {
           date: toISODate(ctx.now),
         };
         await persist(ctx, { ...baby, photos: [...(baby.photos ?? []), photo] });
-        ctx.toast("Photo added");
+        ctx.toast(words.added);
         // Stays on the page, so the strip has to be told to grow.
         ctx.redraw();
       } catch (error) {
-        ctx.toast(error instanceof Error ? error.message : "Could not read that image.");
+        // The reader knows the language; the photo reader knows what went
+        // wrong. Each says its half.
+        ctx.toast(ctx.t.app[photoProblem(error)]);
       } finally {
         // Lets the same file be picked again after a failure.
         input.value = "";
@@ -57,7 +61,7 @@ export function albumSection(baby: Baby, ctx: AppContext): HTMLElement {
     el(
       "h2",
       { class: "section-title" },
-      "Album",
+      words.section,
       photos.length > 0 ? el("span", { class: "section-count" }, String(photos.length)) : null,
     ),
     photos.length > 0
@@ -76,21 +80,22 @@ export function albumSection(baby: Baby, ctx: AppContext): HTMLElement {
                   ),
               },
               el("img", { src: photo.data, alt: photo.caption ?? "", loading: "lazy" }),
-              el("span", { class: "album-when" }, formatShortDate(parseDate(photo.date))),
+              el("span", { class: "album-when" }, formatShortDate(parseDate(photo.date), ctx.t)),
             ),
           ),
         )
-      : el("p", { class: "note" }, "Photos you add here stay in order, oldest first."),
+      : el("p", { class: "note" }, words.empty),
     el(
       "button",
       { class: "secondary", type: "button", onclick: () => picker.click() },
-      "\u{1F4F7} Add a photo",
+      words.add,
     ),
     picker,
   );
 }
 
 export function renderPhotoViewer(ctx: AppContext, baby: Baby, photo: Photo): HTMLElement {
+  const words = ctx.t.baby.album;
   const rest = (baby.photos ?? []).filter((candidate) => candidate.id !== photo.id);
   const replace = async (changed: Partial<Photo>): Promise<void> => {
     await persist(ctx, { ...baby, photos: [...rest, { ...photo, ...changed }] });
@@ -99,22 +104,26 @@ export function renderPhotoViewer(ctx: AppContext, baby: Baby, photo: Photo): HT
   };
 
   return popup({
-    title: formatDate(parseDate(photo.date)),
+    title: formatDate(parseDate(photo.date), ctx.t),
+    closeLabel: ctx.t.app.close,
     onClose: () => ctx.back(),
     body: [
       el("img", {
         class: "photo-full",
         src: photo.data,
-        alt: photo.caption ?? displayName(baby),
+        alt: photo.caption ?? displayName(baby, ctx.t),
       }),
       el(
         "label",
         { class: "field" },
-        el("span", { class: "field-label" }, "Caption"),
+        el("span", { class: "field-label" }, words.caption),
         el("input", {
           class: "input",
           value: photo.caption ?? "",
-          placeholder: "First smile",
+          placeholder: words.captionHint,
+          // A caption is typed, so it reads in its own direction rather than
+          // in the interface's.
+          dir: "auto",
           // On blur rather than on every keystroke, so a redraw mid-word
           // cannot take the cursor away from you.
           onchange: (event: Event) => {
@@ -124,10 +133,11 @@ export function renderPhotoViewer(ctx: AppContext, baby: Baby, photo: Photo): HT
         }),
       ),
       dateField({
-        label: "Taken",
+        label: words.taken,
         range: "past",
         value: photo.date,
         now: ctx.now,
+        t: ctx.t,
         onChange: (date) => {
           if (date) void replace({ date });
         },
@@ -142,12 +152,12 @@ export function renderPhotoViewer(ctx: AppContext, baby: Baby, photo: Photo): HT
             type: "button",
             onclick: async () => {
               await persist(ctx, { ...baby, photo: photo.data });
-              ctx.toast("That is their picture now");
+              ctx.toast(words.nowTheirPicture);
               // Backing out redraws the page underneath, already updated.
               ctx.back();
             },
           },
-          "Use as their picture",
+          words.useAsPicture,
         ),
         el(
           "button",
@@ -156,11 +166,11 @@ export function renderPhotoViewer(ctx: AppContext, baby: Baby, photo: Photo): HT
             type: "button",
             onclick: async () => {
               await persist(ctx, { ...baby, photos: rest });
-              ctx.toast("Photo removed");
+              ctx.toast(words.removed);
               ctx.back();
             },
           },
-          "Delete",
+          words.delete,
         ),
       ),
     ],

@@ -1,3 +1,4 @@
+import type { Catalog } from "../i18n/en.ts";
 import { parseDate } from "./derive.ts";
 import type { Baby } from "./types.ts";
 
@@ -18,29 +19,26 @@ export type Stage = {
   aside?: string;
 };
 
-const EGG: Stage = { glyph: "\u{1F95A}", label: "on the way" };
+const egg = (t: Catalog): Stage => ({ glyph: "\u{1F95A}", label: t.stage.egg });
 
-const LADDER: (Stage & { from: number })[] = [
+const LADDER: { from: number; glyph: string; read: (t: Catalog) => Omit<Stage, "glyph"> }[] = [
   {
     from: 40,
     glyph: "\u{1F983}",
-    label: "a turkey",
-    aside: "At this point it is just a birthday reminder, which is fine.",
+    read: (t) => ({ label: t.stage.turkey, aside: t.stage.asideTurkey }),
   },
   {
     from: 18,
     glyph: "\u{1F413}",
-    label: "a rooster",
-    aside: "A fully grown adult, in an app about babies.",
+    read: (t) => ({ label: t.stage.rooster, aside: t.stage.asideRooster }),
   },
   {
     from: 13,
     glyph: "\u{1F414}",
-    label: "a chicken",
-    aside: "Not strictly a baby any more.",
+    read: (t) => ({ label: t.stage.chicken, aside: t.stage.asideChicken }),
   },
-  { from: 1, glyph: "\u{1F424}", label: "a chick" },
-  { from: 0, glyph: "\u{1F423}", label: "just hatched" },
+  { from: 1, glyph: "\u{1F424}", read: (t) => ({ label: t.stage.chick }) },
+  { from: 0, glyph: "\u{1F423}", read: (t) => ({ label: t.stage.hatched }) },
 ];
 
 /** Whole years, counted the way a birthday is: it turns over on the day. */
@@ -52,13 +50,14 @@ function yearsBetween(birth: Date, now: Date): number {
   return beforeBirthday ? years - 1 : years;
 }
 
-export function lifeStage(baby: Baby, now: Date): Stage {
-  if (baby.status === "expecting" || !baby.birthDate) return EGG;
+export function lifeStage(baby: Baby, now: Date, t: Catalog): Stage {
+  if (baby.status === "expecting" || !baby.birthDate) return egg(t);
 
   const years = yearsBetween(parseDate(baby.birthDate), now);
 
   // A birthday typed a month out is still an egg, not a turkey.
-  if (years < 0) return EGG;
+  if (years < 0) return egg(t);
 
-  return LADDER.find((rung) => years >= rung.from) ?? LADDER[LADDER.length - 1]!;
+  const rung = LADDER.find((step) => years >= step.from) ?? LADDER[LADDER.length - 1]!;
+  return { glyph: rung.glyph, ...rung.read(t) };
 }

@@ -18,6 +18,8 @@
  * what this browser will really do, not what the feature is called.
  */
 
+import type { Catalog } from "../i18n/en.ts";
+
 export type StorageAbility = {
   /** The browser has a storage manager to ask at all. */
   canAsk: boolean;
@@ -37,21 +39,15 @@ export type StorageStatus = {
   warn: boolean;
 };
 
-export function describeStorage(ability: StorageAbility): StorageStatus {
+export function describeStorage(ability: StorageAbility, t: Catalog): StorageStatus {
+  const words = t.settings.storage;
+
   if (!ability.canAsk) {
-    return {
-      line: "This browser will not say whether it keeps Stork's data or clears it when it needs the room.",
-      ask: false,
-      warn: true,
-    };
+    return { line: words.silent, ask: false, warn: true };
   }
 
   if (ability.persisted) {
-    return {
-      line: "Your browser has agreed not to clear Stork's data by itself. Clearing your browsing data by hand still would.",
-      ask: false,
-      warn: false,
-    };
+    return { line: words.persisted, ask: false, warn: false };
   }
 
   if (ability.sweeps) {
@@ -59,17 +55,11 @@ export function describeStorage(ability: StorageAbility): StorageStatus {
     // Stork alone, so opening it is enough. In a tab it is one site among all
     // the others and far easier to lose track of.
     return {
-      line: ability.installed
-        ? "Safari deletes a site's data after seven days without opening it. On the home screen Stork is counted on its own, so opening it now and again is enough."
-        : "Safari deletes a site's data after seven days without opening it. Adding Stork to your home screen gives it a clock of its own.",
+      line: ability.installed ? words.sweepsInstalled : words.sweepsInTab,
       ask: true,
       warn: true,
     };
   }
 
-  return {
-    line: "Your browser may clear Stork's data if it runs short of room.",
-    ask: true,
-    warn: true,
-  };
+  return { line: words.mayClear, ask: true, warn: true };
 }

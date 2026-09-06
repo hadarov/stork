@@ -12,14 +12,21 @@ import {
   formatDate,
   milestones,
   nextBirthday,
-  ordinal,
   parseDate,
   starSign,
 } from "../domain/derive.ts";
 import { relation, siblingsOf } from "../domain/family.ts";
+import {
+  britMilah,
+  chagOn,
+  hebrewBirthday,
+  hebrewDateText,
+  type Brit,
+} from "../domain/hebrew.ts";
 import { toICalendar } from "../domain/ics.ts";
 import { lifeStage } from "../domain/stage.ts";
 import type { Baby } from "../domain/types.ts";
+import type { Catalog } from "../i18n/en.ts";
 import { albumSection } from "./album.ts";
 import { shareCard } from "./card.ts";
 import { avatar, chip, factCard, iconButton } from "./components.ts";
@@ -36,9 +43,18 @@ function section(title: string, ...children: (Node | null)[]): HTMLElement {
   );
 }
 
-function signPanel(date: Date, heading: string): HTMLElement {
-  const sun = starSign(date);
-  const chinese = chineseSign(date);
+/**
+ * The day of the week, from the language's own locale. The nursery rhyme names
+ * it in English only, but which day it was is worth knowing in any language.
+ */
+function weekdayName(date: Date, t: Catalog): string {
+  return date.toLocaleDateString(t.dateLocale, { weekday: "long" });
+}
+
+function signPanel(date: Date, heading: string, t: Catalog): HTMLElement {
+  const words = t.baby.detail;
+  const sun = starSign(date, t);
+  const chinese = chineseSign(date, t);
 
   return section(
     heading,
@@ -50,38 +66,34 @@ function signPanel(date: Date, heading: string): HTMLElement {
         { class: "sign" },
         el("span", { class: "sign-emoji", "aria-hidden": "true" }, sun.emoji),
         el("span", { class: "sign-name" }, sun.name),
-        el("span", { class: "sign-meta" }, `${sun.element} \u00b7 ${sun.range}`),
+        el("span", { class: "sign-meta" }, words.signMeta(sun.element, sun.range)),
       ),
       el(
         "div",
         { class: "sign" },
         el("span", { class: "sign-emoji", "aria-hidden": "true" }, chinese.emoji),
-        el("span", { class: "sign-name" }, `${chinese.element} ${chinese.animal}`),
-        el("span", { class: "sign-meta" }, `Year of the ${chinese.animal}, ${chinese.year}`),
+        el("span", { class: "sign-name" }, words.chineseName(chinese.element, chinese.animal)),
+        el("span", { class: "sign-meta" }, words.chineseYear(chinese.animal, chinese.year)),
       ),
     ),
-    el("p", { class: "sign-trait" }, `${sun.name}: ${sun.trait}.`),
-    el("p", { class: "sign-trait" }, `${chinese.animal}: ${chinese.trait}.`),
-    sun.cuspWith
-      ? el(
-          "p",
-          { class: "note" },
-          `Right on the cusp with ${sun.cuspWith.name} - the boundary shifts by a day from year to year, so either could be fair.`,
-        )
-      : null,
+    el("p", { class: "sign-trait" }, words.trait(sun.name, sun.trait)),
+    el("p", { class: "sign-trait" }, words.trait(chinese.animal, chinese.trait)),
+    sun.cuspWith ? el("p", { class: "note" }, words.cusp(sun.cuspWith.name)) : null,
   );
 }
 
 function bornBody(baby: Baby, ctx: AppContext): HTMLElement {
+  const t = ctx.t;
+  const words = t.baby.detail;
   const birthDate = baby.birthDate as string;
   const birth = parseDate(birthDate);
-  const age = describeAge(birthDate, ctx.now);
+  const age = describeAge(birthDate, ctx.now, t, baby.sex);
   const birthday = nextBirthday(birthDate, ctx.now);
-  const rhyme = dayOfWeekRhyme(birth);
-  const weight = baby.birthWeightGrams ? describeWeight(baby.birthWeightGrams) : null;
-  const length = baby.birthLengthCm ? describeLength(baby.birthLengthCm) : null;
+  const rhyme = dayOfWeekRhyme(birth, t);
+  const weight = baby.birthWeightGrams ? describeWeight(baby.birthWeightGrams, t) : null;
+  const length = baby.birthLengthCm ? describeLength(baby.birthLengthCm, t) : null;
 
-  const points = milestones(birthDate, ctx.now);
+  const points = milestones(birthDate, ctx.now, t);
 
   return el(
     "div",
@@ -94,27 +106,33 @@ function bornBody(baby: Baby, ctx: AppContext): HTMLElement {
         "span",
         { class: "hero-sub" },
         birthday.isToday
-          ? `\u{1F382} Turns ${ordinal(birthday.turning)} today`
-          : `Turns ${ordinal(birthday.turning)} in ${birthday.daysUntil} days`,
+          ? words.birthdayToday(birthday.turning, baby.sex)
+          : words.birthdayIn(birthday.turning, birthday.daysUntil, baby.sex),
       ),
     ),
-    signPanel(birth, "Written in the stars"),
+    signPanel(birth, words.stars, t),
     section(
-      "Born",
+      words.bornSection,
       el(
         "div",
         { class: "facts" },
-        factCard("Day", formatDate(birth), baby.birthTime ? `at ${baby.birthTime}` : undefined),
-        weight ? factCard("Weight", weight.metric, weight.imperial) : null,
-        length ? factCard("Length", length.metric, length.imperial) : null,
-        factCard("Birthstone", birthstone(birth)),
-        factCard("Flower", birthFlower(birth)),
-        factCard("Weekday", rhyme.day),
+        factCard(
+          words.factDay,
+          formatDate(birth, t),
+          baby.birthTime ? words.atTime(baby.birthTime) : undefined,
+        ),
+        weight ? factCard(words.factWeight, weight.metric, weight.imperial) : null,
+        length ? factCard(words.factLength, length.metric, length.imperial) : null,
+        factCard(words.factBirthstone, birthstone(birth, t)),
+        factCard(words.factFlower, birthFlower(birth, t)),
+        factCard(words.factWeekday, weekdayName(birth, t)),
       ),
-      el("p", { class: "rhyme" }, `\u201C${rhyme.line}.\u201D`),
+      // The rhyme exists in English and nowhere else. A language without one
+      // says nothing rather than leaving a gap where a verse was.
+      rhyme ? el("p", { class: "rhyme" }, words.rhyme(rhyme.line)) : null,
     ),
     section(
-      "Milestones",
+      words.milestonesSection,
       el(
         "ol",
         { class: "timeline" },
@@ -128,8 +146,8 @@ function bornBody(baby: Baby, ctx: AppContext): HTMLElement {
               "span",
               { class: "timeline-when" },
               point.done
-                ? formatDate(point.date)
-                : `${formatDate(point.date)} \u00b7 in ${point.daysUntil} days`,
+                ? formatDate(point.date, t)
+                : words.milestoneWhen(formatDate(point.date, t), point.daysUntil),
             ),
           ),
         ),
@@ -139,7 +157,9 @@ function bornBody(baby: Baby, ctx: AppContext): HTMLElement {
 }
 
 function expectingBody(baby: Baby, ctx: AppContext): HTMLElement {
-  const due = baby.dueDate ? dueCountdown(baby.dueDate, ctx.now) : null;
+  const t = ctx.t;
+  const words = t.baby.detail;
+  const due = baby.dueDate ? dueCountdown(baby.dueDate, ctx.now, t) : null;
 
   // The one button you want the moment the news arrives, so it sits directly
   // under the countdown rather than behind the edit form.
@@ -150,7 +170,7 @@ function expectingBody(baby: Baby, ctx: AppContext): HTMLElement {
       type: "button",
       onclick: () => ctx.navigate(`#/born/${encodeURIComponent(baby.id)}`),
     },
-    "\u{1F389} Just born!",
+    words.justBorn(baby.sex),
   );
 
   if (!due) {
@@ -160,8 +180,8 @@ function expectingBody(baby: Baby, ctx: AppContext): HTMLElement {
       el(
         "div",
         { class: "hero-stat" },
-        el("span", { class: "hero-number" }, "On the way"),
-        el("span", { class: "hero-sub" }, "Add a due date to start the countdown."),
+        el("span", { class: "hero-number" }, words.onTheWay),
+        el("span", { class: "hero-sub" }, words.noDueDate),
       ),
       arrived,
     );
@@ -179,7 +199,11 @@ function expectingBody(baby: Baby, ctx: AppContext): HTMLElement {
       el(
         "span",
         { class: "hero-sub" },
-        `Week ${due.week} \u00b7 ${ordinal(due.trimester)} trimester \u00b7 ${formatDate(due.date)}`,
+        words.dueLine(
+          t.due.week(due.week),
+          t.due.trimester(due.trimester),
+          formatDate(due.date, t),
+        ),
       ),
       el(
         "div",
@@ -194,26 +218,98 @@ function expectingBody(baby: Baby, ctx: AppContext): HTMLElement {
       ),
     ),
     arrived,
-    signPanel(due.date, "If they arrive on time"),
-    el(
-      "p",
-      { class: "note" },
-      "Babies rarely read the calendar, so the sign may well change on the day.",
-    ),
+    signPanel(due.date, words.starsIfOnTime, t),
+    el("p", { class: "note" }, words.signMayChange),
   );
 }
 
+/* -------------------------------------------------------- Hebrew calendar */
+
+/**
+ * Still worth a card this long after the eighth day. Past that it stops being
+ * news and the page has nothing to add by keeping it.
+ */
+const BRIT_RECENT_DAYS = 14;
+
+function britCard(brit: Brit, t: Catalog): HTMLElement {
+  const on = t.hebrew.britOn(formatDate(brit.date, t));
+  if (brit.daysUntil === 0) return factCard(t.hebrew.brit, t.hebrew.britToday, on);
+  if (brit.done) return factCard(t.hebrew.britPassed, formatDate(brit.date, t));
+  return factCard(t.hebrew.brit, t.hebrew.britIn(brit.daysUntil), on);
+}
+
+/**
+ * What the Hebrew calendar has to add, which is more than a second spelling of
+ * a date already on the page: the Hebrew year is lunisolar, so a Hebrew
+ * birthday walks around the Gregorian one by a couple of weeks each year and
+ * lands on a genuinely different day.
+ */
+function hebrewSection(baby: Baby, ctx: AppContext): HTMLElement | null {
+  const t = ctx.t;
+  const words = t.baby.detail;
+
+  if (baby.status === "born" && baby.birthDate) {
+    const birth = parseDate(baby.birthDate);
+    const birthday = hebrewBirthday(baby.birthDate, ctx.now);
+    const chag = chagOn(birth);
+    // A brit is a boy's, and only while it is ahead or still recent.
+    const brit = baby.sex === "boy" ? britMilah(baby.birthDate, ctx.now) : null;
+
+    return section(
+      t.hebrew.section,
+      el(
+        "div",
+        { class: "facts" },
+        factCard(t.hebrew.born, hebrewDateText(birth, t)),
+        factCard(
+          birthday.isToday ? t.hebrew.birthdayToday : t.hebrew.birthday,
+          formatDate(birthday.date, t),
+          birthday.isToday
+            ? t.hebrew.turning(birthday.turning)
+            : words.hebrewBirthdayMeta(
+                birthday.daysUntil,
+                t.hebrew.turning(birthday.turning),
+              ),
+        ),
+        brit && brit.daysUntil >= -BRIT_RECENT_DAYS ? britCard(brit, t) : null,
+      ),
+      chag ? el("p", { class: "sign-trait" }, t.hebrew.bornOn(t.hebrew.chag[chag])) : null,
+      // Where the date came from, said once and quietly, because the app has a
+      // civil date and a Hebrew day turns over at sunset.
+      el("p", { class: "note" }, t.hebrew.sunset),
+      birthday.moved ? el("p", { class: "note" }, t.hebrew.moved) : null,
+    );
+  }
+
+  if (!baby.dueDate) return null;
+
+  const due = parseDate(baby.dueDate);
+  const chag = chagOn(due);
+
+  return section(
+    t.hebrew.section,
+    el("div", { class: "facts" }, factCard(words.hebrewDue, hebrewDateText(due, t))),
+    chag ? el("p", { class: "sign-trait" }, t.hebrew.dueOn(t.hebrew.chag[chag])) : null,
+  );
+}
+
+/* ----------------------------------------------------------------- family */
+
 /** How a sibling is getting on, in the few words that fit on one line. */
-function siblingStatus(baby: Baby, now: Date): string {
-  if (baby.status === "born" && baby.birthDate) return describeAge(baby.birthDate, now).label;
-  return baby.dueDate ? dueCountdown(baby.dueDate, now).label : "on the way";
+function siblingStatus(baby: Baby, now: Date, t: Catalog): string {
+  if (baby.status === "born" && baby.birthDate) {
+    return describeAge(baby.birthDate, now, t, baby.sex).label;
+  }
+  return baby.dueDate ? dueCountdown(baby.dueDate, now, t).label : t.stage.egg;
 }
 
 function familySection(baby: Baby, ctx: AppContext): HTMLElement {
+  const t = ctx.t;
+  const words = t.baby.detail;
   const siblings = siblingsOf(baby, ctx.babies);
 
   return section(
-    "Family",
+    words.familySection,
     ...siblings.map((sibling) =>
       el(
         "button",
@@ -222,15 +318,20 @@ function familySection(baby: Baby, ctx: AppContext): HTMLElement {
           type: "button",
           onclick: () => ctx.navigate(`#/baby/${encodeURIComponent(sibling.id)}`),
         },
-        avatar(sibling, ctx.now, "sm"),
+        avatar(sibling, ctx.now, t, "sm"),
         el(
           "span",
           { class: "sibling-text" },
-          el("span", { class: "sibling-name" }, displayName(sibling)),
+          // dir="auto" on anything somebody typed, so a Hebrew name in an
+          // English book reads the right way round, and the reverse too.
+          el("span", { class: "sibling-name", dir: "auto" }, displayName(sibling, t)),
           el(
             "span",
             { class: "sibling-meta" },
-            `${relation(baby, sibling)} \u00b7 ${siblingStatus(sibling, ctx.now)}`,
+            words.siblingMeta(
+              relation(baby, sibling, t),
+              siblingStatus(sibling, ctx.now, t),
+            ),
           ),
         ),
       ),
@@ -242,14 +343,27 @@ function familySection(baby: Baby, ctx: AppContext): HTMLElement {
         type: "button",
         onclick: () => ctx.navigate(`#/sibling/${encodeURIComponent(baby.id)}`),
       },
-      siblings.length > 0 ? "\uFF0B Another one" : "\uFF0B Add a sibling",
+      siblings.length > 0 ? words.anotherOne : words.addSibling,
     ),
   );
 }
 
+/**
+ * A filename from the baby's name. Letters of any script survive, because a
+ * Hebrew name put through an a-to-z filter comes out as nothing at all and the
+ * file arrives called ".ics".
+ */
+function calendarFilename(baby: Baby, t: Catalog): string {
+  const slug = (text: string) =>
+    text.toLowerCase().replace(/[^\p{Letter}\p{Number}]+/gu, "-").replace(/^-+|-+$/g, "");
+  return `${slug(displayName(baby, t)) || slug(t.app.name)}.ics`;
+}
+
 export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
-  const parents = describeParents(baby.parents);
-  const stage = lifeStage(baby, ctx.now);
+  const t = ctx.t;
+  const words = t.baby.detail;
+  const parents = describeParents(baby.parents, t);
+  const stage = lifeStage(baby, ctx.now, t);
 
   const giftToggle = el(
     "button",
@@ -260,27 +374,30 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
       onclick: async () => {
         await ctx.repo.save({ ...baby, giftSent: !baby.giftSent });
         await ctx.refresh();
-        ctx.toast(baby.giftSent ? "Marked as not sent" : "Gift marked as sent");
+        ctx.toast(baby.giftSent ? words.giftUnmarked : words.giftMarked);
         // Nothing navigates, so the tick has to be redrawn where it stands.
         ctx.redraw();
       },
     },
-    baby.giftSent ? "\u2713 Gift sent" : "Mark gift as sent",
+    baby.giftSent ? words.giftSent : words.markGift,
   );
 
   return popup({
-    title: displayName(baby),
+    title: displayName(baby, t),
     wide: true,
+    closeLabel: t.app.close,
     onClose: () => ctx.back(),
     actions: [
-      iconButton("Edit", "\u270E", () => ctx.navigate(`#/edit/${encodeURIComponent(baby.id)}`)),
+      iconButton(words.edit, "\u270E", () =>
+        ctx.navigate(`#/edit/${encodeURIComponent(baby.id)}`),
+      ),
     ],
     body: [
       el(
         "div",
         { class: "hero" },
-        avatar(baby, ctx.now, "lg"),
-        el("h2", { class: "hero-name" }, displayName(baby)),
+        avatar(baby, ctx.now, t, "lg"),
+        el("h2", { class: "hero-name", dir: "auto" }, displayName(baby, t)),
         // The way through to the household, from the one line that names it.
         parents
           ? el(
@@ -288,13 +405,14 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
               {
                 class: "hero-parents",
                 type: "button",
+                dir: "auto",
                 onclick: () => ctx.navigate(`#/brief/${encodeURIComponent(baby.id)}`),
               },
               parents,
             )
           : null,
         baby.sex && baby.sex !== "surprise"
-          ? chip(baby.sex === "girl" ? "Girl" : "Boy")
+          ? chip(baby.sex === "girl" ? words.girl : words.boy)
           : null,
         // Only appears once somebody has clearly repurposed a baby app.
         stage.aside ? el("p", { class: "aside" }, stage.aside) : null,
@@ -302,11 +420,14 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
       baby.status === "born" && baby.birthDate
         ? bornBody(baby, ctx)
         : expectingBody(baby, ctx),
+      ctx.jewish ? hebrewSection(baby, ctx) : null,
       baby.parents.length > 0 ? familySection(baby, ctx) : null,
       albumSection(baby, ctx),
-      baby.notes ? section("Notes", el("p", { class: "notes" }, baby.notes)) : null,
+      baby.notes
+        ? section(words.notesSection, el("p", { class: "notes", dir: "auto" }, baby.notes))
+        : null,
       section(
-        "Keeping up",
+        words.keepingUpSection,
         giftToggle,
         el(
           "button",
@@ -315,14 +436,14 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
             type: "button",
             onclick: async () => {
               try {
-                const said = await shareCard(baby, ctx.now);
+                const said = await shareCard(baby, ctx.now, t);
                 if (said) ctx.toast(said);
               } catch (error) {
-                ctx.toast(error instanceof Error ? error.message : "Could not make a card.");
+                ctx.toast(error instanceof Error ? error.message : words.cardFailed);
               }
             },
           },
-          "\u{1F48C} Share a card",
+          words.shareCard,
         ),
         el(
           "button",
@@ -331,14 +452,14 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
             type: "button",
             onclick: () => {
               downloadFile(
-                `${displayName(baby).toLowerCase().replace(/[^a-z0-9]+/g, "-")}.ics`,
+                calendarFilename(baby, t),
                 "text/calendar",
-                toICalendar([baby], ctx.now),
+                toICalendar([baby], ctx.now, t, ctx.jewish),
               );
-              ctx.toast("Calendar file saved - open it to add the date");
+              ctx.toast(words.calendarSaved);
             },
           },
-          "\u{1F4C5} Add to my calendar",
+          words.addToCalendar,
         ),
       ),
       el(
@@ -351,7 +472,7 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
             type: "button",
             onclick: () => ctx.navigate(`#/remove/${encodeURIComponent(baby.id)}`),
           },
-          "Remove",
+          words.remove,
         ),
       ),
     ],

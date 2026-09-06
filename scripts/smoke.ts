@@ -27,12 +27,15 @@ import {
   monthsBetween,
   nextBirthday,
   nextEvent,
-  ordinal,
   sortByNextEvent,
 } from "../src/domain/derive.ts";
 import { areSiblings, families, familyOf, relation, siblingsOf } from "../src/domain/family.ts";
 import { toICalendar } from "../src/domain/ics.ts";
 import type { Baby } from "../src/domain/types.ts";
+// The domain is asserted in English, because that is the language the wording
+// was written in and the one these assertions can be read in. Hebrew has its
+// own suite, where the grammar is the thing under test.
+import { en } from "../src/i18n/en.ts";
 import { migrate } from "../src/storage/migrate.ts";
 import { mergeRecords, type BabyRepo } from "../src/storage/repo.ts";
 import { lastChangedAt, watchRepo } from "../src/storage/watchRepo.ts";
@@ -69,20 +72,20 @@ const baby = (over: Partial<Baby> = {}): Baby => ({
 
 describe("age", () => {
   test("a baby born today reads as born today, not as zero months", () => {
-    assert.equal(describeAge("2026-09-01", day("2026-09-01")).label, "born today");
+    assert.equal(describeAge("2026-09-01", day("2026-09-01"), en).label, "born today");
   });
 
   test("counts in days for the first fortnight", () => {
-    assert.equal(describeAge("2026-09-01", day("2026-09-02")).label, "1 day old");
-    assert.equal(describeAge("2026-09-01", day("2026-09-13")).label, "12 days old");
+    assert.equal(describeAge("2026-09-01", day("2026-09-02"), en).label, "1 day old");
+    assert.equal(describeAge("2026-09-01", day("2026-09-13"), en).label, "12 days old");
   });
 
   test("switches to weeks, then months, then years", () => {
-    assert.equal(describeAge("2026-09-01", day("2026-09-15")).label, "2 weeks old");
-    assert.equal(describeAge("2026-09-01", day("2026-12-01")).label, "3 months old");
-    assert.equal(describeAge("2026-09-01", day("2028-08-01")).label, "23 months old");
-    assert.equal(describeAge("2026-09-01", day("2028-09-01")).label, "2 years old");
-    assert.equal(describeAge("2026-09-01", day("2029-03-01")).label, "2 years, 6 months old");
+    assert.equal(describeAge("2026-09-01", day("2026-09-15"), en).label, "2 weeks old");
+    assert.equal(describeAge("2026-09-01", day("2026-12-01"), en).label, "3 months old");
+    assert.equal(describeAge("2026-09-01", day("2028-08-01"), en).label, "23 months old");
+    assert.equal(describeAge("2026-09-01", day("2028-09-01"), en).label, "2 years old");
+    assert.equal(describeAge("2026-09-01", day("2029-03-01"), en).label, "2 years, 6 months old");
   });
 
   test("a month is not complete until the day of the month comes round", () => {
@@ -125,26 +128,26 @@ describe("birthdays", () => {
   });
 
   test("ordinals read correctly, including the teens", () => {
-    assert.equal(ordinal(1), "1st");
-    assert.equal(ordinal(2), "2nd");
-    assert.equal(ordinal(3), "3rd");
-    assert.equal(ordinal(4), "4th");
-    assert.equal(ordinal(11), "11th");
-    assert.equal(ordinal(21), "21st");
+    assert.equal(en.ordinal(1), "1st");
+    assert.equal(en.ordinal(2), "2nd");
+    assert.equal(en.ordinal(3), "3rd");
+    assert.equal(en.ordinal(4), "4th");
+    assert.equal(en.ordinal(11), "11th");
+    assert.equal(en.ordinal(21), "21st");
   });
 });
 
 describe("due dates", () => {
   test("counts down, then counts up once overdue", () => {
-    assert.equal(dueCountdown("2026-09-01", day("2026-09-01")).label, "due today");
-    assert.equal(dueCountdown("2026-09-02", day("2026-09-01")).label, "due tomorrow");
-    assert.equal(dueCountdown("2026-09-08", day("2026-09-01")).label, "due in 7 days");
-    assert.equal(dueCountdown("2026-10-01", day("2026-09-01")).label, "due in 4 weeks");
-    assert.equal(dueCountdown("2026-08-29", day("2026-09-01")).label, "3 days overdue");
+    assert.equal(dueCountdown("2026-09-01", day("2026-09-01"), en).label, "due today");
+    assert.equal(dueCountdown("2026-09-02", day("2026-09-01"), en).label, "due tomorrow");
+    assert.equal(dueCountdown("2026-09-08", day("2026-09-01"), en).label, "due in 7 days");
+    assert.equal(dueCountdown("2026-10-01", day("2026-09-01"), en).label, "due in 4 weeks");
+    assert.equal(dueCountdown("2026-08-29", day("2026-09-01"), en).label, "3 days overdue");
   });
 
   test("the due date itself is week 40", () => {
-    const due = dueCountdown("2026-09-01", day("2026-09-01"));
+    const due = dueCountdown("2026-09-01", day("2026-09-01"), en);
     assert.equal(due.week, 40);
     assert.equal(due.trimester, 3);
     assert.equal(due.overdue, false);
@@ -152,65 +155,70 @@ describe("due dates", () => {
 
   test("trimesters land where a midwife would put them", () => {
     // 210 days to go is 10 completed weeks.
-    assert.equal(dueCountdown("2026-09-01", day("2026-02-03")).trimester, 1);
-    assert.equal(dueCountdown("2026-09-01", day("2026-05-01")).trimester, 2);
-    assert.equal(dueCountdown("2026-09-01", day("2026-08-01")).trimester, 3);
+    assert.equal(dueCountdown("2026-09-01", day("2026-02-03"), en).trimester, 1);
+    assert.equal(dueCountdown("2026-09-01", day("2026-05-01"), en).trimester, 2);
+    assert.equal(dueCountdown("2026-09-01", day("2026-08-01"), en).trimester, 3);
   });
 
   test("a long overdue date never runs past the end of the scale", () => {
-    assert.equal(dueCountdown("2020-01-01", day("2026-09-01")).week, 42);
+    assert.equal(dueCountdown("2020-01-01", day("2026-09-01"), en).week, 42);
   });
 });
 
 describe("star signs", () => {
   test("the usual ranges", () => {
-    assert.equal(starSign(day("2024-07-25")).name, "Leo");
-    assert.equal(starSign(day("2024-03-15")).name, "Pisces");
-    assert.equal(starSign(day("2024-11-05")).name, "Scorpio");
+    assert.equal(starSign(day("2024-07-25"), en).name, "Leo");
+    assert.equal(starSign(day("2024-03-15"), en).name, "Pisces");
+    assert.equal(starSign(day("2024-11-05"), en).name, "Scorpio");
   });
 
   test("Capricorn wraps the new year in one piece", () => {
-    assert.equal(starSign(day("2024-12-25")).name, "Capricorn");
-    assert.equal(starSign(day("2024-01-05")).name, "Capricorn");
+    assert.equal(starSign(day("2024-12-25"), en).name, "Capricorn");
+    assert.equal(starSign(day("2024-01-05"), en).name, "Capricorn");
   });
 
   test("the first and last day of a sign are flagged as a cusp", () => {
-    assert.equal(starSign(day("2024-01-20")).cuspWith?.name, "Capricorn");
-    assert.equal(starSign(day("2024-01-19")).cuspWith?.name, "Aquarius");
-    assert.equal(starSign(day("2024-12-22")).cuspWith?.name, "Sagittarius");
+    assert.equal(starSign(day("2024-01-20"), en).cuspWith?.name, "Capricorn");
+    assert.equal(starSign(day("2024-01-19"), en).cuspWith?.name, "Aquarius");
+    assert.equal(starSign(day("2024-12-22"), en).cuspWith?.name, "Sagittarius");
   });
 
   test("the turn of the year is not a cusp, because Capricorn is on both sides", () => {
-    assert.equal(starSign(day("2024-12-31")).cuspWith, undefined);
-    assert.equal(starSign(day("2024-01-01")).cuspWith, undefined);
-    assert.equal(starSign(day("2024-07-25")).cuspWith, undefined);
+    assert.equal(starSign(day("2024-12-31"), en).cuspWith, undefined);
+    assert.equal(starSign(day("2024-01-01"), en).cuspWith, undefined);
+    assert.equal(starSign(day("2024-07-25"), en).cuspWith, undefined);
   });
 });
 
 describe("chinese zodiac", () => {
   test("the animal turns over at Lunar New Year, not on 1 January", () => {
     // 2024 was the Wood Dragon, but not until 10 February.
-    assert.equal(chineseSign(day("2024-02-09")).animal, "Rabbit");
-    assert.equal(chineseSign(day("2024-02-10")).animal, "Dragon");
-    assert.equal(chineseSign(day("2024-01-15")).animal, "Rabbit");
+    assert.equal(chineseSign(day("2024-02-09"), en).animal, "Rabbit");
+    assert.equal(chineseSign(day("2024-02-10"), en).animal, "Dragon");
+    assert.equal(chineseSign(day("2024-01-15"), en).animal, "Rabbit");
   });
 
   test("elements follow the ten year stem cycle", () => {
-    assert.deepEqual(
-      { ...chineseSign(day("2024-06-15")) },
-      { animal: "Dragon", emoji: "\u{1F409}", element: "Wood", year: 2024, trait: chineseSign(day("2024-06-15")).trait },
-    );
-    assert.equal(chineseSign(day("2020-06-15")).element, "Metal");
-    assert.equal(chineseSign(day("2019-06-15")).element, "Earth");
-    assert.equal(chineseSign(day("2026-06-15")).element, "Fire");
+    // Named one at a time rather than compared whole: the sign now carries a
+    // key as well, so that the words can be looked up per language, and a
+    // whole-object comparison would be asserting the catalogue by accident.
+    const dragon = chineseSign(day("2024-06-15"), en);
+    assert.equal(dragon.animal, "Dragon");
+    assert.equal(dragon.emoji, "\u{1F409}");
+    assert.equal(dragon.element, "Wood");
+    assert.equal(dragon.year, 2024);
+
+    assert.equal(chineseSign(day("2020-06-15"), en).element, "Metal");
+    assert.equal(chineseSign(day("2019-06-15"), en).element, "Earth");
+    assert.equal(chineseSign(day("2026-06-15"), en).element, "Fire");
   });
 
   test("more new year boundaries", () => {
-    assert.equal(chineseSign(day("2025-01-28")).animal, "Dragon");
-    assert.equal(chineseSign(day("2025-01-29")).animal, "Snake");
-    assert.equal(chineseSign(day("2020-01-24")).animal, "Pig");
-    assert.equal(chineseSign(day("2020-01-25")).animal, "Rat");
-    assert.equal(chineseSign(day("2026-02-17")).animal, "Horse");
+    assert.equal(chineseSign(day("2025-01-28"), en).animal, "Dragon");
+    assert.equal(chineseSign(day("2025-01-29"), en).animal, "Snake");
+    assert.equal(chineseSign(day("2020-01-24"), en).animal, "Pig");
+    assert.equal(chineseSign(day("2020-01-25"), en).animal, "Rat");
+    assert.equal(chineseSign(day("2026-02-17"), en).animal, "Horse");
   });
 });
 
@@ -222,7 +230,7 @@ describe("milestones", () => {
   });
 
   test("past milestones are marked done and future ones are not", () => {
-    const points = milestones("2026-01-01", day("2026-05-01"));
+    const points = milestones("2026-01-01", day("2026-05-01"), en);
     const byKey = Object.fromEntries(points.map((point) => [point.key, point]));
     assert.equal(byKey.d100?.done, true);
     assert.equal(byKey.m6?.done, false);
@@ -234,25 +242,25 @@ describe("what happens next", () => {
   test("an expecting baby shows its due date", () => {
     const event = nextEvent(
       baby({ status: "expecting", birthDate: undefined, dueDate: "2026-09-20" }),
-      day("2026-09-01"),
+      day("2026-09-01"), en
     );
     assert.equal(event?.kind, "due");
     assert.equal(event?.label, "due in 19 days");
   });
 
   test("a baby born today is celebrated rather than counted down", () => {
-    const event = nextEvent(baby({ birthDate: "2026-09-01" }), day("2026-09-01"));
+    const event = nextEvent(baby({ birthDate: "2026-09-01" }), day("2026-09-01"), en);
     assert.equal(event?.kind, "arrival");
   });
 
   test("a milestone only wins when it lands before the birthday", () => {
-    const event = nextEvent(baby({ birthDate: "2026-06-01" }), day("2026-09-01"));
+    const event = nextEvent(baby({ birthDate: "2026-06-01" }), day("2026-09-01"), en);
     assert.equal(event?.kind, "milestone");
     assert.equal(event?.label, "100 days in 8 days");
   });
 
   test("otherwise the birthday wins", () => {
-    const event = nextEvent(baby({ birthDate: "2024-09-20" }), day("2026-09-01"));
+    const event = nextEvent(baby({ birthDate: "2024-09-20" }), day("2026-09-01"), en);
     assert.equal(event?.kind, "birthday");
     assert.equal(event?.label, "turns 2nd in 19 days");
   });
@@ -260,13 +268,13 @@ describe("what happens next", () => {
   test("babies with no dates at all sort to the end instead of throwing", () => {
     const undated = baby({ id: "b", status: "expecting", birthDate: undefined, dueDate: undefined });
     const soon = baby({ id: "a", status: "expecting", birthDate: undefined, dueDate: "2026-09-03" });
-    const order = sortByNextEvent([undated, soon], day("2026-09-01")).map((b) => b.id);
+    const order = sortByNextEvent([undated, soon], day("2026-09-01"), en).map((b) => b.id);
     assert.deepEqual(order, ["a", "b"]);
   });
 
   test("an unnamed baby is described by its parents", () => {
-    assert.equal(displayName(baby({ name: undefined })), "Sarah's baby");
-    assert.equal(displayName(baby({ name: "Mila" })), "Mila");
+    assert.equal(displayName(baby({ name: undefined }), en), "Sarah's baby");
+    assert.equal(displayName(baby({ name: "Mila" }), en), "Mila");
   });
 });
 
@@ -277,8 +285,8 @@ describe("dates read the same everywhere", () => {
    * defaulted to en-US disagreed with all of it.
    */
   test("a date is written the same way wherever it is read", () => {
-    assert.equal(formatDate(new Date(2024, 5, 15)), "15 June 2024");
-    assert.equal(formatShortDate(new Date(2024, 5, 15)), "15 Jun");
+    assert.equal(formatDate(new Date(2024, 5, 15), en), "15 June 2024");
+    assert.equal(formatShortDate(new Date(2024, 5, 15), en), "15 Jun");
   });
 
   test("nothing in the app leaves the format to the device", () => {
@@ -367,36 +375,36 @@ describe("egg, hatchling, chick", () => {
   });
 
   test("a bump is an egg, whether or not a due date is typed", () => {
-    assert.equal(lifeStage(at(undefined, "expecting"), now).glyph, "\u{1F95A}");
-    assert.equal(lifeStage(at(undefined), now).glyph, "\u{1F95A}");
+    assert.equal(lifeStage(at(undefined, "expecting"), now, en).glyph, "\u{1F95A}");
+    assert.equal(lifeStage(at(undefined), now, en).glyph, "\u{1F95A}");
   });
 
   test("under a year they have just hatched", () => {
-    assert.equal(lifeStage(at("2026-08-30"), now).glyph, "\u{1F423}");
-    assert.equal(lifeStage(at("2025-09-02"), now).glyph, "\u{1F423}", "a day short of one");
+    assert.equal(lifeStage(at("2026-08-30"), now, en).glyph, "\u{1F423}");
+    assert.equal(lifeStage(at("2025-09-02"), now, en).glyph, "\u{1F423}", "a day short of one");
   });
 
   test("the first birthday turns them into a chick, on the day", () => {
-    assert.equal(lifeStage(at("2025-09-01"), now).glyph, "\u{1F424}");
-    assert.equal(lifeStage(at("2020-01-01"), now).glyph, "\u{1F424}");
+    assert.equal(lifeStage(at("2025-09-01"), now, en).glyph, "\u{1F424}");
+    assert.equal(lifeStage(at("2020-01-01"), now, en).glyph, "\u{1F424}");
   });
 
   test("a birthday typed in the future is an egg, not a turkey", () => {
-    assert.equal(lifeStage(at("2027-01-01"), now).glyph, "\u{1F95A}");
+    assert.equal(lifeStage(at("2027-01-01"), now, en).glyph, "\u{1F95A}");
   });
 
   test("nobody who is actually a baby is ever told they are not one", () => {
     for (const year of [2026, 2025, 2020, 2015]) {
-      assert.equal(lifeStage(at(`${year}-03-04`), now).aside, undefined);
+      assert.equal(lifeStage(at(`${year}-03-04`), now, en).aside, undefined);
     }
   });
 
   test("putting a grown adult in a baby app is noticed", () => {
-    assert.equal(lifeStage(at("2012-01-01"), now).glyph, "\u{1F414}", "a teenager");
-    assert.equal(lifeStage(at("2000-01-01"), now).glyph, "\u{1F413}", "a rooster");
-    assert.equal(lifeStage(at("1970-01-01"), now).glyph, "\u{1F983}", "a turkey");
+    assert.equal(lifeStage(at("2012-01-01"), now, en).glyph, "\u{1F414}", "a teenager");
+    assert.equal(lifeStage(at("2000-01-01"), now, en).glyph, "\u{1F413}", "a rooster");
+    assert.equal(lifeStage(at("1970-01-01"), now, en).glyph, "\u{1F983}", "a turkey");
 
-    assert.match(lifeStage(at("2000-01-01"), now).aside!, /grown adult/);
+    assert.match(lifeStage(at("2000-01-01"), now, en).aside!, /grown adult/);
   });
 });
 
@@ -414,7 +422,7 @@ describe("reminders", () => {
   });
 
   test("a birthday earns a week's warning and one on the morning", () => {
-    const found = nudgesFor([mila()], now);
+    const found = nudgesFor([mila()], now, en, false);
 
     assert.equal(found.length, 2);
     assert.match(found[0]!.title, /birthday is in a week/);
@@ -423,7 +431,7 @@ describe("reminders", () => {
   });
 
   test("reminders land at nine in the morning, not at midnight", () => {
-    const [warning] = nudgesFor([mila()], now);
+    const [warning] = nudgesFor([mila()], now, en, false);
     const at = new Date(warning!.at);
     assert.equal(at.getHours(), 9);
     // Compared in local time, since nine in the morning is a local idea.
@@ -433,7 +441,7 @@ describe("reminders", () => {
 
   test("a warning whose moment has already passed is not scheduled", () => {
     // Nine in the morning on the day of the warning is already behind us.
-    const found = nudgesFor([mila()], new Date("2026-09-01T18:00:00"));
+    const found = nudgesFor([mila()], new Date("2026-09-01T18:00:00"), en, false);
     assert.deepEqual(
       found.map((nudge) => nudge.title),
       ["Mila's birthday is today"],
@@ -442,21 +450,21 @@ describe("reminders", () => {
 
   test("a due date gets its own wording", () => {
     const bump = mila({ status: "expecting", birthDate: undefined, dueDate: "2026-09-20" });
-    assert.match(nudgesFor([bump], now)[1]!.title, /is due today/);
+    assert.match(nudgesFor([bump], now, en, false)[1]!.title, /is due today/);
   });
 
   test("nothing is scheduled for a baby with no date at all", () => {
-    assert.deepEqual(nudgesFor([mila({ birthDate: undefined })], now), []);
+    assert.deepEqual(nudgesFor([mila({ birthDate: undefined })], now, en, false), []);
   });
 
   test("ids are stable, so the same occasion is never announced twice", () => {
-    const first = nudgesFor([mila()], now).map((nudge) => nudge.id);
-    const later = nudgesFor([mila()], new Date("2026-09-02T08:00:00")).map((nudge) => nudge.id);
+    const first = nudgesFor([mila()], now, en, false).map((nudge) => nudge.id);
+    const later = nudgesFor([mila()], new Date("2026-09-02T08:00:00"), en, false).map((nudge) => nudge.id);
     assert.ok(later.every((id) => first.includes(id)));
   });
 
   test("pruning drops yesterday's reminders and keeps tomorrow's", () => {
-    const nudges = nudgesFor([mila()], now);
+    const nudges = nudgesFor([mila()], now, en, false);
     assert.equal(pruneNudges(nudges, new Date("2026-09-20T09:00:00")).length, 0);
     assert.equal(pruneNudges(nudges, now).length, 2);
   });
@@ -471,29 +479,29 @@ describe("what this browser will actually do", () => {
   };
 
   test("a browser that can wake itself is promised a real reminder", () => {
-    const status = describeNudges(able);
+    const status = describeNudges(able, en);
     assert.match(status.line, /whether or not Stork is open/);
     assert.equal(status.fallback, false);
   });
 
   test("a browser that cannot wake itself says so instead of pretending", () => {
-    const status = describeNudges({ ...able, canWake: false });
+    const status = describeNudges({ ...able, canWake: false }, en);
     assert.match(status.line, /can arrive late/);
     assert.ok(status.fallback, "so the calendar export stays on offer");
   });
 
   test("in a tab it suggests the home screen rather than giving up", () => {
-    assert.equal(describeNudges({ ...able, canWake: false, installed: false }).action, "install");
+    assert.equal(describeNudges({ ...able, canWake: false, installed: false }, en).action, "install");
   });
 
   test("having been turned down, it does not offer the button again", () => {
-    const status = describeNudges({ ...able, permission: "denied" });
+    const status = describeNudges({ ...able, permission: "denied" }, en);
     assert.equal(status.action, null);
     assert.match(status.line, /your browser's settings/);
   });
 
   test("not yet asked, it offers to ask", () => {
-    assert.equal(describeNudges({ ...able, permission: "default" }).action, "ask");
+    assert.equal(describeNudges({ ...able, permission: "default" }, en).action, "ask");
   });
 });
 
@@ -501,13 +509,13 @@ describe("what this browser will let you install", () => {
   const able = { installed: false, canPrompt: true, byHand: false, dismissed: false };
 
   test("a browser with a real prompt gets a real button", () => {
-    const offer = describeInstall(able);
+    const offer = describeInstall(able, en);
     assert.equal(offer.kind, "button");
     assert.match(offer.kind === "button" ? offer.label : "", /Install/);
   });
 
   test("an iPhone gets the share sheet spelled out, since it has no button", () => {
-    const offer = describeInstall({ ...able, canPrompt: false, byHand: true });
+    const offer = describeInstall({ ...able, canPrompt: false, byHand: true }, en);
     assert.equal(offer.kind, "steps");
     assert.deepEqual(
       offer.kind === "steps" ? offer.steps.length : 0,
@@ -517,18 +525,18 @@ describe("what this browser will let you install", () => {
   });
 
   test("a browser that can do neither is not sent hunting for a button", () => {
-    assert.equal(describeInstall({ ...able, canPrompt: false }).kind, "none");
+    assert.equal(describeInstall({ ...able, canPrompt: false }, en).kind, "none");
   });
 
   test("an app already on the home screen is not asked to install itself", () => {
-    assert.equal(describeInstall({ ...able, installed: true }).kind, "none");
-    assert.equal(describeInstall({ ...able, installed: true, byHand: true }).kind, "none");
+    assert.equal(describeInstall({ ...able, installed: true }, en).kind, "none");
+    assert.equal(describeInstall({ ...able, installed: true, byHand: true }, en).kind, "none");
   });
 
   test("waving the strip away silences the home screen but not Settings", () => {
     const waved = { ...able, dismissed: true };
-    assert.equal(offerOnHome(waved).kind, "none");
-    assert.equal(describeInstall(waved).kind, "button", "Settings keeps offering");
+    assert.equal(offerOnHome(waved, en).kind, "none");
+    assert.equal(describeInstall(waved, en).kind, "button", "Settings keeps offering");
   });
 });
 
@@ -536,13 +544,13 @@ describe("whether this device will hold on to it", () => {
   const able = { canAsk: true, persisted: false, installed: false, sweeps: false };
 
   test("a browser with no answer to give is not spoken for", () => {
-    const status = describeStorage({ ...able, canAsk: false });
+    const status = describeStorage({ ...able, canAsk: false }, en);
     assert.equal(status.ask, false, "nothing to press when there is nothing to ask");
     assert.equal(status.warn, true);
   });
 
   test("a promise given is reported, along with what it does not cover", () => {
-    const status = describeStorage({ ...able, persisted: true });
+    const status = describeStorage({ ...able, persisted: true }, en);
     assert.equal(status.warn, false);
     assert.equal(status.ask, false, "no point asking twice");
     // The one thing that must never be implied is that this is now safe.
@@ -550,8 +558,8 @@ describe("whether this device will hold on to it", () => {
   });
 
   test("Safari is told about its own seven days, and the home screen changes it", () => {
-    const tab = describeStorage({ ...able, sweeps: true });
-    const installed = describeStorage({ ...able, sweeps: true, installed: true });
+    const tab = describeStorage({ ...able, sweeps: true }, en);
+    const installed = describeStorage({ ...able, sweeps: true, installed: true }, en);
 
     assert.match(tab.line, /seven days/);
     assert.match(tab.line, /home screen/, "in a tab, the fix is to install it");
@@ -560,7 +568,7 @@ describe("whether this device will hold on to it", () => {
   });
 
   test("everything else is warned about room, and offered the button", () => {
-    const status = describeStorage(able);
+    const status = describeStorage(able, en);
     assert.match(status.line, /short of room/);
     assert.equal(status.ask, true);
   });
@@ -582,13 +590,13 @@ describe("keeping a backup", () => {
   const NOW = new Date("2026-09-01T12:00:00.000Z");
 
   test("an empty book has nothing to lose and is not nagged", () => {
-    const status = describeBackup({ count: 0, now: NOW });
+    const status = describeBackup({ count: 0, now: NOW }, en);
     assert.equal(status.line, "Nothing to back up yet");
     assert.equal(status.stale, false);
   });
 
   test("a book that has never been backed up says so, and counts as stale", () => {
-    const status = describeBackup({ count: 3, now: NOW });
+    const status = describeBackup({ count: 3, now: NOW }, en);
     assert.equal(status.line, "3 babies, never backed up");
     assert.equal(status.stale, true);
   });
@@ -599,7 +607,7 @@ describe("keeping a backup", () => {
       changedAt: "2025-01-09T00:00:00.000Z",
       count: 2,
       now: NOW,
-    });
+    }, en);
     assert.equal(status.stale, false, "nobody has touched the book since");
     assert.match(status.line, /2 babies, backed up \d+ days ago$/);
   });
@@ -610,18 +618,18 @@ describe("keeping a backup", () => {
       changedAt: "2026-08-31T00:00:00.000Z",
       count: 2,
       now: NOW,
-    });
+    }, en);
     assert.equal(status.stale, true);
     assert.match(status.line, /out of date$/);
   });
 
   test("today and yesterday are named rather than counted", () => {
     assert.match(
-      describeBackup({ lastAt: "2026-09-01T09:00:00.000Z", count: 1, now: NOW }).line,
+      describeBackup({ lastAt: "2026-09-01T09:00:00.000Z", count: 1, now: NOW }, en).line,
       /backed up today/,
     );
     assert.match(
-      describeBackup({ lastAt: "2026-08-31T09:00:00.000Z", count: 1, now: NOW }).line,
+      describeBackup({ lastAt: "2026-08-31T09:00:00.000Z", count: 1, now: NOW }, en).line,
       /backed up yesterday/,
     );
   });
@@ -634,11 +642,11 @@ describe("keeping a backup", () => {
     const old = "2026-08-01T00:00:00.000Z";
 
     test("an empty book is never nagged, however long it has sat there", () => {
-      assert.equal(nudgeAboutBackup({ count: 0, keeping: false, now: NOW }).kind, "none");
+      assert.equal(nudgeAboutBackup({ count: 0, keeping: false, now: NOW }, en).kind, "none");
     });
 
     test("a book with no copy anywhere says the plain thing", () => {
-      const nudge = nudgeAboutBackup({ count: 2, changedAt: old, keeping: false, now: NOW });
+      const nudge = nudgeAboutBackup({ count: 2, changedAt: old, keeping: false, now: NOW }, en);
       assert.equal(nudge.kind, "warn");
       assert.match(nudge.kind === "warn" ? nudge.title : "", /Nothing is backed up yet/);
     });
@@ -649,7 +657,7 @@ describe("keeping a backup", () => {
         changedAt: "2026-08-31T18:00:00.000Z",
         keeping: false,
         now: NOW,
-      });
+      }, en);
       assert.equal(nudge.kind, "none", "the grace is what stops it scolding on the way out");
     });
 
@@ -660,7 +668,7 @@ describe("keeping a backup", () => {
         lastAt: "2026-08-02T00:00:00.000Z",
         keeping: false,
         now: NOW,
-      });
+      }, en);
       assert.equal(nudge.kind, "none");
     });
 
@@ -671,7 +679,7 @@ describe("keeping a backup", () => {
         lastAt: "2026-07-01T00:00:00.000Z",
         keeping: true,
         now: NOW,
-      });
+      }, en);
       // Worse than never setting one up, because they think it is handled.
       assert.match(nudge.kind === "warn" ? nudge.title : "", /Automatic backups have stopped/);
     });
@@ -679,7 +687,7 @@ describe("keeping a backup", () => {
     test("waving it away covers what was there, not what comes next", () => {
       const hushed = "2026-08-15T00:00:00.000Z";
       assert.equal(
-        nudgeAboutBackup({ count: 2, changedAt: old, hushedAt: hushed, keeping: false, now: NOW })
+        nudgeAboutBackup({ count: 2, changedAt: old, hushedAt: hushed, keeping: false, now: NOW }, en)
           .kind,
         "none",
       );
@@ -690,7 +698,7 @@ describe("keeping a backup", () => {
           hushedAt: hushed,
           keeping: false,
           now: NOW,
-        }).kind,
+        }, en).kind,
         "warn",
         "a new baby is a new thing to lose",
       );
@@ -744,7 +752,7 @@ describe("a card to send", () => {
   });
 
   test("a baby who is here leads with their age, under both their signs", () => {
-    const card = cardContent(mila(), NOW);
+    const card = cardContent(mila(), NOW, en);
     assert.equal(card.name, "Mila");
     assert.equal(card.parents, "Sarah and Tom");
     assert.equal(card.headline, "2 years, 2 months old");
@@ -753,7 +761,7 @@ describe("a card to send", () => {
   });
 
   test("a known birth weight earns a third badge", () => {
-    const card = cardContent(mila({ birthWeightGrams: 3400 }), NOW);
+    const card = cardContent(mila({ birthWeightGrams: 3400 }), NOW, en);
     assert.equal(card.chips.length, 3);
     assert.match(card.chips[2] ?? "", /3\.4 kg/);
   });
@@ -761,7 +769,7 @@ describe("a card to send", () => {
   test("a bump counts down, and its star sign is only a guess", () => {
     const card = cardContent(
       mila({ status: "expecting", birthDate: undefined, dueDate: "2026-11-01" }),
-      NOW,
+      NOW, en
     );
     assert.equal(card.headline, "due in 9 weeks");
     assert.match(card.chips[0] ?? "", /Scorpio\?$/);
@@ -771,7 +779,7 @@ describe("a card to send", () => {
   test("a bump with no due date still makes a card rather than throwing", () => {
     const card = cardContent(
       mila({ status: "expecting", birthDate: undefined, dueDate: undefined }),
-      NOW,
+      NOW, en
     );
     assert.equal(card.headline, "On the way");
     assert.deepEqual(card.chips, []);
@@ -849,15 +857,15 @@ describe("families", () => {
 
   test("an older girl is a big sister and a younger boy a little brother", () => {
     const me = of("me", ["Sarah"], { birthDate: "2022-01-01" });
-    assert.equal(relation(me, of("a", ["Sarah"], { birthDate: "2019-01-01", sex: "girl" })), "big sister");
-    assert.equal(relation(me, of("b", ["Sarah"], { birthDate: "2024-01-01", sex: "boy" })), "little brother");
+    assert.equal(relation(me, of("a", ["Sarah"], { birthDate: "2019-01-01", sex: "girl" }), en), "big sister");
+    assert.equal(relation(me, of("b", ["Sarah"], { birthDate: "2024-01-01", sex: "boy" }), en), "little brother");
   });
 
   test("without a sex it is just an older or younger sibling", () => {
     const me = of("me", ["Sarah"], { birthDate: "2022-01-01" });
-    assert.equal(relation(me, of("a", ["Sarah"], { birthDate: "2019-01-01" })), "older sibling");
+    assert.equal(relation(me, of("a", ["Sarah"], { birthDate: "2019-01-01" }), en), "older sibling");
     assert.equal(
-      relation(me, of("b", ["Sarah"], { birthDate: "2024-01-01", sex: "surprise" })),
+      relation(me, of("b", ["Sarah"], { birthDate: "2024-01-01", sex: "surprise" }), en),
       "younger sibling",
     );
   });
@@ -870,25 +878,25 @@ describe("families", () => {
       dueDate: "2019-01-01",
       sex: "girl",
     });
-    assert.equal(relation(me, bump), "little sister");
+    assert.equal(relation(me, bump, en), "little sister");
   });
 });
 
 describe("how big", () => {
   test("a birth weight reads in kilograms and in pounds and ounces", () => {
-    assert.deepEqual(describeWeight(3400), { metric: "3.4 kg", imperial: "7 lb 8 oz" });
+    assert.deepEqual(describeWeight(3400, en), { metric: "3.4 kg", imperial: "7 lb 8 oz" });
   });
 
   test("a round weight drops its decimals rather than showing 3.00 kg", () => {
-    assert.equal(describeWeight(3000).metric, "3 kg");
+    assert.equal(describeWeight(3000, en).metric, "3 kg");
   });
 
   test("sixteen ounces carry into a pound instead of reading 9 lb 16 oz", () => {
-    assert.equal(describeWeight(4536).imperial, "10 lb 0 oz");
+    assert.equal(describeWeight(4536, en).imperial, "10 lb 0 oz");
   });
 
   test("a length reads in centimetres and in inches", () => {
-    assert.deepEqual(describeLength(51), { metric: "51 cm", imperial: "20.1 in" });
+    assert.deepEqual(describeLength(51, en), { metric: "51 cm", imperial: "20.1 in" });
   });
 });
 
@@ -1040,19 +1048,19 @@ describe("calendar export", () => {
   const now = day("2026-09-01");
 
   test("birthdays recur every year and due dates do not", () => {
-    const born = toICalendar([baby({ name: "Mila", birthDate: "2024-06-15" })], now);
+    const born = toICalendar([baby({ name: "Mila", birthDate: "2024-06-15" })], now, en);
     assert.match(born, /RRULE:FREQ=YEARLY/);
 
     const expecting = toICalendar(
       [baby({ status: "expecting", birthDate: undefined, dueDate: "2026-10-01" })],
-      now,
+      now, en
     );
     assert.doesNotMatch(expecting, /RRULE/);
     assert.match(expecting, /DTSTART;VALUE=DATE:20261001/);
   });
 
   test("an all-day event ends on the following morning", () => {
-    const ics = toICalendar([baby({ name: "Mila", birthDate: "2024-06-15" })], now);
+    const ics = toICalendar([baby({ name: "Mila", birthDate: "2024-06-15" })], now, en);
     assert.match(ics, /DTSTART;VALUE=DATE:20240615/);
     assert.match(ics, /DTEND;VALUE=DATE:20240616/);
   });
@@ -1060,7 +1068,7 @@ describe("calendar export", () => {
   test("every line is CRLF terminated and folded within 75 octets", () => {
     const ics = toICalendar(
       [baby({ name: "Genevieve Alexandra Wonderfully Long Name The Third", birthDate: "2024-06-15" })],
-      now,
+      now, en
     );
     assert.ok(ics.endsWith("\r\n"));
     for (const line of ics.split("\r\n")) {
@@ -1072,7 +1080,7 @@ describe("calendar export", () => {
   });
 
   test("commas in a name are escaped rather than splitting the field", () => {
-    const ics = toICalendar([baby({ name: "Mila, the second", birthDate: "2024-06-15" })], now);
+    const ics = toICalendar([baby({ name: "Mila, the second", birthDate: "2024-06-15" })], now, en);
     assert.match(ics, /Mila\\, the second/);
   });
 });
