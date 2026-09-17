@@ -50,6 +50,29 @@ export const enShare = {
     hebrewSummary: (name: string) => `\u2721\uFE0F ${name}'s Hebrew birthday`,
     hebrewDescription: (hebrewDate: string, turning: string) =>
       `${hebrewDate}. Turning ${turning}.`,
+    britSummary: (name: string) => `\u2721\uFE0F ${name}'s brit`,
+    britDescription: (date: string) => `The eighth day, ${date}.`,
+
+    /*
+     * What the alarm itself says. A calendar alert is read off a lock screen
+     * with none of the event around it, so it repeats the occasion rather
+     * than assuming the phone will show it.
+     */
+    alarmToday: (occasion: string) => `Today: ${occasion}`,
+    alarmAhead: (occasion: string, days: number) => `${plural(days, "day")} to go: ${occasion}`,
+  },
+
+  /*
+   * Settings, where the calendar route has to be explained honestly: what it
+   * does that the app's own reminders cannot, and the price of that, which is
+   * that a file is not a feed.
+   */
+  calendar: {
+    title: "Reminders that arrive on any phone",
+    body: "Your calendar alerts you whether or not Stork is open, on an iPhone as readily as anywhere else. The file goes straight from here into the calendar app: nothing is uploaded and there is no account.",
+    alarms: "Birthdays warn you a fortnight ahead, again two days before and on the morning itself. A due date starts three weeks out, which is the point at which a baby could honestly arrive any day.",
+    snapshot: "It is a file rather than a feed. Everyone in the book today goes in; anyone you add tomorrow does not, so export it again when you do.",
+    limits: "Exporting again corrects a date you have changed, because the calendar recognises an entry it already has rather than adding a second one. What it cannot do is take one away, so a baby you remove here stays in the calendar until you remove them there too.",
   },
 
   nudge: {

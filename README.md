@@ -294,8 +294,8 @@ them it says so, because the notes are the only part it cannot work out for you.
 
 Households are found by following shared parent names from baby to baby, which
 makes one baby naming two parents the thing that joins those two people's lists
-into one. Occasionally that merges a family it should not have, and the fix is a
-fuller name.
+into one. Where that comes out wrong, **Not right?** on a baby's page is how you
+say so; see [Families](#families).
 
 ## Reminders
 
@@ -315,10 +315,33 @@ Sync, for an installed app, at a time it chooses and never promises. Safari's
 push support needs a server pushing to it and there is no server here, so it is
 not offered a promise it cannot keep.
 
-Which is why the calendar export has not gone anywhere, and is still the
-dependable route. **Settings - Export .ics** produces a file with every birthday
-as a yearly repeating event and every due date as a one-off, each nudging you
-two days early. There is the same button on an individual baby's page.
+Which is why the calendar export has not gone anywhere: it is the only route
+that reaches every phone, because the alarms are the operating system's rather
+than the browser's. **Settings - Export .ics** produces a file with every
+birthday as a yearly repeating event, every due date as a one-off, and, with the
+Hebrew calendar on, the Hebrew birthdays and the brit as well. There is the same
+button on an individual baby's page.
+
+How much warning each occasion gets is not one answer four times over. A
+birthday is known a year ahead and the only question is whether there is still
+time to send something, so it warns a fortnight out, again two days before, and
+on the morning. A due date is a prediction rather than an appointment and starts
+three weeks out, which is full term and the point from which it could honestly
+be any day. A brit gets the day before and an early start, since a fortnight's
+warning would have had to be given before the baby was born.
+
+Every one of those is counted in hours rather than days. These are all-day
+events, so they begin at midnight, so a trigger written in whole days goes off
+at midnight too - `-P2D` is the top of the day before last, which nobody is
+awake for and which the phone has swept away by breakfast. `-P13DT15H` is the
+same fortnight's warning at nine in the morning.
+
+The file is a snapshot and not a feed, and no amount of cleverness makes it one
+without a server: a subscription needs a URL the phone's calendar daemon can
+poll, the book lives in `localStorage` on the device, and the daemon's fetch
+never passes through a service worker. Exporting again corrects a date you have
+changed, because the calendar recognises an entry it already holds. What it
+cannot do is take one away.
 
 Everything about *what* to say is worked out in the app and written to
 IndexedDB as a finished list of lines and timestamps. The worker wakes up much
@@ -493,7 +516,8 @@ plan is a one-time code by email rather than passwords.
 | `src/domain/derive.ts` | Age, countdowns, birthdays, milestones, what happens next |
 | `src/domain/almanac.ts` | Star signs, Chinese zodiac, birthstones, flowers, the rhyme |
 | `src/domain/lunarNewYear.ts` | The dates the zodiac animal turns over |
-| `src/domain/family.ts` | Who is whose sibling, and which households that makes |
+| `src/domain/family.ts` | Who is whose sibling, which households that makes, and the corrections |
+| `src/ui/familyFix.ts` | Saying the app got a household wrong, in either direction |
 | `src/domain/stage.ts` | Egg, hatchling, chick, and the rungs above that |
 | `src/domain/calendar.ts` | Which days a month has, and which to offer at all |
 | `src/domain/nudges.ts` | What each reminder says and the moment it says it |

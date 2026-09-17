@@ -80,6 +80,9 @@ export function renderSettings(ctx: AppContext): HTMLElement {
   const words = ctx.t.settings.settings;
   const backup = ctx.t.settings.backup;
   const storage = ctx.t.settings.storage;
+  // The calendar is described where the file is made rather than where the
+  // button lives, since what it says has to follow what the export does.
+  const calendar = ctx.t.share.calendar;
 
   const keeping = autoBackupOn();
   const durability = describeStorage(storageAbility(), ctx.t);
@@ -256,7 +259,17 @@ export function renderSettings(ctx: AppContext): HTMLElement {
         "section",
         { class: "panel" },
         el("h2", { class: "section-title" }, words.calendarSection),
-        row(words.calendarTitle, words.calendarBody, button(words.exportIcs, exportIcs)),
+        /*
+         * Said at length, and first, because this is the only reminder in the
+         * app that reaches an iPhone at all: the app's own need the browser to
+         * wake on a schedule, which Safari will not do. It is also the one
+         * thing here that hands your book to another program, so what it does
+         * and does not keep up with is worth spelling out before the button.
+         */
+        row(calendar.title, calendar.body, button(words.exportIcs, exportIcs)),
+        el("p", { class: "note" }, calendar.alarms),
+        el("p", { class: "note" }, calendar.snapshot),
+        el("p", { class: "note" }, calendar.limits),
       ),
       el(
         "section",
