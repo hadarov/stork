@@ -152,6 +152,17 @@ Birth weight and length are the two things it cannot work out, so it asks. They
 are stored in grams and centimetres and shown both ways round, because whoever
 announced it said one and whoever reads the page is thinking in the other.
 
+**Moments** are the other half of that: a first tooth has no formula, so you
+write it down. They sit in their own panel under the computed milestones and
+in the same timeline styling, so the page reads as one line - what the calendar
+knew was coming, and then what you noticed. They are kept apart rather than
+interleaved because the computed list is a forecast, mostly still ahead, and
+the recorded one is a diary, always behind; merged, "First birthday in 34 days"
+ends up underneath however many firsts you have typed. A few common ones are
+offered as one-taps, each dropping off the list once used, and in Hebrew they
+are all nouns - `ישיבה ראשונה` rather than a verb - because one shared list
+cannot agree with a sex it does not know.
+
 The home screen opens on a **This week** strip: anything due, arriving or having
 a birthday in the next seven days, before anything else.
 
@@ -518,6 +529,8 @@ plan is a one-time code by email rather than passwords.
 | `src/domain/lunarNewYear.ts` | The dates the zodiac animal turns over |
 | `src/domain/family.ts` | Who is whose sibling, which households that makes, and the corrections |
 | `src/ui/familyFix.ts` | Saying the app got a household wrong, in either direction |
+| `src/domain/moments.ts` | The firsts you record yourself: tidying, validating, ordering |
+| `src/ui/moments.ts` | The panel they are written and read in |
 | `src/domain/stage.ts` | Egg, hatchling, chick, and the rungs above that |
 | `src/domain/calendar.ts` | Which days a month has, and which to offer at all |
 | `src/domain/nudges.ts` | What each reminder says and the moment it says it |

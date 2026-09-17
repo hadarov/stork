@@ -2,7 +2,7 @@ import type { BabySex } from "../../domain/types.ts";
 import type { enBaby } from "../en/baby.ts";
 
 /*
- * Hebrew for a baby's own page and the album on it.
+ * Hebrew for a baby's own page, the album and the moments on it.
  *
  * Gender. A birthday is a verb here, and a verb has a gender: a boy נכנס לגיל
  * שנתיים and a girl נכנסת. When the surprise has been kept there is no third
@@ -18,6 +18,13 @@ import type { enBaby } from "../en/baby.ts";
  * The rhyme. "Monday's child is fair of face" has no Hebrew counterpart, so
  * the page leaves the line out rather than printing a flat sentence where a
  * verse was. The quoting function below is kept only to match the shape.
+ *
+ * The suggested moments. English offers them as verbs - rolled over, sat up,
+ * crawled - and a Hebrew verb would have to pick a sex, which this list cannot
+ * do: it is one list for every baby in the book, and it is offered while the
+ * baby is still a surprise. Every one of them is therefore named as the thing
+ * rather than the doing of it, ישיבה ראשונה rather than ישב or ישבה, which is
+ * how these are spoken of anyway and leaves nothing to guess.
  */
 
 /** One, two, many. The dual already means two, so it stands without a numeral. */
@@ -146,5 +153,34 @@ export const heBaby: typeof enBaby = {
     nowTheirPicture: "מעכשיו זו התמונה שלהם",
     delete: "מחיקה",
     removed: "התמונה הוסרה",
+  },
+
+  moments: {
+    section: "רגעים",
+    empty: "הדברים שאין להם נוסחה: שן ראשונה, מילה ראשונה, ההליכה הראשונה לאורך החדר.",
+    add: "\uFF0B הוספת רגע",
+
+    what: "מה קרה",
+    whatHint: "השן הראשונה",
+    when: "מתי",
+    orOneOfThese: "או אחד מאלה",
+    common: [
+      "החיוך הראשון",
+      "השן הראשונה",
+      "התהפכות ראשונה",
+      "ישיבה ראשונה",
+      "זחילה ראשונה",
+      "הצעדים הראשונים",
+      "המילה הראשונה",
+    ],
+
+    save: "שמירה",
+    cancel: "ביטול",
+    needLabel: "כתבו מה קרה, במילה או שתיים.",
+    needDate: "בחרו את היום שבו זה קרה.",
+    full: (max) => `עד ${max} רגעים לכל תינוק, וזה המון פעמים ראשונות.`,
+    added: "הרגע נשמר",
+    remove: (label) => `הסרת ${label}`,
+    removed: "הרגע הוסר",
   },
 };

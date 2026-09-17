@@ -60,6 +60,17 @@ function ordinal(n: number): string {
   return ORDINALS_M[n] ?? `ה-${n}`;
 }
 
+/**
+ * "and" is a letter on the front of the next word rather than a word of its
+ * own, which only works when that word is in Hebrew. A friend called Jonas
+ * would come out as "וJonas", the vav welded to a Latin J. Before anything
+ * that is not Hebrew it takes a hyphen instead, the same way this file already
+ * writes "ה-12" for a number it has no word for.
+ */
+function vav(word: string): string {
+  return /^[\u0590-\u05FF]/.test(word.trim()) ? `ו${word}` : `ו-${word}`;
+}
+
 export const he: Catalog = {
   /* --------------------------------------------------------- by area */
 
@@ -156,14 +167,14 @@ export const he: Catalog = {
   label: {
     parentsBaby: (parent) => `התינוק של ${parent}`,
     unnamed: "תינוק בדרך",
-    and: (a, b) => `${a} ו${b}`,
-    list: (most, last) => `${most.join(", ")} ו${last}`,
+    and: (a, b) => `${a} ${vav(b)}`,
+    list: (most, last) => `${most.join(", ")} ${vav(last)}`,
     // No shorter than the full form, so it is the full form. An ampersand
     // between two Hebrew names reads as something borrowed.
     shortList: (parents) =>
       parents.length < 2
         ? parents.join("")
-        : `${parents.slice(0, -1).join(", ")} ו${parents[parents.length - 1]}`,
+        : `${parents.slice(0, -1).join(", ")} ${vav(parents[parents.length - 1])}`,
   },
 
   /* ----------------------------------------------------------- how big */

@@ -1,7 +1,8 @@
 /*
  * Stork.
  *
- * Dark, soft and quiet, with one accent: the yolk gold of the app's own egg.
+ * Dark, soft and quiet, with one accent: a muted sage green, chosen after the
+ * first attempt at a yolk gold turned out to be far too bright to live with.
  * Every emphasis in the app is that colour and nothing else is - buttons,
  * focus, the age under a name, a milestone reached - so the eye learns it once.
  *
@@ -756,6 +757,43 @@ button {
   color: var(--muted);
 }
 
+/* The two buttons under the family, which are one choice each and not a pair. */
+.family-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block-start: 0.4rem;
+}
+
+/*
+ * A row in the correction sheet. Shaped like a sibling row, but it is not
+ * itself a button: the button is the thing on the end, and one tap target
+ * inside another is a way of pressing the wrong one.
+ */
+.family-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.5rem 0;
+}
+
+.family-row .sibling-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.family-row-action {
+  flex: none;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.family-list {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ----------------------------------------------------------- the brief */
 
 .brief-card {
@@ -924,10 +962,6 @@ button {
 .field-group {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-}
-
-.field-group {
   gap: 1.1rem;
 }
 
@@ -1326,4 +1360,67 @@ textarea.input {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
+}
+
+/* --------------------------------------------------------------- moments */
+
+/* The button keeps to the width of its own words, the way it does under the
+   album, so the two things that do fill the panel have to say so themselves. */
+.moments {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+.moments > .timeline,
+.moments > .field-group {
+  align-self: stretch;
+}
+
+/* A recorded moment carries a way to take it back out again, so its row runs
+   across rather than down. The dot is positioned off the row either way. */
+.timeline-item.moment {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.moment-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Quiet on the page without being small to hit: the box it pulls back out to
+   is a good deal bigger than the cross drawn in it. */
+.moment-remove {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.6rem;
+  margin-block: -0.3rem;
+  margin-inline-end: -0.5rem;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+/* A chip already looks right; as a button it only wants the app's one press,
+   and it is not in the list at the top that shares it. */
+.suggestion {
+  transition: scale 0.12s ease, opacity 0.12s ease;
+}
+
+.suggestion:active,
+.moment-remove:active {
+  scale: 0.97;
+  opacity: 0.85;
 }

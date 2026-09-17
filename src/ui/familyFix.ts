@@ -63,7 +63,10 @@ export function renderFamilyFix(ctx: AppContext, baby: Baby): HTMLElement {
       el(
         "button",
         {
-          class: "quiet family-row-action",
+          // A pill, like the one opposite it, because the two sit in the same
+          // column and a quieter one there reads as a label rather than a
+          // thing you can press.
+          class: "secondary family-row-action",
           type: "button",
           onclick: () =>
             save(separate(baby, sibling, new Date()), words.nowApart(displayName(sibling, t))),

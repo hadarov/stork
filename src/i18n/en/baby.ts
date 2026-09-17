@@ -1,7 +1,7 @@
 import type { BabySex } from "../../domain/types.ts";
 
 /*
- * A baby's own page, and the photo album on it.
+ * A baby's own page, the photo album and the moments on it.
  *
  * Two small helpers are copied rather than imported. The core catalogue is
  * what imports this file, so reaching back into it would close a circle, and
@@ -116,5 +116,40 @@ export const enBaby = {
     nowTheirPicture: "That is their picture now",
     delete: "Delete",
     removed: "Photo removed",
+  },
+
+  moments: {
+    section: "Moments",
+    empty: "The firsts nothing can work out for you: a tooth, a word, the walk across the room.",
+    add: "\uFF0B Note a moment",
+
+    what: "What happened",
+    whatHint: "First tooth",
+    when: "When",
+    /** Over the suggestions, which sit under the box you could type it into. */
+    orOneOfThese: "Or one of these",
+    /**
+     * The ones nearly every baby gets, roughly in the order they arrive. Free
+     * text is still the point; these only save the typing on the usual ones.
+     */
+    common: [
+      "First smile",
+      "First tooth",
+      "Rolled over",
+      "Sat up",
+      "Crawled",
+      "First steps",
+      "First word",
+    ],
+
+    save: "Save",
+    cancel: "Cancel",
+    needLabel: "Say what happened, in a word or two.",
+    needDate: "Pick the day it happened.",
+    full: (max: number) => `${max} moments each, which is a great many firsts.`,
+    added: "Moment saved",
+    /** Reaches a screen reader only, where a bare cross says nothing at all. */
+    remove: (label: string) => `Remove ${label}`,
+    removed: "Moment removed",
   },
 };

@@ -189,6 +189,16 @@ describe("the rest of the wording follows the language", () => {
     assert.equal(describeParents(["Sarah", "Tom"], en), "Sarah and Tom");
   });
 
+  test("the vav takes a hyphen before a name that is not in Hebrew", () => {
+    // Welded straight onto a Latin initial it reads as one word: "וJonas".
+    assert.equal(describeParents(["אדה", "Jonas"], he), "אדה ו-Jonas");
+    assert.equal(he.label.shortList(["אדה", "Jonas"]), "אדה ו-Jonas");
+    assert.equal(describeParents(["Ada", "Jonas", "Kim"], he), "Ada, Jonas ו-Kim");
+
+    // And is left alone where the next word really is Hebrew.
+    assert.equal(describeParents(["שרה", "תום"], he), "שרה ותום");
+  });
+
   test("and under a tile, where English shortens, Hebrew has nothing to shorten", () => {
     assert.equal(en.label.shortList(["Sarah", "Tom"]), "Sarah & Tom");
     assert.equal(he.label.shortList(["שרה", "תום"]), "שרה ותום");

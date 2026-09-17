@@ -30,6 +30,7 @@ import type { Catalog } from "../i18n/en.ts";
 import { albumSection } from "./album.ts";
 import { shareCard } from "./card.ts";
 import { avatar, chip, factCard, iconButton } from "./components.ts";
+import { momentsSection } from "./moments.ts";
 import type { AppContext } from "./context.ts";
 import { downloadFile, el } from "./dom.ts";
 import { popup } from "./modal.ts";
@@ -437,6 +438,10 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
       baby.status === "born" && baby.birthDate
         ? bornBody(baby, ctx)
         : expectingBody(baby, ctx),
+      // Under the milestones the app works out, because the two read as one
+      // line: what the calendar knew was coming, and then what you noticed.
+      // Not kept from a bump, either - a first kick is as much a moment.
+      momentsSection(baby, ctx),
       ctx.jewish ? hebrewSection(baby, ctx) : null,
       // Shown even with no parents named: a sibling can be pointed out by hand
       // now, which is the only way a baby with no names on them gets a family
