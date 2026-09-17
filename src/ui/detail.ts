@@ -486,6 +486,17 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
           },
           words.addToCalendar,
         ),
+        // A card is a picture of a baby; this is the baby itself, dates and
+        // all, for the uncle who wants their own copy rather than a look.
+        el(
+          "button",
+          {
+            class: "secondary",
+            type: "button",
+            onclick: () => ctx.navigate(`#/send/${encodeURIComponent(baby.id)}`),
+          },
+          words.sendBaby,
+        ),
       ),
       el(
         "div",

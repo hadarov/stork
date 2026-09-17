@@ -223,13 +223,15 @@ export async function drawCard(baby: Baby, now: Date, t: Catalog): Promise<Blob>
 
 /**
  * A filename rather than a sentence, so it is not in the catalogue - but a
- * Hebrew name stripped to the letters a to z is nothing at all, so the Hebrew
- * alphabet is kept and anything that still comes out empty falls back.
+ * name stripped to the letters a to z is nothing at all in most of the world's
+ * alphabets, so any letter is kept and only the punctuation goes. Naming the
+ * two alphabets this app is written in would have left a Cyrillic or an Arabic
+ * name saving as "stork.png"; anything that still comes out empty falls back.
  */
 function filenameFor(baby: Baby, t: Catalog): string {
   const slug = displayName(baby, t)
     .toLowerCase()
-    .replace(/[^a-z0-9\u0590-\u05FF]+/g, "-")
+    .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
     .replace(/^-|-$/g, "");
   return `${slug || "stork"}.png`;
 }

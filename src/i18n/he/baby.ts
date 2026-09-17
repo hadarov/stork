@@ -136,6 +136,7 @@ export const heBaby: typeof enBaby = {
     cardFailed: "לא הצלחנו להכין כרטיס.",
     addToCalendar: "\u{1F4C5} הוספה ליומן",
     calendarSaved: "קובץ היומן נשמר – פתחו אותו כדי להוסיף את התאריך",
+    sendBaby: "\u{1F4E6} שליחת התינוק הזה",
     remove: "הסרה",
   },
 

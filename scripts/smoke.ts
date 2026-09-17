@@ -46,7 +46,7 @@ import type { Baby } from "../src/domain/types.ts";
 // own suite, where the grammar is the thing under test.
 import { en } from "../src/i18n/en.ts";
 import { migrate } from "../src/storage/migrate.ts";
-import { mergeRecords, type BabyRepo } from "../src/storage/repo.ts";
+import { MAX_PICTURE_BYTES, mergeRecords, type BabyRepo } from "../src/storage/repo.ts";
 import { lastChangedAt, watchRepo } from "../src/storage/watchRepo.ts";
 import {
   daysFor,
@@ -1079,6 +1079,32 @@ describe("stored data", () => {
     assert.equal(photos[0]?.caption, "Day one");
     // Undated, so it falls back to the birthday rather than being thrown away.
     assert.equal(photos[1]?.date, "2024-06-15");
+  });
+
+  test("a picture too big to have come from here is dropped, avatar or album", () => {
+    // The photo cap counts pictures without looking at them, so twelve of them
+    // is no protection against one enormous data URL, and the whole book lives
+    // in a few megabytes of localStorage. Anything this app made has been
+    // squared and shrunk to 480px long before it gets here.
+    const huge = `data:image/jpeg;base64,${"A".repeat(MAX_PICTURE_BYTES + 1)}`;
+    const store = migrate([
+      {
+        name: "Mila",
+        status: "born",
+        birthDate: "2024-06-15",
+        photo: huge,
+        photos: [
+          { id: "fine", data: "data:image/jpeg;base64,aaa", date: "2024-06-16" },
+          { id: "vast", data: huge, date: "2024-06-17" },
+        ],
+      },
+    ]);
+
+    assert.equal(store.babies[0]?.photo, undefined);
+    assert.deepEqual(
+      (store.babies[0]?.photos ?? []).map((photo) => photo.id),
+      ["fine"],
+    );
   });
 
   test("an import cannot smuggle in more photos than the app allows", () => {

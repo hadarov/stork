@@ -287,6 +287,30 @@ carries none of the app's furniture. Dates are written one way everywhere for
 the same reason - `15 June 2024`, never `June 15, 2024` - rather than in each
 device's own locale, so the same baby makes the same card on anyone's phone.
 
+## Sending one baby
+
+A card is a picture of a baby. **Send this baby** is the record itself, as a
+file, for another uncle who also has Stork - so the two of you keep the same
+dates without either of you typing them twice.
+
+A share is an offer and never an instruction. Removals do not travel and are
+ignored on the way in, so only a full backup of your own book can take a baby
+away; and your notes and your gift tick never leave your phone, because they
+are your side of it rather than facts about the child. That last point is why
+an update cannot be a plain overwrite: their copy wins on the facts, while your
+notes, gift, album, moments and family corrections survive.
+
+Their picture always travels. The album is opt-in and off by default, with its
+cost written on the row, because a full album is a megabyte of base64 and that
+is the size at which a messaging app fails by silence rather than by an error.
+
+The app spots a baby you already have under a different id and says so, but
+does not fold the two together - joining them needs a permanent record of which
+id means which child, or the next file from the same person duplicates all over
+again. It names the record you already have and warns you before a second one
+is added. A baby you removed is offered as a restore, off by default, so no
+file can resurrect them by arithmetic alone.
+
 ## The brief
 
 The thirty seconds before you walk in, which is what the rest of the app is for.
@@ -531,6 +555,8 @@ plan is a one-time code by email rather than passwords.
 | `src/ui/familyFix.ts` | Saying the app got a household wrong, in either direction |
 | `src/domain/moments.ts` | The firsts you record yourself: tidying, validating, ordering |
 | `src/ui/moments.ts` | The panel they are written and read in |
+| `src/storage/oneBaby.ts` | One baby as a file: writing it, reading it, working out what it would do |
+| `src/ui/sendBaby.ts` | Handing one over, and taking one in |
 | `src/domain/stage.ts` | Egg, hatchling, chick, and the rungs above that |
 | `src/domain/calendar.ts` | Which days a month has, and which to offer at all |
 | `src/domain/nudges.ts` | What each reminder says and the moment it says it |

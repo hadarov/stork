@@ -51,6 +51,10 @@ export type Route =
   | { name: "remove"; id: string }
   /** One picture from the album, full size. Stacks over their page. */
   | { name: "photo"; id: string; photoId: string }
+  /** Handing one baby to another uncle. Stacks over their page. */
+  | { name: "send"; id: string }
+  /** Taking one in. No baby in hand yet, so it hangs off Settings. */
+  | { name: "receive" }
   | { name: "settings" };
 
 export function parseRoute(hash: string): Route {
@@ -58,6 +62,8 @@ export function parseRoute(hash: string): Route {
 
   if (head === "add") return { name: "add" };
   if (head === "settings") return { name: "settings" };
+  if (head === "receive") return { name: "receive" };
+  if (head === "send" && param) return { name: "send", id: decodeURIComponent(param) };
   if (head === "brief" && param) return { name: "brief", id: decodeURIComponent(param) };
   if (head === "sibling" && param) return { name: "sibling", id: decodeURIComponent(param) };
   if (head === "family" && param) return { name: "family", id: decodeURIComponent(param) };

@@ -80,6 +80,7 @@ export function renderSettings(ctx: AppContext): HTMLElement {
   const words = ctx.t.settings.settings;
   const backup = ctx.t.settings.backup;
   const storage = ctx.t.settings.storage;
+  const send = ctx.t.settings.send;
   // The calendar is described where the file is made rather than where the
   // button lives, since what it says has to follow what the export does.
   const calendar = ctx.t.share.calendar;
@@ -307,6 +308,14 @@ export function renderSettings(ctx: AppContext): HTMLElement {
           button(backup.restoreAction, () => importInput.click()),
         ),
         importInput,
+        // A whole book above, one baby here. Kept in the same panel because
+        // both are a file arriving, and separated from sending because you
+        // do not have the baby yet - there is no page of theirs to do it from.
+        row(
+          send.receiveRowTitle,
+          send.receiveRowBody,
+          button(send.receiveAction, () => ctx.navigate("#/receive")),
+        ),
       ),
       el(
         "section",

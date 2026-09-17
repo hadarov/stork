@@ -1,6 +1,7 @@
 import type { Baby } from "../domain/types.ts";
 import type { BabyRepo } from "../storage/repo.ts";
 import { renderPhotoViewer } from "./album.ts";
+import { renderReceiveBaby, renderSendBaby } from "./sendBaby.ts";
 import { renderBrief } from "./brief.ts";
 import { emptyState } from "./components.ts";
 import { parseRoute, type AppContext, type Route } from "./context.ts";
@@ -125,6 +126,9 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
     if (route.name === "home") return [];
     if (route.name === "add") return [renderEdit(ctx, null)];
     if (route.name === "settings") return [renderSettings(ctx)];
+    // Reached from Settings, so backing out of it lands there and not at the
+    // grid. The only popup here that is not about a baby you already have.
+    if (route.name === "receive") return [renderSettings(ctx), renderReceiveBaby(ctx)];
 
     const baby = babies.find((candidate) => candidate.id === route.id);
     if (!baby) {
@@ -143,6 +147,7 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
     if (route.name === "edit") return [renderEdit(ctx, baby)];
     if (route.name === "family") return [renderDetail(ctx, baby), renderFamilyFix(ctx, baby)];
     if (route.name === "born") return [renderDetail(ctx, baby), renderArrival(ctx, baby)];
+    if (route.name === "send") return [renderDetail(ctx, baby), renderSendBaby(ctx, baby)];
     if (route.name === "remove") {
       return [renderDetail(ctx, baby), renderRemoveConfirm(ctx, baby)];
     }

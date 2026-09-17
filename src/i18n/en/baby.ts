@@ -99,6 +99,8 @@ export const enBaby = {
     cardFailed: "Could not make a card.",
     addToCalendar: "\u{1F4C5} Add to my calendar",
     calendarSaved: "Calendar file saved - open it to add the date",
+    /** The record itself rather than a picture of it, hence the parcel. */
+    sendBaby: "\u{1F4E6} Send this baby",
     remove: "Remove",
   },
 

@@ -120,6 +120,69 @@ export const enSettings = {
     nudgeAction: "Back up now",
   },
 
+  /* ------------------------------------------------- one baby, to somebody */
+
+  send: {
+    /* ------------------------------------------------------------ sending */
+
+    /** On the baby's own page, next to the card. */
+    title: "Send this baby",
+    line: "One baby in a file, for somebody else who has Stork - so two of you can hold the same record of the same child.",
+    yoursStays:
+      "Your notes and whether you sent a gift stay here. They are your side of it rather than facts about the baby, so they are neither sent nor written over by anything that arrives.",
+    mergesAtTheirEnd:
+      "At their end it joins the copy they already have rather than making a second one, and it cannot remove anything.",
+    send: "Send",
+
+    albumTitle: "Send the album too",
+    albumSize: (photos: number, size: string) =>
+      `${photos === 1 ? "1 photo" : `${photos} photos`}, ${size} on top`,
+    albumOn: "Included",
+    albumOff: "Left out",
+    albumNote:
+      "Their picture goes either way. The album is the part that runs to megabytes, and a file that size is the one a messaging app loses without saying so.",
+    albumTooBig: (size: string) =>
+      `The album comes to ${size}, which is more than a share sheet will carry dependably, so it has to stay behind.`,
+
+    sent: "Sent",
+    savedAs: (file: string) => `Saved as ${file}`,
+    sendFailed: "Could not make that file",
+    /** Sizes, rounded, because the point of saying one is the order of it. */
+    kilobytes: (value: string) => `${value} kB`,
+    megabytes: (value: string) => `${value} MB`,
+
+    /* ---------------------------------------------------------- receiving */
+
+    receiveTitle: "A baby from somebody else",
+    receiveBody:
+      "Open a file somebody sent you from their own copy of Stork. Nothing changes until you have read what it would do.",
+    receiveAction: "Open a file",
+    nothingReadable: "No babies in that file",
+    unreadable: "Could not read that file",
+
+    changesTitle: "What this would do",
+    isNew: "New to your book.",
+    isUpdate: "Newer than the copy you have.",
+    isCurrent: "You have this one already, and yours is no older.",
+    isRestore: "You removed this baby. Taking it puts them back.",
+    /** Same child, two ids, because two people each added them separately. */
+    looksLike: (name: string) =>
+      `Your book already has a record that looks like ${name}. Taking this adds a second one, and the two cannot be joined afterwards.`,
+    deletionsIgnored:
+      "A file like this can add a baby or bring one up to date. It cannot take one away, so anything removed at their end was ignored.",
+
+    taking: "Taking",
+    skipping: "Skipping",
+    takeAction: "Add to my book",
+    takeNothing: "Nothing chosen to take",
+    taken: (added: number, updated: number) => `${added} added, ${updated} updated`,
+
+    /* --------------------------------------------------- the settings row */
+
+    receiveRowTitle: "Somebody sent you a baby",
+    receiveRowBody: "Open their file and see what it would change before it changes anything.",
+  },
+
   /* -------------------------------------------- whether the device holds on */
 
   storage: {

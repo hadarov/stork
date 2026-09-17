@@ -4,6 +4,7 @@ import {
   MAX_MOMENTS,
   MAX_MOMENT_LABEL,
   MAX_PHOTOS,
+  MAX_PICTURE_BYTES,
   SCHEMA_VERSION,
   newId,
   type StoreFile,
@@ -39,8 +40,16 @@ function timestamp(value: unknown): string | undefined {
   return new Date(text).toISOString();
 }
 
+/*
+ * The one gate both the avatar and the album go through, which is why the size
+ * cap lives here rather than at either call site. Measured in characters and
+ * not encoded bytes: a data URL is base64 and so the two are the same number,
+ * and this runs over every picture in the book at every boot, where encoding a
+ * string only to ask how long it is would be work for nothing.
+ */
 function dataUrl(value: unknown): string | undefined {
-  return typeof value === "string" && value.startsWith("data:image/") ? value : undefined;
+  if (typeof value !== "string" || !value.startsWith("data:image/")) return undefined;
+  return value.length <= MAX_PICTURE_BYTES ? value : undefined;
 }
 
 /** The album, dropping anything without a picture and a plausible date. */

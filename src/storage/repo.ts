@@ -28,6 +28,15 @@ export const SCHEMA_VERSION = 1;
  */
 export const MAX_PHOTOS = 12;
 
+/**
+ * And the size of any one of them. The cap above counts pictures without
+ * looking at them, so twelve was no protection at all against one enormous
+ * data URL. A picture this app made has already been squared and shrunk to
+ * 480px and is tens of kilobytes, so anything wildly past that did not come
+ * from here - it came from a hand-edited file - and is dropped on the way in.
+ */
+export const MAX_PICTURE_BYTES = 512 * 1024;
+
 /*
  * Caps on the things a person types rather than the app works out. They exist
  * so one hand-edited import cannot fill the browser's storage and take the
