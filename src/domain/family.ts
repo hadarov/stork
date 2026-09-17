@@ -98,13 +98,40 @@ export function familyOf(baby: Baby, all: Baby[]): Family {
 }
 
 /**
+ * Two of the same parents' babies on the same date. Asked before the older and
+ * younger question, which otherwise has no answer for them and quietly gives
+ * the wrong one: neither date sorts before the other, so each twin ends up
+ * called the younger of the two.
+ *
+ * A shared due date counts, since a due date is the only date a pair of bumps
+ * has. It is a guess, but it is the parents' own guess about both of them at
+ * once, and two bumps in one household sharing it are twins.
+ */
+function bornTogether(one: Baby, other: Baby): boolean {
+  if (one.status === "born" && other.status === "born") {
+    return Boolean(one.birthDate) && one.birthDate === other.birthDate;
+  }
+  if (one.status === "expecting" && other.status === "expecting") {
+    return Boolean(one.dueDate) && one.dueDate === other.dueDate;
+  }
+  return false;
+}
+
+/**
  * How the sibling stands to this baby: "big sister", "little brother". Both
  * halves of it are gendered in Hebrew, so the wording is left to the
  * catalogue rather than assembled from an order and a noun here.
  */
 export function relation(baby: Baby, sibling: Baby, t: Catalog): string {
-  const older = arrival(sibling) < arrival(baby);
   const { family } = t.book;
+
+  if (bornTogether(baby, sibling)) {
+    if (sibling.sex === "girl") return family.twinSister;
+    if (sibling.sex === "boy") return family.twinBrother;
+    return family.twin;
+  }
+
+  const older = arrival(sibling) < arrival(baby);
   if (sibling.sex === "girl") return older ? family.bigSister : family.littleSister;
   if (sibling.sex === "boy") return older ? family.bigBrother : family.littleBrother;
   return older ? family.olderSibling : family.youngerSibling;

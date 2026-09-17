@@ -67,5 +67,10 @@ export const heBook: typeof enBook = {
     // a bump, so the pair is spelled out rather than cut with a slash.
     olderSibling: "אח או אחות גדולים",
     youngerSibling: "אח או אחות קטנים",
+    twinSister: "אחות תאומה",
+    twinBrother: "אח תאום",
+    // Same reason as the siblings above: no everyday neutral, so the pair is
+    // spelled out rather than cut with a slash.
+    twin: "אח או אחות תאומים",
   },
 };

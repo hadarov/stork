@@ -880,6 +880,36 @@ describe("families", () => {
     });
     assert.equal(relation(me, bump, en), "little sister");
   });
+
+  test("twins are twins, rather than each being the younger one", () => {
+    const ada = of("ada", ["Kate"], { birthDate: "2026-03-10", sex: "girl" });
+    const ben = of("ben", ["Kate"], { birthDate: "2026-03-10", sex: "boy" });
+
+    assert.equal(relation(ada, ben, en), "twin brother");
+    assert.equal(relation(ben, ada, en), "twin sister");
+  });
+
+  test("two bumps sharing a due date are twins as well", () => {
+    const bump = (id: string) =>
+      of(id, ["Nia"], { status: "expecting", birthDate: undefined, dueDate: "2026-12-01" });
+
+    assert.equal(relation(bump("x"), bump("y"), en), "twin");
+  });
+
+  test("but two bumps with no dates at all are not assumed to be twins", () => {
+    const bump = (id: string) =>
+      of(id, ["Nia"], { status: "expecting", birthDate: undefined, dueDate: undefined });
+
+    assert.equal(relation(bump("x"), bump("y"), en), "younger sibling");
+  });
+
+  test("and a twin is still told apart from an older sibling born another year", () => {
+    const ada = of("ada", ["Kate"], { birthDate: "2026-03-10", sex: "girl" });
+    const cleo = of("cleo", ["Kate"], { birthDate: "2023-01-05", sex: "girl" });
+
+    assert.equal(relation(ada, cleo, en), "big sister");
+    assert.equal(relation(cleo, ada, en), "little sister");
+  });
 });
 
 describe("how big", () => {

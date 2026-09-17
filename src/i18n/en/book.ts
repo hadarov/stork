@@ -55,5 +55,8 @@ export const enBook = {
     littleBrother: "little brother",
     olderSibling: "older sibling",
     youngerSibling: "younger sibling",
+    twinSister: "twin sister",
+    twinBrother: "twin brother",
+    twin: "twin",
   },
 };
