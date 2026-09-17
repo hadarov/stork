@@ -28,6 +28,15 @@ export const SCHEMA_VERSION = 1;
  */
 export const MAX_PHOTOS = 12;
 
+/*
+ * Caps on the things a person types rather than the app works out. They exist
+ * so one hand-edited import cannot fill the browser's storage and take the
+ * whole book down with it, not because anyone will reach them.
+ */
+export const MAX_MOMENTS = 40;
+export const MAX_MOMENT_LABEL = 60;
+export const MAX_LINKS = 40;
+
 export type StoreFile = {
   schemaVersion: number;
   babies: Baby[];

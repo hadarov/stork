@@ -29,6 +29,7 @@ const { renderEdit } = await import("../src/ui/edit.ts");
 const { renderSettings } = await import("../src/ui/settings.ts");
 const { albumOf, renderPhotoViewer } = await import("../src/ui/album.ts");
 const { renderBrief } = await import("../src/ui/brief.ts");
+const { renderFamilyFix } = await import("../src/ui/familyFix.ts");
 const { dateField } = await import("../src/ui/dateField.ts");
 const { renderArrival, renderRemoveConfirm } = await import("../src/ui/prompts.ts");
 const { installCard } = await import("../src/ui/installCard.ts");
@@ -428,9 +429,76 @@ describe("family", () => {
     assert.deepEqual(local.routes, ["#/sibling/mila"]);
   });
 
-  test("a baby with no parents named is not asked about family at all", () => {
-    const local = makeRig([baby({ parents: [] })]);
-    assert.doesNotMatch(textOf(renderDetail(local.ctx, baby({ parents: [] }))), /Add a sibling/);
+  test("a baby with no parents named is still offered a family", () => {
+    // There is nothing to guess from, which is precisely why they need the
+    // offer: pointing at a sibling by hand is the only family they can get.
+    const nameless = baby({ parents: [] });
+    const local = makeRig([nameless]);
+    assert.match(textOf(renderDetail(local.ctx, nameless)), /Add a sibling/);
+  });
+
+  test("correcting the family is offered once there is anybody to correct it with", async () => {
+    const alone = makeRig([baby()]);
+    assert.doesNotMatch(textOf(renderDetail(alone.ctx, baby())), /Not right\?/);
+
+    const stranger = baby({ id: "nina", name: "Nina", parents: ["Dana"] });
+    const local = makeRig([baby(), stranger]);
+    const screen = renderDetail(local.ctx, baby());
+
+    const fix = byClass(screen, "quiet").find((node: any) => textOf(node).includes("Not right?"));
+    await fix.click();
+    assert.deepEqual(local.routes, ["#/family/mila"]);
+  });
+
+  test("two friends with the same name can be pulled apart, and it sticks", async () => {
+    const mine = baby({ id: "mila", name: "Mila", parents: ["Sarah"] });
+    const theirs = baby({ id: "eli", name: "Eli", parents: ["Sarah"] });
+    const local = makeRig([mine, theirs]);
+
+    // The names alone had them down as one household.
+    assert.equal(byClass(renderDetail(local.ctx, mine), "sibling").length, 1);
+
+    const fix = renderFamilyFix(local.ctx, mine);
+    assert.match(textOf(fix), /from the names/);
+    const apart = byClass(fix, "family-row-action").find((node: any) =>
+      textOf(node).includes("Not related"),
+    );
+    await apart.click();
+
+    assert.deepEqual(local.toasts, ["Eli is not in this family"]);
+    // Both records, since either may be the one a merge sees first.
+    const saved = await local.repo.list();
+    assert.deepEqual(saved.find((b: any) => b.id === "mila").notFamily, ["eli"]);
+    assert.deepEqual(saved.find((b: any) => b.id === "eli").notFamily, ["mila"]);
+  });
+
+  test("a couple typed two ways can be put back together from the other list", async () => {
+    const dave = baby({ id: "mila", name: "Mila", parents: ["Dave"] });
+    const david = baby({ id: "eli", name: "Eli", parents: ["David"] });
+    const local = makeRig([dave, david]);
+
+    const fix = renderFamilyFix(local.ctx, dave);
+    const together = byClass(fix, "family-row-action").find((node: any) =>
+      textOf(node).includes("Same family"),
+    );
+    await together.click();
+
+    assert.deepEqual(local.toasts, ["Eli is in this family"]);
+    const saved = await local.repo.list();
+    assert.deepEqual(saved.find((b: any) => b.id === "mila").sameFamily, ["eli"]);
+  });
+
+  test("a family you were told about says so, rather than claiming to have guessed", () => {
+    const mila = baby({ id: "mila", name: "Mila", parents: ["Dave"], sameFamily: ["eli"] });
+    const eli = baby({ id: "eli", name: "Eli", parents: ["David"], sameFamily: ["mila"] });
+    const local = makeRig([mila, eli]);
+
+    assert.match(textOf(renderFamilyFix(local.ctx, mila)), /you said so/);
+  });
+
+  test("with nobody else in the book there is nobody to point at", () => {
+    const local = makeRig([baby()]);
+    assert.match(textOf(renderFamilyFix(local.ctx, baby())), /nobody else in your book/);
   });
 
   test("adding a sibling arrives with the parents already filled in", () => {

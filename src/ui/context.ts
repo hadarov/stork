@@ -41,6 +41,8 @@ export type Route =
   | { name: "brief"; id: string }
   /** A new baby for the same parents as an existing one. */
   | { name: "sibling"; id: string }
+  /** Correcting who the app thinks is related to whom. Stacks over their page. */
+  | { name: "family"; id: string }
   | { name: "baby"; id: string }
   | { name: "edit"; id: string }
   /** Asks whether the baby has arrived. Stacks over their page. */
@@ -58,6 +60,7 @@ export function parseRoute(hash: string): Route {
   if (head === "settings") return { name: "settings" };
   if (head === "brief" && param) return { name: "brief", id: decodeURIComponent(param) };
   if (head === "sibling" && param) return { name: "sibling", id: decodeURIComponent(param) };
+  if (head === "family" && param) return { name: "family", id: decodeURIComponent(param) };
   if (head === "baby" && param) return { name: "baby", id: decodeURIComponent(param) };
   if (head === "edit" && param) return { name: "edit", id: decodeURIComponent(param) };
   if (head === "born" && param) return { name: "born", id: decodeURIComponent(param) };

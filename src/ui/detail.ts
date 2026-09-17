@@ -337,13 +337,30 @@ function familySection(baby: Baby, ctx: AppContext): HTMLElement {
       ),
     ),
     el(
-      "button",
-      {
-        class: "secondary",
-        type: "button",
-        onclick: () => ctx.navigate(`#/sibling/${encodeURIComponent(baby.id)}`),
-      },
-      siblings.length > 0 ? words.anotherOne : words.addSibling,
+      "div",
+      { class: "family-actions" },
+      el(
+        "button",
+        {
+          class: "secondary",
+          type: "button",
+          onclick: () => ctx.navigate(`#/sibling/${encodeURIComponent(baby.id)}`),
+        },
+        siblings.length > 0 ? words.anotherOne : words.addSibling,
+      ),
+      // Offered even with nobody listed, since a missing sibling is exactly as
+      // wrong as a stranger appearing as one, and harder to notice.
+      ctx.babies.length > 1
+        ? el(
+            "button",
+            {
+              class: "quiet",
+              type: "button",
+              onclick: () => ctx.navigate(`#/family/${encodeURIComponent(baby.id)}`),
+            },
+            t.book.fixFamily.openLabel,
+          )
+        : null,
     ),
   );
 }
@@ -421,7 +438,10 @@ export function renderDetail(ctx: AppContext, baby: Baby): HTMLElement {
         ? bornBody(baby, ctx)
         : expectingBody(baby, ctx),
       ctx.jewish ? hebrewSection(baby, ctx) : null,
-      baby.parents.length > 0 ? familySection(baby, ctx) : null,
+      // Shown even with no parents named: a sibling can be pointed out by hand
+      // now, which is the only way a baby with no names on them gets a family
+      // at all.
+      familySection(baby, ctx),
       albumSection(baby, ctx),
       baby.notes
         ? section(words.notesSection, el("p", { class: "notes", dir: "auto" }, baby.notes))

@@ -8,6 +8,7 @@ import { renderDetail } from "./detail.ts";
 import { clear, el } from "./dom.ts";
 import { onStorageChange } from "./durable.ts";
 import { renderEdit } from "./edit.ts";
+import { renderFamilyFix } from "./familyFix.ts";
 import { renderHome } from "./home.ts";
 import { onInstallChange } from "./installer.ts";
 import { currentCatalog, showJewishCalendar, watchSystemLang } from "./lang.ts";
@@ -140,6 +141,7 @@ export async function startApp(root: HTMLElement, repo: BabyRepo): Promise<void>
     if (route.name === "brief") return [renderBrief(ctx, baby)];
     if (route.name === "sibling") return [renderEdit(ctx, null, baby.parents)];
     if (route.name === "edit") return [renderEdit(ctx, baby)];
+    if (route.name === "family") return [renderDetail(ctx, baby), renderFamilyFix(ctx, baby)];
     if (route.name === "born") return [renderDetail(ctx, baby), renderArrival(ctx, baby)];
     if (route.name === "remove") {
       return [renderDetail(ctx, baby), renderRemoveConfirm(ctx, baby)];

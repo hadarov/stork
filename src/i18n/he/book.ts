@@ -73,4 +73,29 @@ export const heBook: typeof enBook = {
     // spelled out rather than cut with a slash.
     twin: "אח או אחות תאומים",
   },
+
+  /* ------------------------------------------------- correcting a family */
+
+  fixFamily: {
+    openLabel: "לא נכון?",
+    title: "מי במשפחה הזאת?",
+    intro:
+      "המשפחות מזוהות לפי שמות ההורים, וזה יוצא לא נכון כששני חברים חולקים שם, או כשאותו זוג נרשם בשתי צורות שונות.",
+    inThisFamily: "במשפחה הזאת",
+    somebodyElse: "מישהו אחר",
+    becauseOf: (relation, why) => `${relation} \u00B7 ${why}`,
+    fromTheNames: "לפי השמות",
+    youSaidSo: "לפי מה שאמרתם",
+    notRelated: "לא קרובים",
+    sameFamily: "אותה משפחה",
+    // No verb in either line, which is what keeps them free of gender: the
+    // name may belong to a boy, a girl or a bump nobody has met yet.
+    nowApart: (name) => `${name} כבר לא במשפחה הזאת`,
+    nowTogether: (name) => `${name} במשפחה הזאת`,
+    noParents: "בלי שם הורה",
+    nobodyElse: "אין עדיין אף אחד אחר בפנקס.",
+    noMatch: "אין אף אחד בשם הזה.",
+    searchLabel: "חיפוש תינוק",
+    searchPlaceholder: "שם של תינוק או של הורה",
+  },
 };

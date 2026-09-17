@@ -1,5 +1,13 @@
-import type { Baby, BabySex, BabyStatus, Photo } from "../domain/types.ts";
-import { MAX_PHOTOS, SCHEMA_VERSION, newId, type StoreFile } from "./repo.ts";
+import type { Baby, BabySex, BabyStatus, Moment, Photo } from "../domain/types.ts";
+import {
+  MAX_LINKS,
+  MAX_MOMENTS,
+  MAX_MOMENT_LABEL,
+  MAX_PHOTOS,
+  SCHEMA_VERSION,
+  newId,
+  type StoreFile,
+} from "./repo.ts";
 
 const STATUSES: BabyStatus[] = ["expecting", "born"];
 const SEXES: BabySex[] = ["girl", "boy", "surprise"];
@@ -62,6 +70,40 @@ function album(value: unknown, fallbackDate: string | undefined): Photo[] {
   return photos;
 }
 
+/** Your own moments, dropping any without both a word for it and a date. */
+function moments(value: unknown): Moment[] {
+  if (!Array.isArray(value)) return [];
+
+  const kept: Moment[] = [];
+  const seen = new Set<string>();
+  for (const candidate of value) {
+    if (typeof candidate !== "object" || candidate === null) continue;
+    const raw = candidate as Record<string, unknown>;
+    const label = str(raw.label);
+    const date = isoDate(raw.date);
+    if (!label || !date) continue;
+
+    const id = str(raw.id) ?? newId();
+    if (seen.has(id)) continue;
+    seen.add(id);
+
+    kept.push({ id, label: label.slice(0, MAX_MOMENT_LABEL), date });
+    if (kept.length >= MAX_MOMENTS) break;
+  }
+  return kept.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * A list of other babies' ids. Nothing here checks that they exist, because an
+ * import arrives one baby at a time and the other half may be along in a
+ * moment; a link to nobody simply never matches anything.
+ */
+function ids(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const found = value.map(str).filter((id): id is string => id !== undefined);
+  return [...new Set(found)].slice(0, MAX_LINKS);
+}
+
 /**
  * Turns one untrusted object into a Baby, or null if there is nothing usable in
  * it. Import reads files a person may have hand-edited, so nothing is assumed.
@@ -120,6 +162,17 @@ export function coerceBaby(value: unknown): Baby | null {
   if (photos.length > 0) baby.photos = photos;
   if (str(raw.notes)) baby.notes = str(raw.notes);
   if (raw.giftSent === true) baby.giftSent = true;
+
+  const noted = moments(raw.moments);
+  if (noted.length > 0) baby.moments = noted;
+
+  // A baby cannot be its own sibling, and cannot be both joined and separated:
+  // a separation is the more deliberate of the two, so it is the one kept.
+  const apart = ids(raw.notFamily).filter((id) => id !== baby.id);
+  const together = ids(raw.sameFamily).filter((id) => id !== baby.id && !apart.includes(id));
+  if (together.length > 0) baby.sameFamily = together;
+  if (apart.length > 0) baby.notFamily = apart;
+
   if (timestamp(raw.deletedAt)) baby.deletedAt = timestamp(raw.deletedAt);
 
   return baby;

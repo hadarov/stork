@@ -29,7 +29,16 @@ import {
   nextEvent,
   sortByNextEvent,
 } from "../src/domain/derive.ts";
-import { areSiblings, families, familyOf, relation, siblingsOf } from "../src/domain/family.ts";
+import {
+  areSiblings,
+  families,
+  familyOf,
+  join,
+  relation,
+  separate,
+  siblingsOf,
+  whySiblings,
+} from "../src/domain/family.ts";
 import { toICalendar } from "../src/domain/ics.ts";
 import type { Baby } from "../src/domain/types.ts";
 // The domain is asserted in English, because that is the language the wording
@@ -787,6 +796,9 @@ describe("a card to send", () => {
 });
 
 describe("families", () => {
+  // When a correction was made, which is what a merge sorts itself out by.
+  const NOW = new Date("2026-09-06T12:00:00.000Z");
+
   const of = (id: string, parents: string[], over: Partial<Baby> = {}): Baby => ({
     id,
     name: id,
@@ -901,6 +913,79 @@ describe("families", () => {
       of(id, ["Nia"], { status: "expecting", birthDate: undefined, dueDate: undefined });
 
     assert.equal(relation(bump("x"), bump("y"), en), "younger sibling");
+  });
+
+  test("two different friends called Sarah can be told apart", () => {
+    const mine = of("mine", ["Sarah"]);
+    const theirs = of("theirs", ["Sarah"]);
+    assert.equal(areSiblings(mine, theirs), true, "the names alone say yes");
+
+    const [a, b] = separate(mine, theirs, NOW);
+    assert.equal(areSiblings(a, b), false);
+    assert.equal(families([a, b]).length, 2, "and they are two households, not one");
+  });
+
+  test("a couple typed two different ways can be put back together", () => {
+    const one = of("one", ["Dave"]);
+    const other = of("other", ["David"]);
+    assert.equal(areSiblings(one, other), false);
+
+    const [a, b] = join(one, other, NOW);
+    assert.equal(areSiblings(a, b), true);
+    assert.deepEqual(families([a, b]).map((f) => f.babies.length), [2]);
+  });
+
+  test("one side of a correction is enough, since an import arrives a baby at a time", () => {
+    const [joined] = join(of("one", ["Dave"]), of("other", ["David"]), NOW);
+    // Only the first record made it across; the other is as it was.
+    assert.equal(areSiblings(joined, of("other", ["David"])), true);
+  });
+
+  test("being told they are not related beats having been told they are", () => {
+    const one = { ...of("one", ["Sarah"]), sameFamily: ["other"], notFamily: ["other"] };
+    assert.equal(areSiblings(one, of("other", ["Kim"])), false);
+  });
+
+  test("the app can say whether it worked a family out or was told", () => {
+    const guessed = of("a", ["Sarah"]);
+    assert.equal(whySiblings(guessed, of("b", ["Sarah"])), "names");
+
+    const [one, other] = join(of("one", ["Dave"]), of("other", ["David"]), NOW);
+    assert.equal(whySiblings(one, other), "told");
+    assert.equal(whySiblings(one, one), null, "nobody is their own sibling");
+  });
+
+  test("a correction is dated, so a merge knows which way round it happened", () => {
+    const [one, other] = join(of("a", ["Dave"]), of("b", ["David"]), NOW);
+    assert.equal(one.updatedAt, NOW.toISOString());
+    assert.equal(other.updatedAt, NOW.toISOString());
+  });
+
+  test("undoing a correction leaves no empty lists behind on the record", () => {
+    const [joinedA, joinedB] = join(of("a", ["Dave"]), of("b", ["David"]), NOW);
+    const [apartA] = separate(joinedA, joinedB, NOW);
+    assert.equal("sameFamily" in apartA, false, "the join should be gone, not emptied");
+    assert.deepEqual(apartA.notFamily, ["b"]);
+  });
+
+  test("a baby with nobody named still joins a household once they are linked to it", () => {
+    const named = of("named", ["Kim"]);
+    const nameless = of("nameless", []);
+    assert.deepEqual(families([named, nameless]).map((f) => f.babies.length), [1]);
+
+    const [a, b] = join(named, nameless, NOW);
+    assert.deepEqual(families([a, b]).map((f) => f.babies.length), [2]);
+  });
+
+  test("separating two who are each still joined to a third is honoured where it is read", () => {
+    // A ring cannot be cut in one place, so the household stays whole. Their
+    // own pages are what anybody actually looks at, and those are right.
+    const third = of("third", ["Kim"]);
+    const [one, other] = separate(of("one", ["Kim"]), of("other", ["Kim"]), NOW);
+
+    assert.equal(areSiblings(one, other), false);
+    assert.deepEqual(siblingsOf(one, [one, other, third]).map((b) => b.id), ["third"]);
+    assert.deepEqual(families([one, other, third]).map((f) => f.babies.length), [3]);
   });
 
   test("and a twin is still told apart from an older sibling born another year", () => {

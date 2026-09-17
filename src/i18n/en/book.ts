@@ -59,4 +59,29 @@ export const enBook = {
     twinBrother: "twin brother",
     twin: "twin",
   },
+
+  /* ------------------------------------------------- correcting a family */
+
+  fixFamily: {
+    openLabel: "Not right?",
+    title: "Who is in this family?",
+    intro:
+      "Families are worked out from the parents' names, which gets it wrong when two friends share a name, or when you have typed the same couple two different ways.",
+    inThisFamily: "In this family",
+    somebodyElse: "Somebody else",
+    /** The relation, and then why the app believes it. */
+    becauseOf: (relation: string, why: string) => `${relation} \u00B7 ${why}`,
+    fromTheNames: "from the names",
+    youSaidSo: "you said so",
+    notRelated: "Not related",
+    sameFamily: "Same family",
+    nowApart: (name: string) => `${name} is not in this family`,
+    nowTogether: (name: string) => `${name} is in this family`,
+    /** Shown where a baby's parents would go, when nobody has been named. */
+    noParents: "Nobody named",
+    nobodyElse: "There is nobody else in your book yet.",
+    noMatch: "Nobody by that name.",
+    searchLabel: "Search for a baby",
+    searchPlaceholder: "A name, theirs or a parent's",
+  },
 };

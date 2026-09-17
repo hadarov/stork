@@ -235,7 +235,25 @@ Two babies who share a parent's name are siblings, worked out from what you
 already typed rather than declared anywhere. A baby's page names the relation
 from the other's point of view - big sister, little brother, or just an older
 sibling when you have not said - and anyone still on the way is the younger one.
-**Add a sibling** opens a new baby with the parents already filled in.
+Two of the same parents' babies on the same date are twins, which is asked
+before the older and younger question rather than after it: that question has
+no answer for a pair, and left to itself it quietly tells each of them that the
+other is the little one. **Add a sibling** opens a new baby with the parents
+already filled in.
+
+Guessing from names is right nearly always and wrong in two directions. Two
+different friends called Sarah come out as one household. A couple you typed as
+Dave one time and David the next come out as two. Neither is something you can
+fix by remembering harder, so **Not right?** on a baby's page is where you say
+otherwise, and the answer is kept on both babies - a fact about the pair, and
+either of them may be the one a sync sees first. Being told they are not related
+outranks being told they are, since a separation is the answer to a wrong guess
+where a join is only ever the answer to a missing one.
+
+One case the grouping cannot honour: separate two babies who are each still
+joined to a third and all three stay one household, because a ring cannot be cut
+in one place. Their own pages are right about each other, which is where anybody
+actually looks.
 
 ## Albums
 

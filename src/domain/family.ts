@@ -21,10 +21,30 @@ function arrival(baby: Baby): string {
   return "2";
 }
 
+function names(baby: Baby, other: Baby): boolean {
+  const parents = new Set(baby.parents.map(key).filter(Boolean));
+  return other.parents.some((parent) => parents.has(key(parent)));
+}
+
+/** Either of them having said it is enough; they are talking about the pair. */
+function says(one: Baby, other: Baby, field: "sameFamily" | "notFamily"): boolean {
+  return Boolean(one[field]?.includes(other.id) || other[field]?.includes(one.id));
+}
+
 export function areSiblings(one: Baby, other: Baby): boolean {
   if (one.id === other.id) return false;
-  const parents = new Set(one.parents.map(key).filter(Boolean));
-  return other.parents.some((parent) => parents.has(key(parent)));
+  // Both corrections outrank the names, and being told they are not related
+  // outranks being told they are: it is the answer to a wrong guess, where a
+  // join is only ever the answer to a missing one.
+  if (says(one, other, "notFamily")) return false;
+  if (says(one, other, "sameFamily")) return true;
+  return names(one, other);
+}
+
+/** Whether the app worked this out for itself or was told. */
+export function whySiblings(one: Baby, other: Baby): "names" | "told" | null {
+  if (!areSiblings(one, other)) return null;
+  return names(one, other) ? "names" : "told";
 }
 
 /** Everyone else in this baby's family, oldest first. */
@@ -53,39 +73,57 @@ function parentNames(babies: Baby[]): string[] {
 }
 
 /**
- * Whole households, found by following shared parent names from baby to baby.
- * Transitive on purpose: a baby naming two parents is what joins those two
- * people's lists together, which is usually exactly right and occasionally
- * merges a family it should not have. The fix for that is a fuller name.
+ * Whole households, as the groups that `areSiblings` joins up: follow it from
+ * baby to baby and whoever you can reach is one family. Transitive on purpose,
+ * since a baby naming two parents is the evidence that those two people's
+ * lists are one list.
  *
- * Babies with nobody named are left out, since a household with no name to it
- * is not something you can be about to go and see.
+ * Walking the relation rather than pooling the names is what lets a correction
+ * count. It does leave one case the grouping cannot honour: separate two
+ * babies who are each still joined to a third, and all three remain one
+ * household, because there is no way to cut a ring in one place. Their own
+ * pages are right about each other, which is where anybody would look.
+ *
+ * Babies with nobody named and nobody joined to them are left out, since a
+ * household with no name to it is not one you can be about to go and see.
  */
 export function families(all: Baby[]): Family[] {
-  const groups: { keys: Set<string>; babies: Baby[] }[] = [];
-
+  const joined = new Set<string>();
   for (const baby of all) {
-    const keys = baby.parents.map(key).filter(Boolean);
-    if (keys.length === 0) continue;
-
-    const touching = groups.filter((group) => keys.some((id) => group.keys.has(id)));
-    const target = touching[0] ?? { keys: new Set<string>(), babies: [] };
-    if (touching.length === 0) groups.push(target);
-
-    // This baby is the evidence that those separate groups are one household.
-    for (const other of touching.slice(1)) {
-      for (const id of other.keys) target.keys.add(id);
-      target.babies.push(...other.babies);
-      groups.splice(groups.indexOf(other), 1);
+    for (const id of baby.sameFamily ?? []) {
+      joined.add(baby.id);
+      joined.add(id);
     }
-
-    for (const id of keys) target.keys.add(id);
-    target.babies.push(baby);
   }
 
-  return groups.map((group) => ({
-    parents: parentNames(group.babies),
-    babies: [...group.babies].sort((a, b) => arrival(a).localeCompare(arrival(b))),
+  const known = all.filter(
+    (baby) => baby.parents.some((name) => key(name)) || joined.has(baby.id),
+  );
+
+  const seen = new Set<string>();
+  const groups: Baby[][] = [];
+
+  for (const start of known) {
+    if (seen.has(start.id)) continue;
+    seen.add(start.id);
+
+    const group: Baby[] = [];
+    const queue = [start];
+    while (queue.length > 0) {
+      const baby = queue.pop()!;
+      group.push(baby);
+      for (const other of known) {
+        if (seen.has(other.id) || !areSiblings(baby, other)) continue;
+        seen.add(other.id);
+        queue.push(other);
+      }
+    }
+    groups.push(group);
+  }
+
+  return groups.map((babies) => ({
+    parents: parentNames(babies),
+    babies: [...babies].sort((a, b) => arrival(a).localeCompare(arrival(b))),
   }));
 }
 
@@ -95,6 +133,56 @@ export function familyOf(baby: Baby, all: Baby[]): Family {
     family.babies.some((candidate) => candidate.id === baby.id),
   );
   return found ?? { parents: baby.parents, babies: [baby] };
+}
+
+function without(list: string[] | undefined, id: string): string[] {
+  return (list ?? []).filter((each) => each !== id);
+}
+
+function with_(list: string[] | undefined, id: string): string[] {
+  return [...without(list, id), id];
+}
+
+/**
+ * Both halves of a correction, because it is a fact about the pair and either
+ * of them may be the one a merge sees first. A field emptied by this is
+ * dropped rather than left as `[]`, so a baby nobody has corrected looks the
+ * same on disk as it did before any of this existed.
+ */
+function record(
+  baby: Baby,
+  otherId: string,
+  join: string[],
+  apart: string[],
+  now: Date,
+): Baby {
+  const next: Baby = { ...baby, updatedAt: now.toISOString() };
+
+  if (join.length > 0) next.sameFamily = join;
+  else delete next.sameFamily;
+  if (apart.length > 0) next.notFamily = apart;
+  else delete next.notFamily;
+
+  return next;
+}
+
+/** Say these two are siblings after all. Returns both, for saving. */
+export function join(one: Baby, other: Baby, now: Date): [Baby, Baby] {
+  return [
+    record(one, other.id, with_(one.sameFamily, other.id), without(one.notFamily, other.id), now),
+    record(other, one.id, with_(other.sameFamily, one.id), without(other.notFamily, one.id), now),
+  ];
+}
+
+/**
+ * Say these two are not related. Recorded even when only the names had
+ * suggested it, because the names will suggest it again tomorrow.
+ */
+export function separate(one: Baby, other: Baby, now: Date): [Baby, Baby] {
+  return [
+    record(one, other.id, without(one.sameFamily, other.id), with_(one.notFamily, other.id), now),
+    record(other, one.id, without(other.sameFamily, one.id), with_(other.notFamily, one.id), now),
+  ];
 }
 
 /**

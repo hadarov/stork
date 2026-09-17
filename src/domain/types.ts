@@ -13,6 +13,18 @@ export type Photo = {
   caption?: string;
 };
 
+/**
+ * Something you noticed yourself and want kept, next to the dates the app can
+ * work out on its own. A first tooth has no formula.
+ */
+export type Moment = {
+  id: string;
+  /** "First tooth", in whatever words you used for it. */
+  label: string;
+  /** ISO yyyy-mm-dd. */
+  date: string;
+};
+
 export type Baby = {
   id: string;
   /** Often unknown while expecting, so the app never insists on it. */
@@ -37,6 +49,18 @@ export type Baby = {
   photos?: Photo[];
   notes?: string;
   giftSent?: boolean;
+  /** Things you noted yourself, oldest first. */
+  moments?: Moment[];
+  /*
+   * Siblings are guessed from the parents' names, and the guess can be wrong
+   * both ways: two different friends called Sarah are read as one household,
+   * and a couple typed as Dave once and David the next time are read as two.
+   * These are the corrections, held as the ids of the babies at the other end.
+   * Both babies record it, so the correction survives whichever of the two a
+   * merge happens to see first.
+   */
+  sameFamily?: string[];
+  notFamily?: string[];
   /** ISO timestamp, bumped on every write so a future server can merge. */
   updatedAt: string;
   /** Soft delete: set instead of dropping the record, for the same reason. */
