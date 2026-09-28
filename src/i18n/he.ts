@@ -1,6 +1,6 @@
 import type { BabySex } from "../domain/types.ts";
 import type { Catalog } from "./en.ts";
-import { heBaby } from "./he/baby.ts";
+import { heBaby, turns } from "./he/baby.ts";
 import { heBook } from "./he/book.ts";
 import { heForm } from "./he/form.ts";
 import { heSettings } from "./he/settings.ts";
@@ -32,6 +32,14 @@ function child(sex: BabySex | undefined): string {
   if (sex === "girl") return "בת ";
   if (sex === "boy") return "בן ";
   return "";
+}
+
+/**
+ * A line said three ways: to a girl, to a boy, and rebuilt without a gender at
+ * all for a surprise, rather than guessing or printing a slash.
+ */
+function bySex(girl: string, boy: string, neither: string) {
+  return (sex?: BabySex) => (sex === "girl" ? girl : sex === "boy" ? boy : neither);
 }
 
 /**
@@ -111,14 +119,15 @@ export const he: Catalog = {
 
   age: {
     notYet: "עוד לא כאן",
-    bornToday: "נולד היום",
+    // "היום הראשון" and not "יום ראשון", which is a Sunday.
+    bornToday: bySex("נולדה היום", "נולד היום", "היום הראשון בעולם"),
     days: (n, sex) => `${child(sex)}${days(n)}`,
     weeks: (n, sex) => `${child(sex)}${weeks(n)}`,
     months: (n, sex) => `${child(sex)}${months(n)}`,
     years: (n, sex) => `${child(sex)}${years(n)}`,
     yearsMonths: (y, m, sex) => `${child(sex)}${years(y)} ו${months(m)}`,
     shortSoon: "בקרוב",
-    shortNew: "חדש",
+    shortNew: bySex("חדשה", "חדש", "היום"),
     shortDays: (n) => `${n} ימ׳`,
     shortWeeks: (n) => `${n} שב׳`,
     shortMonths: (n) => `${n} חו׳`,
@@ -144,7 +153,8 @@ export const he: Catalog = {
   /* ------------------------------------------------------------ milestones */
 
   milestone: {
-    born: "הגיע",
+    // A noun, so the first row of the timeline agrees with nobody.
+    born: "הלידה",
     d100: "100 ימים",
     m6: "חצי שנה",
     y1: "יום הולדת ראשון",
@@ -156,16 +166,19 @@ export const he: Catalog = {
   /* --------------------------------------------------------- what is next */
 
   next: {
-    arrivedToday: "הגיע היום",
-    birthdayToday: (turning) => `חוגג ${ordinal(turning)} היום`,
-    birthdayTomorrow: (turning) => `חוגג ${ordinal(turning)} מחר`,
-    birthdayInDays: (turning, n) => `חוגג ${ordinal(turning)} בעוד ${days(n)}`,
+    arrivedToday: bySex("נולדה היום", "נולד היום", "היום הראשון בעולם"),
+    // The same three forms as the baby's own page, so a tile and the page it
+    // opens never disagree about how old she is turning.
+    birthdayToday: (turning, sex) => turns(turning, sex, "היום"),
+    birthdayTomorrow: (turning, sex) => turns(turning, sex, "מחר"),
+    birthdayInDays: (turning, n, sex) => turns(turning, sex, `בעוד ${days(n)}`),
   },
 
   /* ------------------------------------------------------------- labelling */
 
   label: {
-    parentsBaby: (parent) => `התינוק של ${parent}`,
+    parentsBaby: (parent, sex) =>
+      sex === "girl" ? `התינוקת של ${parent}` : `התינוק של ${parent}`,
     unnamed: "תינוק בדרך",
     and: (a, b) => `${a} ${vav(b)}`,
     list: (most, last) => `${most.join(", ")} ${vav(last)}`,
@@ -197,34 +210,189 @@ export const he: Catalog = {
     metal: "מתכת",
   },
 
+  /*
+   * Every trait is an adjective about the baby, and a Hebrew adjective has a
+   * gender. So each comes three ways: for a girl, for a boy, and - for a bump
+   * whose sex is a surprise, which the stars panel is shown for too - as the
+   * qualities themselves, nouns that describe nobody in particular.
+   */
   zodiac: {
-    aquarius: { name: "דלי", range: "20 בינואר – 18 בפברואר", trait: "מקורי, קצת מוזר, ובדיוק במידה הנכונה" },
-    pisces: { name: "דגים", range: "19 בפברואר – 20 במרץ", trait: "חולם עם לב ענק" },
-    aries: { name: "טלה", range: "21 במרץ – 19 באפריל", trait: "זיקוק קטן, ראשון בכל דלת" },
-    taurus: { name: "שור", range: "20 באפריל – 20 במאי", trait: "רגוע, יציב ועקשן להפליא" },
-    gemini: { name: "תאומים", range: "21 במאי – 20 ביוני", trait: "פטפטן סקרן עם שני רעיונות לכל דבר" },
-    cancer: { name: "סרטן", range: "21 ביוני – 22 ביולי", trait: "ביתי ורגיש, ומרגיש הכול" },
-    leo: { name: "אריה", range: "23 ביולי – 22 באוגוסט", trait: "נולד לאור הזרקורים, וכבר יודע את זה" },
-    virgo: { name: "בתולה", range: "23 באוגוסט – 22 בספטמבר", trait: "פרפקציוניסט קטן ששם לב לכל פרט" },
-    libra: { name: "מאזניים", range: "23 בספטמבר – 22 באוקטובר", trait: "מקסים, ורוצה שכולם יסתדרו" },
-    scorpio: { name: "עקרב", range: "23 באוקטובר – 21 בנובמבר", trait: "עוצמתי, חסר פחד, ובלתי אפשרי לרמות" },
-    sagittarius: { name: "קשת", range: "22 בנובמבר – 21 בדצמבר", trait: "הרפתקן שכבר מתכנן את הבריחה" },
-    capricorn: { name: "גדי", range: "22 בדצמבר – 19 בינואר", trait: "נשמה זקנה שהגיעה עם תוכנית" },
+    aquarius: {
+      name: "דלי",
+      range: "20 בינואר – 18 בפברואר",
+      trait: bySex(
+        "מקורית, קצת מוזרה, ובדיוק במידה הנכונה",
+        "מקורי, קצת מוזר, ובדיוק במידה הנכונה",
+        "מקוריות עם קצת מוזרות, ובדיוק במידה הנכונה",
+      ),
+    },
+    pisces: {
+      name: "דגים",
+      range: "19 בפברואר – 20 במרץ",
+      trait: bySex("חולמת עם לב ענק", "חולם עם לב ענק", "לב ענק וראש בעננים"),
+    },
+    aries: {
+      name: "טלה",
+      range: "21 במרץ – 19 באפריל",
+      trait: bySex(
+        "זיקוק קטן, ראשונה בכל דלת",
+        "זיקוק קטן, ראשון בכל דלת",
+        "זיקוק קטן שנכנס ראשון בכל דלת",
+      ),
+    },
+    taurus: {
+      name: "שור",
+      range: "20 באפריל – 20 במאי",
+      trait: bySex(
+        "רגועה, יציבה ועקשנית להפליא",
+        "רגוע, יציב ועקשן להפליא",
+        "רוגע, יציבות ועקשנות להפליא",
+      ),
+    },
+    gemini: {
+      name: "תאומים",
+      range: "21 במאי – 20 ביוני",
+      trait: bySex(
+        "פטפטנית סקרנית עם שני רעיונות לכל דבר",
+        "פטפטן סקרן עם שני רעיונות לכל דבר",
+        "סקרנות, פטפוט, ושני רעיונות לכל דבר",
+      ),
+    },
+    cancer: {
+      name: "סרטן",
+      range: "21 ביוני – 22 ביולי",
+      trait: bySex("ביתית ורגישה, ומרגישה הכול", "ביתי ורגיש, ומרגיש הכול", "לב רך שמרגיש הכול"),
+    },
+    leo: {
+      name: "אריה",
+      range: "23 ביולי – 22 באוגוסט",
+      trait: bySex(
+        "נולדה לאור הזרקורים, וכבר יודעת את זה",
+        "נולד לאור הזרקורים, וכבר יודע את זה",
+        "כוכב של זרקורים מהיום הראשון",
+      ),
+    },
+    virgo: {
+      name: "בתולה",
+      range: "23 באוגוסט – 22 בספטמבר",
+      trait: bySex(
+        "פרפקציוניסטית קטנה ששמה לב לכל פרט",
+        "פרפקציוניסט קטן ששם לב לכל פרט",
+        "עין חדה לכל פרט קטן",
+      ),
+    },
+    libra: {
+      name: "מאזניים",
+      range: "23 בספטמבר – 22 באוקטובר",
+      trait: bySex(
+        "מקסימה, ורוצה שכולם יסתדרו",
+        "מקסים, ורוצה שכולם יסתדרו",
+        "המון קסם, ורצון שכולם יסתדרו",
+      ),
+    },
+    scorpio: {
+      name: "עקרב",
+      range: "23 באוקטובר – 21 בנובמבר",
+      trait: bySex(
+        "עוצמתית, חסרת פחד, ואי אפשר לעבוד עליה",
+        "עוצמתי, חסר פחד, ואי אפשר לעבוד עליו",
+        "עוצמה, אומץ, ועין שאי אפשר לעבוד עליה",
+      ),
+    },
+    sagittarius: {
+      name: "קשת",
+      range: "22 בנובמבר – 21 בדצמבר",
+      trait: bySex(
+        "הרפתקנית שכבר מתכננת את הבריחה",
+        "הרפתקן שכבר מתכנן את הבריחה",
+        "רוח הרפתקנית שכבר מתכננת את הבריחה",
+      ),
+    },
+    capricorn: {
+      name: "גדי",
+      range: "22 בדצמבר – 19 בינואר",
+      // נשמה is the subject here, so the line already agrees with nobody else.
+      trait: bySex(
+        "נשמה זקנה שהגיעה עם תוכנית",
+        "נשמה זקנה שהגיעה עם תוכנית",
+        "נשמה זקנה שהגיעה עם תוכנית",
+      ),
+    },
   },
 
   chinese: {
-    rat: { name: "עכבר", trait: "זריז, מקסים ותמיד צעד אחד לפנים" },
-    ox: { name: "שור", trait: "סבלני, וכשהחליט – אי אפשר להזיז אותו" },
-    tiger: { name: "נמר", trait: "אמיץ, דרמטי ומלא חוצפה" },
-    rabbit: { name: "ארנב", trait: "עדין, בר מזל וחכם בשקט" },
-    dragon: { name: "דרקון", trait: "נולד עם מזל, ובכלל לא מתרגש מזה" },
-    snake: { name: "נחש", trait: "חכם, מתבונן ומסתורי" },
-    horse: { name: "סוס", trait: "חופשי ברוחו ותמיד בתנועה" },
-    goat: { name: "עז", trait: "טוב לב, אמנותי וקצת חולמני" },
-    monkey: { name: "קוף", trait: "שובב וחכם בהרבה מדי" },
-    rooster: { name: "תרנגול", trait: "בטוח בעצמו, מסודר, ושמח לספר לך על זה" },
-    dog: { name: "כלב", trait: "נאמן, ישר והוגן עד הסוף" },
-    pig: { name: "חזיר", trait: "נדיב, שמח ואוהב ארוחה טובה" },
+    rat: {
+      name: "עכבר",
+      trait: bySex(
+        "זריזה, מקסימה ותמיד צעד אחד לפנים",
+        "זריז, מקסים ותמיד צעד אחד לפנים",
+        "זריזות, קסם, ותמיד צעד אחד לפנים",
+      ),
+    },
+    ox: {
+      name: "שור",
+      trait: bySex(
+        "סבלנית, וכשהחליטה – אי אפשר להזיז אותה",
+        "סבלני, וכשהחליט – אי אפשר להזיז אותו",
+        "סבלנות, וכשיש החלטה – אין מה לנסות להזיז",
+      ),
+    },
+    tiger: {
+      name: "נמר",
+      trait: bySex("אמיצה, דרמטית ומלאת חוצפה", "אמיץ, דרמטי ומלא חוצפה", "אומץ, דרמה והמון חוצפה"),
+    },
+    rabbit: {
+      name: "ארנב",
+      trait: bySex("עדינה, ברת מזל וחכמה בשקט", "עדין, בר מזל וחכם בשקט", "עדינות, מזל וחוכמה שקטה"),
+    },
+    dragon: {
+      name: "דרקון",
+      trait: bySex(
+        "נולדה עם מזל, ובכלל לא מתרגשת מזה",
+        "נולד עם מזל, ובכלל לא מתרגש מזה",
+        "מזל מהיום הראשון, ואפס התרגשות מזה",
+      ),
+    },
+    snake: {
+      name: "נחש",
+      trait: bySex("חכמה, מתבוננת ומסתורית", "חכם, מתבונן ומסתורי", "חוכמה, התבוננות ומסתורין"),
+    },
+    horse: {
+      name: "סוס",
+      trait: bySex("חופשייה ברוחה ותמיד בתנועה", "חופשי ברוחו ותמיד בתנועה", "רוח חופשית שתמיד בתנועה"),
+    },
+    goat: {
+      name: "עז",
+      trait: bySex(
+        "טובת לב, אמנותית וקצת חולמנית",
+        "טוב לב, אמנותי וקצת חולמני",
+        "לב טוב, נשמה אמנותית וקצת חולמנות",
+      ),
+    },
+    monkey: {
+      name: "קוף",
+      trait: bySex("שובבה וחכמה בהרבה מדי", "שובב וחכם בהרבה מדי", "שובבות וחוכמה, בהרבה מדי"),
+    },
+    rooster: {
+      name: "תרנגול",
+      trait: bySex(
+        "בטוחה בעצמה, מסודרת, ושמחה לספר לך על זה",
+        "בטוח בעצמו, מסודר, ושמח לספר לך על זה",
+        "ביטחון עצמי, סדר, והרבה שמחה לספר לך על זה",
+      ),
+    },
+    dog: {
+      name: "כלב",
+      trait: bySex("נאמנה, ישרה והוגנת עד הסוף", "נאמן, ישר והוגן עד הסוף", "נאמנות, יושר והגינות עד הסוף"),
+    },
+    pig: {
+      name: "חזיר",
+      trait: bySex(
+        "נדיבה, שמחה ואוהבת ארוחה טובה",
+        "נדיב, שמח ואוהב ארוחה טובה",
+        "נדיבות, שמחה ואהבה גדולה לארוחה טובה",
+      ),
+    },
   },
 
   birthstones: [
@@ -259,7 +427,8 @@ export const he: Catalog = {
     britIn: (n) => `ברית בעוד ${days(n)}`,
     britToday: "הברית היום",
     britPassed: "ברית מילה",
-    bornOn: (chag) => `נולד ב${chag}`,
+    bornOn: (chag, sex) =>
+      bySex(`נולדה ב${chag}`, `נולד ב${chag}`, `יום הלידה ב${chag}`)(sex),
     dueOn: (chag) => `התאריך הוא ב${chag}`,
     chag: {
       roshHashana: "ראש השנה",
@@ -283,13 +452,20 @@ export const he: Catalog = {
 
   stage: {
     egg: "בדרך",
-    hatched: "בדיוק בקע",
+    hatched: bySex("בדיוק בקעה", "בדיוק בקע", "רק עכשיו מהביצה"),
+    // A noun every chick answers to, whichever it is.
     chick: "אפרוח",
-    chicken: "תרנגולת",
-    rooster: "תרנגול",
-    turkey: "תרנגול הודו",
-    asideChicken: "כבר לא בדיוק תינוק.",
-    asideRooster: "מבוגר לגמרי, באפליקציה על תינוקות.",
+    // The hen and the rooster are the joke in English and the whole grammar in
+    // Hebrew: a teenage boy is not a תרנגולת and a grown woman is not a תרנגול.
+    chicken: bySex("תרנגולת צעירה", "תרנגול צעיר", "תרנגולת צעירה"),
+    rooster: bySex("תרנגולת", "תרנגול", "תרנגולת"),
+    turkey: bySex("תרנגולת הודו", "תרנגול הודו", "תרנגול הודו"),
+    asideChicken: "כבר לא בדיוק בגיל של תינוקות.",
+    asideRooster: bySex(
+      "מבוגרת לגמרי, באפליקציה על תינוקות.",
+      "מבוגר לגמרי, באפליקציה על תינוקות.",
+      "בגיל של מבוגרים, באפליקציה על תינוקות.",
+    ),
     asideTurkey: "בשלב הזה זו סתם תזכורת ליום הולדת, וזה בסדר גמור.",
   },
 };

@@ -25,7 +25,7 @@ import {
 } from "../domain/hebrew.ts";
 import { toICalendar } from "../domain/ics.ts";
 import { lifeStage } from "../domain/stage.ts";
-import type { Baby } from "../domain/types.ts";
+import type { Baby, BabySex } from "../domain/types.ts";
 import type { Catalog } from "../i18n/en.ts";
 import { albumSection } from "./album.ts";
 import { shareCard } from "./card.ts";
@@ -52,10 +52,10 @@ function weekdayName(date: Date, t: Catalog): string {
   return date.toLocaleDateString(t.dateLocale, { weekday: "long" });
 }
 
-function signPanel(date: Date, heading: string, t: Catalog): HTMLElement {
+function signPanel(date: Date, heading: string, t: Catalog, sex: BabySex | undefined): HTMLElement {
   const words = t.baby.detail;
-  const sun = starSign(date, t);
-  const chinese = chineseSign(date, t);
+  const sun = starSign(date, t, sex);
+  const chinese = chineseSign(date, t, sex);
 
   return section(
     heading,
@@ -111,7 +111,7 @@ function bornBody(baby: Baby, ctx: AppContext): HTMLElement {
           : words.birthdayIn(birthday.turning, birthday.daysUntil, baby.sex),
       ),
     ),
-    signPanel(birth, words.stars, t),
+    signPanel(birth, words.stars, t, baby.sex),
     section(
       words.bornSection,
       el(
@@ -219,7 +219,7 @@ function expectingBody(baby: Baby, ctx: AppContext): HTMLElement {
       ),
     ),
     arrived,
-    signPanel(due.date, words.starsIfOnTime, t),
+    signPanel(due.date, words.starsIfOnTime, t, baby.sex),
     el("p", { class: "note" }, words.signMayChange),
   );
 }
@@ -274,7 +274,7 @@ function hebrewSection(baby: Baby, ctx: AppContext): HTMLElement | null {
         ),
         brit && brit.daysUntil >= -BRIT_RECENT_DAYS ? britCard(brit, t) : null,
       ),
-      chag ? el("p", { class: "sign-trait" }, t.hebrew.bornOn(t.hebrew.chag[chag])) : null,
+      chag ? el("p", { class: "sign-trait" }, t.hebrew.bornOn(t.hebrew.chag[chag], baby.sex)) : null,
       // Where the date came from, said once and quietly, because the app has a
       // civil date and a Hebrew day turns over at sunset.
       el("p", { class: "note" }, t.hebrew.sunset),

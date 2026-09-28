@@ -1,6 +1,6 @@
 import type { Catalog } from "../i18n/en.ts";
 import { parseDate } from "./derive.ts";
-import type { Baby } from "./types.ts";
+import type { Baby, BabySex } from "./types.ts";
 
 /*
  * An egg, then a hatchling, then a chick. Which is the whole story for anyone
@@ -21,24 +21,26 @@ export type Stage = {
 
 const egg = (t: Catalog): Stage => ({ glyph: "\u{1F95A}", label: t.stage.egg });
 
-const LADDER: { from: number; glyph: string; read: (t: Catalog) => Omit<Stage, "glyph"> }[] = [
+type Read = (t: Catalog, sex: BabySex | undefined) => Omit<Stage, "glyph">;
+
+const LADDER: { from: number; glyph: string; read: Read }[] = [
   {
     from: 40,
     glyph: "\u{1F983}",
-    read: (t) => ({ label: t.stage.turkey, aside: t.stage.asideTurkey }),
+    read: (t, sex) => ({ label: t.stage.turkey(sex), aside: t.stage.asideTurkey }),
   },
   {
     from: 18,
     glyph: "\u{1F413}",
-    read: (t) => ({ label: t.stage.rooster, aside: t.stage.asideRooster }),
+    read: (t, sex) => ({ label: t.stage.rooster(sex), aside: t.stage.asideRooster(sex) }),
   },
   {
     from: 13,
     glyph: "\u{1F414}",
-    read: (t) => ({ label: t.stage.chicken, aside: t.stage.asideChicken }),
+    read: (t, sex) => ({ label: t.stage.chicken(sex), aside: t.stage.asideChicken }),
   },
   { from: 1, glyph: "\u{1F424}", read: (t) => ({ label: t.stage.chick }) },
-  { from: 0, glyph: "\u{1F423}", read: (t) => ({ label: t.stage.hatched }) },
+  { from: 0, glyph: "\u{1F423}", read: (t, sex) => ({ label: t.stage.hatched(sex) }) },
 ];
 
 /** Whole years, counted the way a birthday is: it turns over on the day. */
@@ -59,5 +61,5 @@ export function lifeStage(baby: Baby, now: Date, t: Catalog): Stage {
   if (years < 0) return egg(t);
 
   const rung = LADDER.find((step) => years >= step.from) ?? LADDER[LADDER.length - 1]!;
-  return { glyph: rung.glyph, ...rung.read(t) };
+  return { glyph: rung.glyph, ...rung.read(t, baby.sex) };
 }

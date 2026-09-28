@@ -2,7 +2,14 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import { starSign, chineseSign, birthstone, birthFlower, dayOfWeekRhyme } from "../src/domain/almanac.ts";
-import { describeAge, describeParents, displayName, dueCountdown, formatDate } from "../src/domain/derive.ts";
+import {
+  describeAge,
+  describeParents,
+  displayName,
+  dueCountdown,
+  formatDate,
+  nextEvent,
+} from "../src/domain/derive.ts";
 import { lifeStage } from "../src/domain/stage.ts";
 import type { Baby } from "../src/domain/types.ts";
 import { en } from "../src/i18n/en.ts";
@@ -158,6 +165,53 @@ describe("Hebrew says how old somebody is properly", () => {
 
   test("years and months are joined the Hebrew way", () => {
     assert.equal(age("2023-07-01", "girl"), "בת 3 שנים וחודשיים");
+  });
+});
+
+describe("Hebrew never calls a girl by a boy's words", () => {
+  const girl = (over: Partial<Baby> = {}) => baby({ sex: "girl", ...over });
+  const boy = (over: Partial<Baby> = {}) => baby({ sex: "boy", ...over });
+  const bump = (over: Partial<Baby> = {}) => baby({ sex: "surprise", ...over });
+
+  test("born today agrees with her, and says nothing of anybody else", () => {
+    const today = (sex?: Baby["sex"]) => describeAge("2026-09-01", NOW, he, sex);
+    assert.equal(today("girl").label, "נולדה היום");
+    assert.equal(today("girl").short, "חדשה");
+    assert.equal(today("boy").label, "נולד היום");
+    assert.equal(today("surprise").label, "היום הראשון בעולם");
+    assert.equal(nextEvent(girl({ birthDate: "2026-09-01" }), NOW, he)?.label, "נולדה היום");
+  });
+
+  test("a birthday on the tile is said the way her own page says it", () => {
+    const turning = (b: Baby) => nextEvent(b, NOW, he)?.label;
+    assert.equal(turning(girl({ birthDate: "2024-09-01" })), "נכנסת לגיל שנתיים היום");
+    assert.equal(turning(boy({ birthDate: "2025-09-02" })), "נכנס לגיל שנה מחר");
+    assert.equal(turning(bump({ birthDate: "2023-09-05" })), "יום הולדת 3 בעוד 4 ימים");
+  });
+
+  test("a girl with no name is still somebody's תינוקת", () => {
+    assert.equal(displayName(girl({ name: undefined }), he), "התינוקת של שרה");
+    assert.equal(displayName(boy({ name: undefined }), he), "התינוק של שרה");
+  });
+
+  test("the stars describe her in her own grammar, and a surprise in nouns", () => {
+    const leo = new Date("2024-07-25T12:00:00");
+    assert.equal(starSign(leo, he, "girl").trait, "נולדה לאור הזרקורים, וכבר יודעת את זה");
+    assert.equal(starSign(leo, he, "boy").trait, "נולד לאור הזרקורים, וכבר יודע את זה");
+    assert.equal(starSign(leo, he).trait, "כוכב של זרקורים מהיום הראשון");
+    assert.equal(chineseSign(leo, he, "girl").trait, "נולדה עם מזל, ובכלל לא מתרגשת מזה");
+  });
+
+  test("a grown woman is not a rooster, and a teenage boy is not a hen", () => {
+    assert.equal(lifeStage(girl({ birthDate: "2000-01-01" }), NOW, he).label, "תרנגולת");
+    assert.match(lifeStage(girl({ birthDate: "2000-01-01" }), NOW, he).aside!, /^מבוגרת/);
+    assert.equal(lifeStage(boy({ birthDate: "2012-01-01" }), NOW, he).label, "תרנגול צעיר");
+    assert.equal(lifeStage(girl({ birthDate: "2026-06-01" }), NOW, he).label, "בדיוק בקעה");
+  });
+
+  test("the holiday line agrees too", () => {
+    assert.equal(he.hebrew.bornOn("חנוכה", "girl"), "נולדה בחנוכה");
+    assert.equal(he.hebrew.bornOn("חנוכה"), "יום הלידה בחנוכה");
   });
 });
 

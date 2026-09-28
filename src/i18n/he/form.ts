@@ -29,7 +29,9 @@ export const heForm: typeof enForm = {
     titleNew: "תינוק חדש",
 
     /* on the way, or here yet */
-    statusLabel: "האם התינוק כבר כאן?",
+    // The form edits a girl as often as a boy, and cannot wait for the sex
+    // field below it to decide what to call either.
+    statusLabel: "כבר כאן, או עוד בדרך?",
     statusExpecting: "בדרך",
     statusBorn: "כאן",
 
@@ -53,7 +55,7 @@ export const heForm: typeof enForm = {
     dueDate: "תאריך לידה משוער",
     birthday: "תאריך לידה",
     birthTime: "שעת הלידה",
-    birthTimeHint: "לא חובה, אבל זה מכריע מזל שנולד על הגבול.",
+    birthTimeHint: "לא חובה, אבל כשהלידה על הגבול בין שני מזלות, השעה מכריעה.",
     weight: "משקל",
     kg: "ק״ג",
     length: "אורך",
@@ -66,7 +68,7 @@ export const heForm: typeof enForm = {
     sexSurprise: "הפתעה",
 
     /* what is wrong with the form */
-    needBirthday: "אם התינוק כבר כאן, צריך תאריך לידה.",
+    needBirthday: "אם הלידה כבר הייתה, צריך תאריך לידה.",
     badWeight: (min, max) => `משקל לידה בין ${min} ל-${max} ק״ג, בבקשה.`,
     badLength: (min, max) => `אורך לידה בין ${min} ל-${max} ס״מ, בבקשה.`,
     needDueOrName: "הוסיפו תאריך משוער, או לפחות שם, כדי שנדע במי מדובר.",
@@ -75,8 +77,9 @@ export const heForm: typeof enForm = {
     save: "שמירה",
     add: "הוספת תינוק",
     cancel: "ביטול",
-    savedToast: "נשמר",
-    addedToast: "נוסף",
+    // Neither agrees with the baby: "נוסף" would be wrong for every girl.
+    savedToast: "השינויים נשמרו",
+    addedToast: "הספר גדל באחד",
   },
 
   /* ------------------------------------------------------ the confirmations */
@@ -91,7 +94,7 @@ export const heForm: typeof enForm = {
     // not, because the verb agrees with us rather than with the baby.
     removed: (name) => `הסרנו את ${name}`,
 
-    arrivedTitle: "התינוק כאן!",
+    arrivedTitle: "מזל טוב!",
     arrivedAsk: (name, sex) => {
       if (sex === "girl") return `מתי ${name} הגיעה?`;
       if (sex === "boy") return `מתי ${name} הגיע?`;
@@ -100,7 +103,8 @@ export const heForm: typeof enForm = {
     },
     born: (date) => `תאריך הלידה: ${date}.`,
     pickDay: "בחרו את היום שבו זה קרה.",
-    arrivedConfirm: "כן, התינוק כאן",
+    // Answers the question about the day, which pickDay also calls "זה".
+    arrivedConfirm: "כן, זה קרה",
     arrivedCancel: "עוד לא",
     welcome: (name, sex) => {
       if (sex === "girl") return `\u{1F389} ברוכה הבאה, ${name}!`;

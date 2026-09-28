@@ -50,7 +50,7 @@ function ageWord(n: number): string {
  * A birthday, in the three forms Hebrew actually has. With no sex to go on the
  * verb is dropped and the noun carries the sentence instead.
  */
-function turns(turning: number, sex: BabySex | undefined, when: string): string {
+export function turns(turning: number, sex: BabySex | undefined, when: string): string {
   const age = ageWord(turning);
   if (sex === "girl") return `נכנסת לגיל ${age} ${when}`;
   if (sex === "boy") return `נכנס לגיל ${age} ${when}`;
@@ -118,7 +118,7 @@ export const heBaby: typeof enBaby = {
 
     familySection: "משפחה",
     siblingMeta: (relation, status) => `${relation}${DOT}${status}`,
-    anotherOne: "\uFF0B עוד אחד",
+    anotherOne: "\uFF0B אח או אחות",
     addSibling: "\uFF0B הוספת אח או אחות",
 
     /* ---------------------------------------------------------------- notes */
@@ -136,7 +136,8 @@ export const heBaby: typeof enBaby = {
     cardFailed: "לא הצלחנו להכין כרטיס.",
     addToCalendar: "\u{1F4C5} הוספה ליומן",
     calendarSaved: "קובץ היומן נשמר – פתחו אותו כדי להוסיף את התאריך",
-    sendBaby: "\u{1F4E6} שליחת התינוק הזה",
+    // "התינוק הזה" on a girl's page is the mistake this avoids.
+    sendBaby: "\u{1F4E6} שליחת הפרטים",
     remove: "הסרה",
   },
 
@@ -150,8 +151,9 @@ export const heBaby: typeof enBaby = {
     caption: "כותרת",
     captionHint: "החיוך הראשון",
     taken: "תאריך הצילום",
-    useAsPicture: "קביעה כתמונה שלהם",
-    nowTheirPicture: "מעכשיו זו התמונה שלהם",
+    // "שלהם" for one baby reads as the parents'; the main picture is nobody's.
+    useAsPicture: "קביעה כתמונה הראשית",
+    nowTheirPicture: "מעכשיו זו התמונה הראשית",
     delete: "מחיקה",
     removed: "התמונה הוסרה",
   },

@@ -82,7 +82,8 @@ export const heBook: typeof enBook = {
     intro:
       "המשפחות מזוהות לפי שמות ההורים, וזה יוצא לא נכון כששני חברים חולקים שם, או כשאותו זוג נרשם בשתי צורות שונות.",
     inThisFamily: "במשפחה הזאת",
-    somebodyElse: "מישהו אחר",
+    // Heads a list of girls as well as boys, which "מישהו אחר" does not.
+    somebodyElse: "שאר הספר",
     becauseOf: (relation, why) => `${relation} \u00B7 ${why}`,
     fromTheNames: "לפי השמות",
     youSaidSo: "לפי מה שאמרתם",

@@ -1,5 +1,6 @@
 import type { Catalog } from "../i18n/en.ts";
 import { zodiacYearFor } from "./lunarNewYear.ts";
+import type { BabySex } from "./types.ts";
 
 /*
  * The lookup tables. What is kept here is the part that is the same in every
@@ -86,6 +87,7 @@ function mmdd(date: Date): number {
 function readStarSign(
   entry: { key: StarSignKey; emoji: string; element: ElementKey },
   t: Catalog,
+  sex: BabySex | undefined,
 ): StarSign {
   const words = t.zodiac[entry.key];
   return {
@@ -94,15 +96,16 @@ function readStarSign(
     emoji: entry.emoji,
     element: t.element[entry.element],
     range: words.range,
-    trait: words.trait,
+    trait: words.trait(sex),
   };
 }
 
-export function starSign(date: Date, t: Catalog): StarSignReading {
+/** The sex only changes the trait, which is an adjective about the baby. */
+export function starSign(date: Date, t: Catalog, sex?: BabySex): StarSignReading {
   const key = mmdd(date);
   const index = STAR_SIGNS.findIndex((sign) => key >= sign.from && key <= sign.to);
   const entry = STAR_SIGNS[index];
-  const reading: StarSignReading = readStarSign(entry, t);
+  const reading: StarSignReading = readStarSign(entry, t, sex);
 
   // Sun-sign boundaries drift by a day between years, so a birthday landing on
   // the very edge is worth flagging rather than stating flatly.
@@ -113,13 +116,13 @@ export function starSign(date: Date, t: Catalog): StarSignReading {
         ? STAR_SIGNS[(index + 1) % STAR_SIGNS.length]
         : undefined;
   if (neighbour && neighbour.key !== entry.key) {
-    reading.cuspWith = readStarSign(neighbour, t);
+    reading.cuspWith = readStarSign(neighbour, t, sex);
   }
 
   return reading;
 }
 
-export function chineseSign(date: Date, t: Catalog): ChineseSign {
+export function chineseSign(date: Date, t: Catalog, sex?: BabySex): ChineseSign {
   const year = zodiacYearFor(date);
   const offset = ((year - 1900) % 12 + 12) % 12;
   const animal = CHINESE_ANIMALS[offset];
@@ -129,7 +132,7 @@ export function chineseSign(date: Date, t: Catalog): ChineseSign {
     emoji: animal.emoji,
     element: t.element[CHINESE_ELEMENTS[((year - 1900) % 10 + 10) % 10]],
     year,
-    trait: t.chinese[animal.key].trait,
+    trait: t.chinese[animal.key].trait(sex),
   };
 }
 

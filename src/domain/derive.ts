@@ -133,7 +133,7 @@ export function describeAge(birthDate: string, now: Date, t: Catalog, sex?: Baby
   const days = daysBetween(birth, now);
 
   if (days < 0) return { days, label: t.age.notYet, short: t.age.shortSoon };
-  if (days === 0) return { days, label: t.age.bornToday, short: t.age.shortNew };
+  if (days === 0) return { days, label: t.age.bornToday(sex), short: t.age.shortNew(sex) };
   if (days < 14) return { days, label: t.age.days(days, sex), short: t.age.shortDays(days) };
 
   const months = monthsBetween(birth, now);
@@ -295,7 +295,7 @@ export function nextEvent(baby: Baby, now: Date, t: Catalog): Upcoming | null {
       kind: "arrival",
       date: parseDate(baby.birthDate),
       daysUntil: 0,
-      label: t.next.arrivedToday,
+      label: t.next.arrivedToday(baby.sex),
       emoji: "\u{1F389}",
     };
   }
@@ -353,7 +353,7 @@ export function sortByNextEvent(babies: Baby[], now: Date, t: Catalog): Baby[] {
 
 export function displayName(baby: Baby, t: Catalog): string {
   if (baby.name) return baby.name;
-  if (baby.parents.length > 0) return t.label.parentsBaby(baby.parents[0]);
+  if (baby.parents.length > 0) return t.label.parentsBaby(baby.parents[0], baby.sex);
   return t.label.unnamed;
 }
 

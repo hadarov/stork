@@ -20,6 +20,12 @@ function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
 
+/**
+ * A line English says the same way for anybody, in the shape of one that takes
+ * the baby's sex - because Hebrew cannot say it without knowing.
+ */
+const said = (text: string) => (_sex?: BabySex) => text;
+
 function ordinal(n: number): string {
   const rest = n % 100;
   if (rest >= 11 && rest <= 13) return `${n}th`;
@@ -66,7 +72,7 @@ export const en = {
 
   age: {
     notYet: "not here yet",
-    bornToday: "born today",
+    bornToday: said("born today"),
     days: (n: number, _sex?: BabySex) => `${plural(n, "day")} old`,
     weeks: (n: number, _sex?: BabySex) => `${plural(n, "week")} old`,
     months: (n: number, _sex?: BabySex) => `${plural(n, "month")} old`,
@@ -75,7 +81,7 @@ export const en = {
       `${plural(years, "year")}, ${plural(months, "month")} old`,
     // The corner of a tile, where there is room for two characters.
     shortSoon: "soon",
-    shortNew: "new",
+    shortNew: said("new"),
     shortDays: (n: number) => `${n}d`,
     shortWeeks: (n: number) => `${n}w`,
     shortMonths: (n: number) => `${n}m`,
@@ -113,7 +119,7 @@ export const en = {
   /* --------------------------------------------------------- what is next */
 
   next: {
-    arrivedToday: "arrived today",
+    arrivedToday: said("arrived today"),
     birthdayToday: (turning: number, _sex?: BabySex) => `turns ${ordinal(turning)} today`,
     birthdayTomorrow: (turning: number, _sex?: BabySex) => `turns ${ordinal(turning)} tomorrow`,
     birthdayInDays: (turning: number, days: number, _sex?: BabySex) =>
@@ -123,7 +129,7 @@ export const en = {
   /* ------------------------------------------------------------- labelling */
 
   label: {
-    parentsBaby: (parent: string) => `${parent}'s baby`,
+    parentsBaby: (parent: string, _sex?: BabySex) => `${parent}'s baby`,
     unnamed: "Baby on the way",
     and: (a: string, b: string) => `${a} and ${b}`,
     list: (most: string[], last: string) => `${most.join(", ")} and ${last}`,
@@ -156,33 +162,33 @@ export const en = {
   },
 
   zodiac: {
-    aquarius: { name: "Aquarius", range: "20 Jan - 18 Feb", trait: "a delightfully odd original" },
-    pisces: { name: "Pisces", range: "19 Feb - 20 Mar", trait: "a dreamer with an enormous heart" },
-    aries: { name: "Aries", range: "21 Mar - 19 Apr", trait: "a small firecracker, first through every door" },
-    taurus: { name: "Taurus", range: "20 Apr - 20 May", trait: "cosy, steady and gloriously stubborn" },
-    gemini: { name: "Gemini", range: "21 May - 20 Jun", trait: "a curious chatterbox with two of every idea" },
-    cancer: { name: "Cancer", range: "21 Jun - 22 Jul", trait: "a soft-hearted homebody who feels everything" },
-    leo: { name: "Leo", range: "23 Jul - 22 Aug", trait: "born for the spotlight and already aware of it" },
-    virgo: { name: "Virgo", range: "23 Aug - 22 Sep", trait: "a tiny perfectionist who notices everything" },
-    libra: { name: "Libra", range: "23 Sep - 22 Oct", trait: "a charmer who wants everyone to get along" },
-    scorpio: { name: "Scorpio", range: "23 Oct - 21 Nov", trait: "intense, fearless and impossible to fool" },
-    sagittarius: { name: "Sagittarius", range: "22 Nov - 21 Dec", trait: "an adventurer already planning the escape" },
-    capricorn: { name: "Capricorn", range: "22 Dec - 19 Jan", trait: "an old soul who arrived with a plan" },
+    aquarius: { name: "Aquarius", range: "20 Jan - 18 Feb", trait: said("a delightfully odd original") },
+    pisces: { name: "Pisces", range: "19 Feb - 20 Mar", trait: said("a dreamer with an enormous heart") },
+    aries: { name: "Aries", range: "21 Mar - 19 Apr", trait: said("a small firecracker, first through every door") },
+    taurus: { name: "Taurus", range: "20 Apr - 20 May", trait: said("cosy, steady and gloriously stubborn") },
+    gemini: { name: "Gemini", range: "21 May - 20 Jun", trait: said("a curious chatterbox with two of every idea") },
+    cancer: { name: "Cancer", range: "21 Jun - 22 Jul", trait: said("a soft-hearted homebody who feels everything") },
+    leo: { name: "Leo", range: "23 Jul - 22 Aug", trait: said("born for the spotlight and already aware of it") },
+    virgo: { name: "Virgo", range: "23 Aug - 22 Sep", trait: said("a tiny perfectionist who notices everything") },
+    libra: { name: "Libra", range: "23 Sep - 22 Oct", trait: said("a charmer who wants everyone to get along") },
+    scorpio: { name: "Scorpio", range: "23 Oct - 21 Nov", trait: said("intense, fearless and impossible to fool") },
+    sagittarius: { name: "Sagittarius", range: "22 Nov - 21 Dec", trait: said("an adventurer already planning the escape") },
+    capricorn: { name: "Capricorn", range: "22 Dec - 19 Jan", trait: said("an old soul who arrived with a plan") },
   },
 
   chinese: {
-    rat: { name: "Rat", trait: "quick, charming and always one step ahead" },
-    ox: { name: "Ox", trait: "patient and unshakeable once decided" },
-    tiger: { name: "Tiger", trait: "brave, dramatic and full of nerve" },
-    rabbit: { name: "Rabbit", trait: "gentle, lucky and quietly clever" },
-    dragon: { name: "Dragon", trait: "born lucky and entirely unbothered by it" },
-    snake: { name: "Snake", trait: "wise, watchful and mysterious" },
-    horse: { name: "Horse", trait: "free-spirited and permanently in motion" },
-    goat: { name: "Goat", trait: "kind, artistic and a little dreamy" },
-    monkey: { name: "Monkey", trait: "mischievous and far too smart" },
-    rooster: { name: "Rooster", trait: "confident, tidy and happy to tell you so" },
-    dog: { name: "Dog", trait: "loyal, honest and endlessly fair" },
-    pig: { name: "Pig", trait: "generous, cheerful and fond of a good meal" },
+    rat: { name: "Rat", trait: said("quick, charming and always one step ahead") },
+    ox: { name: "Ox", trait: said("patient and unshakeable once decided") },
+    tiger: { name: "Tiger", trait: said("brave, dramatic and full of nerve") },
+    rabbit: { name: "Rabbit", trait: said("gentle, lucky and quietly clever") },
+    dragon: { name: "Dragon", trait: said("born lucky and entirely unbothered by it") },
+    snake: { name: "Snake", trait: said("wise, watchful and mysterious") },
+    horse: { name: "Horse", trait: said("free-spirited and permanently in motion") },
+    goat: { name: "Goat", trait: said("kind, artistic and a little dreamy") },
+    monkey: { name: "Monkey", trait: said("mischievous and far too smart") },
+    rooster: { name: "Rooster", trait: said("confident, tidy and happy to tell you so") },
+    dog: { name: "Dog", trait: said("loyal, honest and endlessly fair") },
+    pig: { name: "Pig", trait: said("generous, cheerful and fond of a good meal") },
   },
 
   birthstones: [
@@ -224,7 +230,7 @@ export const en = {
     britIn: (n: number) => `Brit milah in ${plural(n, "day")}`,
     britToday: "Brit milah today",
     britPassed: "Brit milah",
-    bornOn: (chag: string) => `Born on ${chag}`,
+    bornOn: (chag: string, _sex?: BabySex) => `Born on ${chag}`,
     dueOn: (chag: string) => `Due on ${chag}`,
     chag: {
       roshHashana: "Rosh Hashana",
@@ -248,13 +254,13 @@ export const en = {
 
   stage: {
     egg: "on the way",
-    hatched: "just hatched",
+    hatched: said("just hatched"),
     chick: "a chick",
-    chicken: "a chicken",
-    rooster: "a rooster",
-    turkey: "a turkey",
+    chicken: said("a chicken"),
+    rooster: said("a rooster"),
+    turkey: said("a turkey"),
     asideChicken: "Not strictly a baby any more.",
-    asideRooster: "A fully grown adult, in an app about babies.",
+    asideRooster: said("A fully grown adult, in an app about babies."),
     asideTurkey: "At this point it is just a birthday reminder, which is fine.",
   },
 };
